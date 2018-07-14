@@ -1,12 +1,12 @@
 ## The Hamburglar
 
 <p align="center">
-    <img src="res/hamburglar.jpg" width="400"></img>
+    <img src="res/hamburglar.jpg" width="250"></img>
 </p>
 
 Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. All in one file, no external packages required! 
 
-## Installation
+## Operation
 
 `python3 hamburgler.py ~/Directory/Here`
 

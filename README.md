@@ -12,6 +12,11 @@ Multithreaded and recursive directory scraping script. Stores useful information
 
 This will recursively scan for files, then analyzes each file for a variety of findings using regex filters
 
+**Tips**
+
+- You can use this script as a webpage scraper with something like this:
+ `wget https://www.google.com/ -O page ; python3 hamburglar.py page; rm page;`
+
 ## Settings
 
 - `whitelistOn`: turns on or off whitelist checking

@@ -2,9 +2,17 @@ import re
 import os
 import sys
 import threading
+import json
+
+
+if(len(sys.argv) != 2):
+    print("[-] Argument Error: Use hamburglar.py ~/dir/path")
+    exit()
 
 rootdir = sys.argv[1]
-fileStack= []
+fileStack= set()
+cumulativeFindings= {}
+
 regexList= {
     "ipv4":"[0-9]+(?:\.[0-9]+){3}",
     "https-site":"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+",
@@ -41,11 +49,15 @@ regexList= {
 #iterate through every file in given directory
 def scan():
     for root, subFolders, files in os.walk(rootdir):
+
+        for entry in files:
+            filePath= os.path.join(root,entry)
+            fileStack.add(filePath)
+
         for folder in subFolders:
             for entry in files:
                 filePath = os.path.join(root,entry)
-                fileStack.append(filePath)
-                print(filePath)
+                fileStack.add(filePath)
 
 
 def _file_read():
@@ -55,27 +67,47 @@ def _file_read():
             with open(filePath, "r") as scanFile:
                 #print("WORKER CALLED: "+filePath+"\n")
                 results = _sniff_text(filePath,scanFile.read().replace('\n', ''))
-                if (len(results.items())>1): print("Results: \n"+ str(results)+"\n")
+                if (len(results.items())>1):
+                    print("[+] Results found\n")
+                    cumulativeFindings.update({filePath:results})
                 #for line in scanFile:
                     #filePath=filePath
                     #print(line)
         except Exception as e:
-            print("Error: "+str(e))
+            print("[-] "+filePath+": can't be read: ")
+
+
 
 def _sniff_text(filepath, text):
-    results= {"filepath":filepath} 
+    results= {} 
     for key, value in regexList.items():
-        findings= re.findall(value, text)
+        findings= set(re.findall(value, text))
         if(len(findings)>0):
             results.update({key:findings})
     return results
-    
-scan()
-print("Scan Complete")
-# workers to handle fileStack
-for x in range(5):
-    t = threading.Thread(target=_file_read)
-    #t.setDaemon(True)
-    t.start()
+   
 
-print("Snooping complete")
+if __name__ == "__main__": 
+    print("[+] Scanning...")
+    scan()
+    print("[+] Scan Complete")
+
+    # workers to handle fileStack
+    workers= []
+    for x in range(5):
+        t=threading.Thread(target=_file_read)
+        t.start()
+        workers.append(t)
+
+    for worker in workers:
+        worker.join()
+
+    print("[+] The Hamburglar has finished snooping")
+    for key, value in cumulativeFindings.items():
+        print("File: "+key)
+        print("Value:\n"+str(value)+"\n")
+
+    with open('hamburglar-results.json', 'w') as file:
+        file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
+        #    print("\t"+findingType+": "+findingValue)
+        #print("\n")

@@ -9,6 +9,8 @@ if(len(sys.argv) != 2):
     print("[-] Argument Error: Use hamburglar.py ~/dir/path")
     exit()
 
+
+maxWorkers= 5
 rootdir = sys.argv[1]
 fileStack= set()
 cumulativeFindings= {}
@@ -48,9 +50,9 @@ regexList= {
 #iterate through every file in given directory
 def scan():
     for root, subFolders, files in os.walk(rootdir):
-
         for entry in files:
             filePath= os.path.join(root,entry)
+            print("FILE:"+str(filePath))
             fileStack.add(filePath)
 
         for folder in subFolders:
@@ -66,9 +68,11 @@ def _file_read():
             with open(filePath, "r") as scanFile:
                 #print("WORKER CALLED: "+filePath+"\n")
                 results = _sniff_text(filePath,scanFile.read().replace('\n', ''))
-                if (len(results.items())>1):
+                if (len(results.items())>0):
                     print("[+] Results found\n")
                     cumulativeFindings.update({filePath:results})
+                #else:
+                #    print("[-] No Results Found\n")
                 #for line in scanFile:
                     #filePath=filePath
                     #print(line)
@@ -81,10 +85,20 @@ def _sniff_text(filepath, text):
     results= {} 
     for key, value in regexList.items():
         findings= set(re.findall(value, text))
-        if(len(findings)>0):
+        if(findings):
+            print(str({key:findings}))
             results.update({key:findings})
     return results
-   
+
+def displayCumulative():
+    for key, value in cumulativeFindings.items():
+        print("File: "+key)
+        print("Value:\n"+str(value)+"\n")
+
+def _write_to_file():
+    with open('hamburglar-results.json', 'w') as file:
+        file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
+ 
 
 if __name__ == "__main__": 
     print("[+] Scanning...")
@@ -93,7 +107,7 @@ if __name__ == "__main__":
 
     # workers to handle fileStack
     workers= []
-    for x in range(5):
+    for x in range(maxWorkers):
         t=threading.Thread(target=_file_read)
         t.start()
         workers.append(t)
@@ -101,12 +115,7 @@ if __name__ == "__main__":
     for worker in workers:
         worker.join()
 
-    print("[+] The Hamburglar has finished snooping")
-    for key, value in cumulativeFindings.items():
-        print("File: "+key)
-        print("Value:\n"+str(value)+"\n")
+    print("[+] Writing to hamburglar-results.json...")
+    _write_to_file()
 
-    with open('hamburglar-results.json', 'w') as file:
-        file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
-        #    print("\t"+findingType+": "+findingValue)
-        #print("\n")
+    print("[+] The Hamburglar has finished snooping")

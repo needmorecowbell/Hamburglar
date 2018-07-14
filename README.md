@@ -1,7 +1,7 @@
 ## The Hamburglar
 
 <p align="center">
-    <img src="res/hamburgler.jpg" width="400"></img>
+    <img src="res/hamburglar.jpg" width="400"></img>
 </p>
 
 Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. All in one file, no external packages required! 

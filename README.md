@@ -29,6 +29,30 @@ This will recursively scan for files, then analyzes each file for a variety of f
 - cryptocurrency addresses
 - Now with single file parameter support!
 
+##Example output:
+
+```json
+{
+    "/home/adam/Dev/test/email.txt": {
+        "emails": "{'testingtesting@gmail.com'}"
+    },
+    "/home/adam/Dev/test/email2.txt": {
+        "emails": "{'loall@gmail.com'}"
+    },
+    "/home/adam/Dev/test/ips.txt": {
+        "ipv4": "{'10.0.11.2', '192.168.1.1'}"
+    },
+    "/home/adam/Dev/test/test2/email.txt": {
+        "emails": "{'ntested4@gmail.com', 'ntested@gmail.com'}"
+    },
+    "/home/adam/Dev/test/test2/ips.txt": {
+        "ipv4": "{'10.0.11.2', '192.168.1.1'}"
+    },
+    "/home/adam/Dev/test/test2/links.txt": {
+        "site": "{'http://login.web.com'}"
+    }
+}
+```
 ## Notes
 
 - Inspiration came from needmorecowbell/sniff-paste, I wanted the same regex scraping but for every file in a given directory. 

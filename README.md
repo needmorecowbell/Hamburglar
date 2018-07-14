@@ -14,11 +14,11 @@ This will recursively scan for files, then analyzes each file for a variety of f
 
 ## Settings
 
-    - `whitelistOn`: turns on or off whitelist checking
-    - `maxWorkers`: number of worker threads to run concurrently when reading file stack 
-    - `whitelist`: list of files or directories to exclusively scan for (if whitelistOn=True)
-    - `blacklist`: list of files, extensions, or directories to block in scan
-    - `regexList`: dictionary of regex filters with filter type as the key
+- `whitelistOn`: turns on or off whitelist checking
+- `maxWorkers`: number of worker threads to run concurrently when reading file stack 
+- `whitelist`: list of files or directories to exclusively scan for (if whitelistOn=True)
+- `blacklist`: list of files, extensions, or directories to block in scan
+- `regexList`: dictionary of regex filters with filter type as the key
 
 ## The Hamburglar can find
 

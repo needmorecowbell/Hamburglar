@@ -10,11 +10,23 @@ if(len(sys.argv) != 2):
     exit()
 
 
-maxWorkers= 5
+maxWorkers= 12
 rootdir = sys.argv[1]
 fileStack= set()
 cumulativeFindings= {}
 
+blacklist = [
+    ".git/objects/",
+    ".git/index",
+    "vendor/gems/",
+    ".iso",
+    ".bundle",
+    ".png",
+    ".jpg",
+    ".crt",
+    ".exe"
+
+]
 regexList= {
     "ipv4":"[0-9]+(?:\.[0-9]+){3}",
     "site":"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+",
@@ -33,7 +45,7 @@ regexList= {
     "AWS API Key": "AKIA[0-9A-Z]{16}",
     "Heroku API Key": "[h|H][e|E][r|R][o|O][k|K][u|U].*[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}",
     "Generic Secret": "[s|S][e|E][c|C][r|R][e|E][t|T].*['|\"][0-9a-zA-Z]{32,45}['|\"]",
-    "bitcoin-address" : "[13][a-km-zA-HJ-NP-Z1-9]{25,34}" ,
+#FIND BETTER REGEX    "bitcoin-address" : "[13][a-km-zA-HJ-NP-Z1-9]{25,34}" ,
     "bitcoin-uri" : "bitcoin:([13][a-km-zA-HJ-NP-Z1-9]{25,34})" ,
     "bitcoin-xpub-key" : "(xpub[a-km-zA-HJ-NP-Z1-9]{100,108})(\\?c=\\d*&h=bip\\d{2,3})?" ,
     "monero-address": "(?:^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$)",
@@ -52,22 +64,44 @@ def scan():
     for root, subFolders, files in os.walk(rootdir):
         for entry in files:
             filePath= os.path.join(root,entry)
-            print("FILE:"+str(filePath))
-            fileStack.add(filePath)
+            if(_isFiltered(filePath)):
+                print("[-] "+filePath+" blacklisted, not scanning")
+                break
+            else:
+                try:
+                    print("[+] Adding:"+str(filePath)+" ("+str(os.stat(filePath).st_size >> 10)+"kb) to stack")
+                    fileStack.add(filePath)
+                except Exception as e:
+                    print("[-] Read Error: "+str(e) )
 
         for folder in subFolders:
             for entry in files:
                 filePath = os.path.join(root,entry)
-                fileStack.add(filePath)
+                if(_isFiltered(filePath)):
+                    print("[-] "+filePath+" blacklisted, not scanning")
+                    break
+                else:
+                    try:
+                        print("[+] Adding:"+str(filePath)+" ("+str(os.stat(filePath).st_size >> 10)+"kb) to stack")
+                        fileStack.add(filePath)
+                    except Exception as e:
+                        print("[-] Read Error: "+str(e) )
 
+
+def _isFiltered(filepath):
+    for filtered in blacklist:
+        if (filtered in filepath): return True
+    return False
 
 def _file_read():
     while(fileStack):
         filePath= fileStack.pop()
+        print("[+] Left on Stack: "+str(len(fileStack)))
         try:
-            with open(filePath, "r") as scanFile:
-                #print("WORKER CALLED: "+filePath+"\n")
-                results = _sniff_text(filePath,scanFile.read().replace('\n', ''))
+            with open(filePath, "rb") as scanFile:
+                print("[+] File: "+filePath+"\n")
+                fileString = str(scanFile.read()).replace('\n', '')
+                results = _sniff_text(filePath,fileString)
                 if (len(results.items())>0):
                     print("[+] Results found\n")
                     cumulativeFindings.update({filePath:results})
@@ -77,16 +111,16 @@ def _file_read():
                     #filePath=filePath
                     #print(line)
         except Exception as e:
-            print("[-] "+filePath+": can't be read: ")
+            print("[-] "+filePath+": can't be read: "+str(e))
 
 
 
 def _sniff_text(filepath, text):
-    results= {} 
+    results= {}
     for key, value in regexList.items():
         findings= set(re.findall(value, text))
         if(findings):
-            print(str({key:findings}))
+            #print(str({key:findings}))
             results.update({key:findings})
     return results
 
@@ -98,9 +132,9 @@ def displayCumulative():
 def _write_to_file():
     with open('hamburglar-results.json', 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
- 
 
-if __name__ == "__main__": 
+
+if __name__ == "__main__":
     print("[+] Scanning...")
     scan()
     print("[+] Scan Complete")

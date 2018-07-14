@@ -29,7 +29,7 @@ This will recursively scan for files, then analyzes each file for a variety of f
 - cryptocurrency addresses
 - Now with single file parameter support!
 
-##Example output:
+## Example output:
 
 ```json
 {

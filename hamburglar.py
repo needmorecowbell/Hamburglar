@@ -6,15 +6,20 @@ import json
 
 
 if(len(sys.argv) != 2):
-    print("[-] Argument Error: Use hamburglar.py ~/dir/path")
+    print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
     exit()
 
+#Set True to filter by whitelist
+whitelistOn= False
 
-maxWorkers= 12
-passedPath = sys.argv[1]
-fileStack= set()
-cumulativeFindings= {}
+#Max workers for reading and sniffing each file
+maxWorkers= 20
 
+
+# Add to whitelist to ONLY sniff certain files or directories
+whitelist= [".txt"]
+
+# Add to blacklist to block files and directories
 blacklist = [
     ".git/objects/",
     ".git/index",
@@ -27,10 +32,12 @@ blacklist = [
     ".exe"
 
 ]
+
+# Regex dictionary, comment out a line to stop checking for entry, and add a line for new filters
 regexList= {
     "ipv4":"[0-9]+(?:\.[0-9]+){3}",
     "site":"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+",
-    "phones":"\(?\b[2-9][0-9]{2}\)?[-. ]?[2-9][0-9]{2}[-. ]?[0-9]{4}\b",
+    "phones":"\(?[2-9][0-9]{2}\)?[-. ]?[2-9][0-9]{2}[-. ]?[0-9]{4}\b",
     "emails":"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+",
     "Slack Token": "(xox[p|b|o|a]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32})",
     "RSA private key": "-----BEGIN RSA PRIVATE KEY-----",
@@ -58,102 +65,125 @@ regexList= {
     "dogecoin-address":"(?:^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$)"
 }
 
+#Get First Argument (file or directory)
+passedPath = sys.argv[1]
 
-#iterate through every file in given directory
+#only use unique filepaths(should be unique anyways, just redundant)
+filestack= set()
+
+cumulativeFindings= {}
+
+
+
 def scan():
+
+    # check for directory
     if(os.path.isfile(passedPath)==False):
-        for root, subFolders, files in os.walk(rootdir):
-            for entry in files:
-                filePath= os.path.join(root,entry)
-                if(_isFiltered(filePath)):
-                    print("[-] "+filePath+" blacklisted, not scanning")
-                    break
-                else:
-                    try:
-                        print("[+] Adding:"+str(filePath)+" ("+str(os.stat(filePath).st_size >> 10)+"kb) to stack")
-                        fileStack.add(filePath)
-                    except Exception as e:
-                        print("[-] Read Error: "+str(e) )
 
-            for folder in subFolders:
-                for entry in files:
-                    filePath = os.path.join(root,entry)
-                    if(_isFiltered(filePath)):
-                        print("[-] "+filePath+" blacklisted, not scanning")
+        for root, subFolders, files in os.walk(passedPath): #iterate through every file in given directory
+
+            for entry in files: #get all files from root directory
+                filepath= os.path.join(root,entry)
+                if(whitelistOn): #if whitelisted, check if entry is valid and add to stack
+                    if(_iswhitelisted(filepath)):
+                        print("[+] whitelist finding: "+str(filepath))
+                        filestack.add(filepath)
+                    else:#if its not, forget about the file
                         break
-                    else:
+                elif(_isfiltered(filepath)):#if whitelist is off, check blacklist
+                            print("[-] "+filepath+" blacklisted, not scanning")
+                            break
+                else:#lastly, if it is not blacklisted, lets add the file to the stack
+                    try:
+                        print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
+                        filestack.add(filepath)
+                    except Exception as e:
+                        print("[-] read error: "+str(e) )
+
+            for folder in subFolders: # check every subFolder recursively
+                for entry in files:
+                    filepath= os.path.join(root,entry)
+                    if(whitelistOn): #if whitelisted, check if entry is valid and add to stack
+                        if(_iswhitelisted(filepath)):
+                            print("[+] whitelist finding: "+str(filepath))
+                            filestack.add(filepath)
+                        else:#if its not, forget about the file
+                            break
+                    elif(_isfiltered(filepath)):#if whitelist is off, check blacklist
+                                print("[-] "+filepath+" blacklisted, not scanning")
+                                break
+                    else:#lastly, if it is not blacklisted, lets add the file to the stack
                         try:
-                            print("[+] Adding:"+str(filePath)+" ("+str(os.stat(filePath).st_size >> 10)+"kb) to stack")
-                            fileStack.add(filePath)
+                            print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
+                            filestack.add(filepath)
                         except Exception as e:
-                            print("[-] Read Error: "+str(e) )
-    else:
-        print("[+] Single file passed")
-        fileStack.add(passedPath)
+                            print("[-] read error: "+str(e) )
+
+    else: #we just have a single file, so add it to the stack
+        print("[+] single file passed")
+        filestack.add(passedPath)
 
 
-def _isFiltered(filepath):
+def _isfiltered(filepath):
     for filtered in blacklist:
         if (filtered in filepath): return True
     return False
 
+def _iswhitelisted(filepath):
+    for filtered in whitelist:
+        if (filtered in filepath): return True
+    return False
+
 def _file_read():
-    while(fileStack):
-        filePath= fileStack.pop()
-        print("[+] Left on Stack: "+str(len(fileStack)))
+    while(filestack): #while there are still items on the stack/worker pool...
+        filepath= filestack.pop()
+        print("[+] left on stack: "+str(len(filestack)))
         try:
-            with open(filePath, "rb") as scanFile:
-                print("[+] File: "+filePath+"\n")
-                fileString = str(scanFile.read()).replace('\n', '')
-                results = _sniff_text(filePath,fileString)
-                if (len(results.items())>0):
-                    print("[+] Results found\n")
-                    cumulativeFindings.update({filePath:results})
-                #else:
-                #    print("[-] No Results Found\n")
-                #for line in scanFile:
-                    #filePath=filePath
-                    #print(line)
+            with open(filepath, "rb") as scanfile: #open file on stack that needs sniffed
+                print("[+] file: "+filepath)
+
+                filestring = str(scanfile.read()).rstrip('\r\n') # turn file to string and clean it of newlines
+                results = _sniff_text(filepath,filestring) #get dictionary of results from regex search
+
+                if (len(results.items())>0): # if we found something in the file, add it to the findings report
+                    print("[+] results found")
+                    cumulativeFindings.update({filepath:results})
+
         except Exception as e:
-            print("[-] "+filePath+": can't be read: "+str(e))
+            print("[-] "+filepath+": can't be read: "+str(e))
 
 
 
-def _sniff_text(filepath, text):
+def _sniff_text(filePath, text):
     results= {}
-    for key, value in regexList.items():
+    for key, value in regexList.items(): # check every regex for findings, and return a dictionary of all findings
         findings= set(re.findall(value, text))
         if(findings):
-            #print(str({key:findings}))
             results.update({key:findings})
     return results
 
-def displayCumulative():
-    for key, value in cumulativeFindings.items():
-        print("File: "+key)
-        print("Value:\n"+str(value)+"\n")
+def displayCumulative(): #Displays finding report
+    print(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
-def _write_to_file():
+def _write_to_file(): # Writes report to json file
     with open('hamburglar-results.json', 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
 
 if __name__ == "__main__":
-    print("[+] Scanning...")
+    print("[+] scanning...")
     scan()
-    print("[+] Scan Complete")
+    print("[+] scan complete")
 
-    # workers to handle fileStack
-    workers= []
-    for x in range(maxWorkers):
+    workers= [] # workers to handle filestack
+    for x in range(maxWorkers):#start up file reading worker threads
         t=threading.Thread(target=_file_read)
         t.start()
         workers.append(t)
 
-    for worker in workers:
+    for worker in workers:# join all workers to conclude scan
         worker.join()
 
-    print("[+] Writing to hamburglar-results.json...")
+    print("[+] writing to hamburglar-results.json...")
     _write_to_file()
-
     print("[+] The Hamburglar has finished snooping")

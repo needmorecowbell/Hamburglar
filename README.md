@@ -8,7 +8,7 @@ Multithreaded and recursive directory scraping script. Stores useful information
 
 ## Operation
 
-`python3 hamburgler.py ~/Directory/Here`
+`python3 hamburglar.py /path/directory/` or `python3 hamburglar.py /path/file.txt`
 
 This will recursively scan for files, then analyzes each file for a variety of findings using regex filters
 
@@ -20,6 +20,7 @@ This will recursively scan for files, then analyzes each file for a variety of f
 - urls
 - cryptocurrency addresses
 
+- Now with single file support!
 
 ## Notes
 

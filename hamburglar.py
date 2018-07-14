@@ -11,7 +11,7 @@ if(len(sys.argv) != 2):
 
 
 maxWorkers= 12
-rootdir = sys.argv[1]
+passedPath = sys.argv[1]
 fileStack= set()
 cumulativeFindings= {}
 
@@ -61,22 +61,10 @@ regexList= {
 
 #iterate through every file in given directory
 def scan():
-    for root, subFolders, files in os.walk(rootdir):
-        for entry in files:
-            filePath= os.path.join(root,entry)
-            if(_isFiltered(filePath)):
-                print("[-] "+filePath+" blacklisted, not scanning")
-                break
-            else:
-                try:
-                    print("[+] Adding:"+str(filePath)+" ("+str(os.stat(filePath).st_size >> 10)+"kb) to stack")
-                    fileStack.add(filePath)
-                except Exception as e:
-                    print("[-] Read Error: "+str(e) )
-
-        for folder in subFolders:
+    if(os.path.isfile(passedPath)==False):
+        for root, subFolders, files in os.walk(rootdir):
             for entry in files:
-                filePath = os.path.join(root,entry)
+                filePath= os.path.join(root,entry)
                 if(_isFiltered(filePath)):
                     print("[-] "+filePath+" blacklisted, not scanning")
                     break
@@ -86,6 +74,22 @@ def scan():
                         fileStack.add(filePath)
                     except Exception as e:
                         print("[-] Read Error: "+str(e) )
+
+            for folder in subFolders:
+                for entry in files:
+                    filePath = os.path.join(root,entry)
+                    if(_isFiltered(filePath)):
+                        print("[-] "+filePath+" blacklisted, not scanning")
+                        break
+                    else:
+                        try:
+                            print("[+] Adding:"+str(filePath)+" ("+str(os.stat(filePath).st_size >> 10)+"kb) to stack")
+                            fileStack.add(filePath)
+                        except Exception as e:
+                            print("[-] Read Error: "+str(e) )
+    else:
+        print("[+] Single file passed")
+        fileStack.add(passedPath)
 
 
 def _isFiltered(filepath):

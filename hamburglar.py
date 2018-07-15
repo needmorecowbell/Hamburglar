@@ -3,11 +3,12 @@ import os
 import sys
 import threading
 import json
+from urllib.request import urlopen
+import argparse
 
-
-if(len(sys.argv) != 2):
-    print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
-    exit()
+#if(len(sys.argv) != 2):
+#    print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
+#    exit()
 
 
 whitelistOn= False #Set True to filter by whitelist
@@ -66,13 +67,31 @@ regexList= {
     "Twitter Oauth": "[t|T][w|W][i|I][t|T][t|T][e|E][r|R].*['|\"][0-9a-zA-Z]{35,44}['|\"]"
 }
 
-#Get First Argument (file or directory)
-passedPath = sys.argv[1]
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-v", "--verbose", help="increase output verbosity",
+                    action="store_true")
+
+parser.add_argument("-w","--web", help="sets Hamburgler to web request mode, enter url as path",
+                    action="store_true")
+
+parser.add_argument("path",help="path to directory, url, or file, depending on flag used")
+args= parser.parse_args()
+
+#Get Path Argument (file url or directory)
+passedPath = args.path
+
 
 #only use unique filepaths(should be unique anyways, just redundant)
 filestack= set()
+requestStack= set()
 
 cumulativeFindings= {}
+
+def webScan():
+    """ Scans the url given in the path, then adds to request stack (eventually this may be a spider """
+    requestStack.add(passedPath)
 
 def scan():
     """ scans the directory for files and adds them to the filestack """
@@ -94,7 +113,7 @@ def scan():
                         break
                 elif _isfiltered(filepath):
                     #if whitelist is off, check blacklist
-                            print("[-] "+filepath+" blacklisted, not scanning")
+                            if(args.verbose): print("[-] "+filepath+" blacklisted, not scanning")
                             break
                 else:
                     #lastly, if it is not blacklisted, lets add the file to the stack
@@ -116,7 +135,7 @@ def scan():
                             break
                     elif _isfiltered(filepath):
                         #if whitelist is off, check blacklist
-                                print("[-] "+filepath+" blacklisted, not scanning")
+                                if(args.verbose): print("[-] "+filepath+" blacklisted, not scanning")
                                 break
                     else:
                         #lastly, if it is not blacklisted, lets add the file to the stack
@@ -131,7 +150,6 @@ def scan():
         print("[+] single file passed")
         filestack.add(passedPath)
 
-
 def _isfiltered(filepath):
     """ checks if the file is blacklisted """
     for filtered in blacklist:
@@ -144,28 +162,49 @@ def _iswhitelisted(filepath):
         if (filtered in filepath): return True
     return False
 
+def _url_read():
+    """ opens the urls in requestStack, makes request, and if something matchest the regex, add it to the cumulativeFindings """
+
+    while(requestStack): # while there are still requests to be made
+        url=requestStack.pop()
+        if(args.verbose):print("[+] left on stack: "+str(len(requestStack)))
+
+        try:
+            with urlopen(url) as response:
+                html = response.read()
+                data= str(html).rstrip("\r\n")
+                results= _sniff_text(data)
+
+                if(len(results.items())>0):
+                    totalResults=sum(map(len, results.values()))
+                    print("[+] "+url+" -- "+str(totalResults)+" result(s) found.")
+                    cumulativeFindings.update({url:results})
+
+        except Exception as e:
+            print("Url Worker Error: "+str(e))
+
+
 def _file_read():
     """ opens the files in filestack, reads them , and if something is found in the file that matches the regex, adds them to cumalativeFindings"""
     while(filestack): #while there are still items on the stack/worker pool...
         filepath= filestack.pop()
-        print("[+] left on stack: "+str(len(filestack)))
+        if(args.verbose): print("[+] left on stack: "+str(len(filestack)))
         try:
             with open(filepath, "r") as scanfile: #open file on stack that needs sniffed
-                print("[+] file: "+filepath)
 
                 filestring = str(scanfile.read()).rstrip('\r\n') # turn file to string and clean it of newlines
-                results = _sniff_text(filepath,filestring) #get dictionary of results from regex search
+                results = _sniff_text(filestring) #get dictionary of results from regex search
 
                 if (len(results.items())>0): # if we found something in the file, add it to the findings report
-                    print("[+] results found")
+                    totalResults=len(results.items())
+                    print("[+] "+filepath+" -- "+str(totalResults)+" result(s) found.")
                     cumulativeFindings.update({filepath:results})
 
         except Exception as e:
             print("[-] "+filepath+": can't be read: "+str(e))
 
 
-
-def _sniff_text(filePath, text):
+def _sniff_text(text):
     """ checks every regex for findings, and return a dictionary of all findings """
     results= {}
     for key, value in regexList.items():
@@ -186,12 +225,18 @@ def _write_to_file():
 
 if __name__ == "__main__":
     print("[+] scanning...")
-    scan()
+    if(args.web):
+        webScan()
+    else:
+        scan()
     print("[+] scan complete")
+
+
+    workerType = _url_read if args.web else _file_read #set scantype based of url or directory/file traverseal
 
     workers= [] # workers to handle filestack
     for x in range(maxWorkers):#start up file reading worker threads
-        t=threading.Thread(target=_file_read)
+        t=threading.Thread(target=workerType)
         t.start()
         workers.append(t)
 

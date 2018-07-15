@@ -21,6 +21,7 @@ whitelist= [".txt",".html",".md"] # Add to whitelist to ONLY sniff certain files
 blacklist = [
     ".git/objects/",
     ".git/index",
+    "/node_modules/",
     "vendor/gems/",
     ".iso",
     ".bundle",
@@ -72,8 +73,6 @@ passedPath = sys.argv[1]
 filestack= set()
 
 cumulativeFindings= {}
-
-
 
 def scan():
 
@@ -148,7 +147,6 @@ def _file_read():
 
                 if (len(results.items())>0): # if we found something in the file, add it to the findings report
                     print("[+] results found")
-                    print(results)
                     cumulativeFindings.update({filepath:results})
 
         except Exception as e:

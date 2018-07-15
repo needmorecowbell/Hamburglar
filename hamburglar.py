@@ -75,25 +75,29 @@ filestack= set()
 cumulativeFindings= {}
 
 def scan():
-
+    """ scans the directory for files and adds them to the filestack """
     # check for directory
     if(os.path.isfile(passedPath)==False):
 
-        for root, subFolders, files in os.walk(passedPath): #iterate through every file in given directory
-            for entry in files: #get all files from root directory
+        for root, subFolders, files in os.walk(passedPath):     #iterate through every file in given directory
+            for entry in files:     #get all files from root directory
 
                 filepath= os.path.join(root,entry)
 
-                if(whitelistOn): #if whitelisted, check if entry is valid and add to stack
-                    if(_iswhitelisted(filepath)):
+                if whitelistOn): 
+                    #if whitelisted, check if entry is valid and add to stack
+                    if _iswhitelisted(filepath):
                         print("[+] whitelist finding: "+str(filepath))
                         filestack.add(filepath)
-                    else:#if its not, forget about the file
+                    else:
+                        #if its not, forget about the file
                         break
-                elif(_isfiltered(filepath)):#if whitelist is off, check blacklist
+                elif _isfiltered(filepath): 
+                    #if whitelist is off, check blacklist
                             print("[-] "+filepath+" blacklisted, not scanning")
                             break
-                else:#lastly, if it is not blacklisted, lets add the file to the stack
+                else:
+                    #lastly, if it is not blacklisted, lets add the file to the stack
                     try:
                         print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
                         filestack.add(filepath)
@@ -103,38 +107,45 @@ def scan():
             for folder in subFolders: # check every subFolder recursively
                 for entry in files:
                     filepath= os.path.join(root,entry)
-                    if(whitelistOn): #if whitelisted, check if entry is valid and add to stack
-                        if(_iswhitelisted(filepath)):
+                    if whitelistOn:
+                        #if whitelisted, check if entry is valid and add to stack
+                        if _iswhitelisted(filepath):
                             print("[+] whitelist finding: "+str(filepath))
                             filestack.add(filepath)
                         else:#if its not, forget about the file
                             break
-                    elif(_isfiltered(filepath)):#if whitelist is off, check blacklist
+                    elif _isfiltered(filepath):
+                        #if whitelist is off, check blacklist
                                 print("[-] "+filepath+" blacklisted, not scanning")
                                 break
-                    else:#lastly, if it is not blacklisted, lets add the file to the stack
+                    else:
+                        #lastly, if it is not blacklisted, lets add the file to the stack
                         try:
                             print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
                             filestack.add(filepath)
                         except Exception as e:
                             print("[-] read error: "+str(e) )
 
-    else: #we just have a single file, so add it to the stack
+    else: 
+        #we just have a single file, so add it to the stack
         print("[+] single file passed")
         filestack.add(passedPath)
 
 
 def _isfiltered(filepath):
+    """ checks if the file is blacklisted """
     for filtered in blacklist:
         if (filtered in filepath): return True
     return False
 
 def _iswhitelisted(filepath):
+    """ checks if the file given is whitelisted """
     for filtered in whitelist:
         if (filtered in filepath): return True
     return False
 
 def _file_read():
+    """ opens the files in filestack, reads them , and if something is found in the file that matches the regex, adds them to cumalativeFindings"""
     while(filestack): #while there are still items on the stack/worker pool...
         filepath= filestack.pop()
         print("[+] left on stack: "+str(len(filestack)))
@@ -155,17 +166,20 @@ def _file_read():
 
 
 def _sniff_text(filePath, text):
+    """ checks every regex for findings, and return a dictionary of all findings """
     results= {}
-    for key, value in regexList.items(): # check every regex for findings, and return a dictionary of all findings
+    for key, value in regexList.items(): 
         findings= set(re.findall(value, text))
-        if(findings):
+        if findings:
             results.update({key:findings})
     return results
 
-def displayCumulative(): #Displays finding report
+def displayCumulative(): 
+    """ Displays finding report """
     print(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
-def _write_to_file(): # Writes report to json file
+def _write_to_file():
+    """ writes report to json file """
     with open('hamburglar-results.json', 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 

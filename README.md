@@ -48,7 +48,6 @@ Multithreaded and recursive directory scraping script. Stores useful information
 - private keys
 - urls
 - cryptocurrency addresses
-- Now with single file parameter support!
 
 ## Example output:
 

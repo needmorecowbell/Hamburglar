@@ -9,15 +9,13 @@ if(len(sys.argv) != 2):
     print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
     exit()
 
-#Set True to filter by whitelist
-whitelistOn= False
 
-#Max workers for reading and sniffing each file
-maxWorkers= 20
+whitelistOn= False #Set True to filter by whitelist
 
+maxWorkers= 20 #Max workers for reading and sniffing each file
 
-# Add to whitelist to ONLY sniff certain files or directories
-whitelist= [".txt"]
+whitelist= [".txt",".html",".md"] # Add to whitelist to ONLY sniff certain files or directories
+
 
 # Add to blacklist to block files and directories
 blacklist = [
@@ -29,16 +27,18 @@ blacklist = [
     ".png",
     ".jpg",
     ".crt",
-    ".exe"
-
+    ".exe",
+    ".gif",
+    ".mp4",
+    ".mp3"
 ]
 
 # Regex dictionary, comment out a line to stop checking for entry, and add a line for new filters
 regexList= {
     "ipv4":"[0-9]+(?:\.[0-9]+){3}",
     "site":"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+",
-    "phones":"\(?[2-9][0-9]{2}\)?[-. ]?[2-9][0-9]{2}[-. ]?[0-9]{4}\b",
-    "emails":"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+",
+#    "phone":"^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}$",
+    "email":"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+",
     "Slack Token": "(xox[p|b|o|a]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32})",
     "RSA private key": "-----BEGIN RSA PRIVATE KEY-----",
     "SSH (OPENSSH) private key": "-----BEGIN OPENSSH PRIVATE KEY-----",
@@ -55,14 +55,14 @@ regexList= {
 #FIND BETTER REGEX    "bitcoin-address" : "[13][a-km-zA-HJ-NP-Z1-9]{25,34}" ,
     "bitcoin-uri" : "bitcoin:([13][a-km-zA-HJ-NP-Z1-9]{25,34})" ,
     "bitcoin-xpub-key" : "(xpub[a-km-zA-HJ-NP-Z1-9]{100,108})(\\?c=\\d*&h=bip\\d{2,3})?" ,
-    "monero-address": "(?:^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$)",
-    "ethereum-address": "(?:^0x[a-fA-F0-9]{40}$)",
-    "litecoin-address":"(?:^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}$)",
-    "bitcoin-cash-address":"(?:^[13][a-km-zA-HJ-NP-Z1-9]{33}$)",
-    "dash-address":"(?:^X[1-9A-HJ-NP-Za-km-z]{33}$)",
-    "ripple-address":"(?:^r[0-9a-zA-Z]{33}$)",
-    "neo-address":"(?:^A[0-9a-zA-Z]{33}$)",
-    "dogecoin-address":"(?:^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$)"
+    "monero-address": "(?:^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93})",
+    "ethereum-address": "(?:^0x[a-fA-F0-9]{40})",
+    "litecoin-address":"(?:^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33})",
+    "bitcoin-cash-address":"(?:^[13][a-km-zA-HJ-NP-Z1-9]{33})",
+    "dash-address":"(?:^X[1-9A-HJ-NP-Za-km-z]{33})",
+    "ripple-address":"(?:^r[0-9a-zA-Z]{33})",
+    "neo-address":"(?:^A[0-9a-zA-Z]{33})",
+    "dogecoin-address":"(?:^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32})"
 }
 
 #Get First Argument (file or directory)
@@ -81,9 +81,10 @@ def scan():
     if(os.path.isfile(passedPath)==False):
 
         for root, subFolders, files in os.walk(passedPath): #iterate through every file in given directory
-
             for entry in files: #get all files from root directory
+
                 filepath= os.path.join(root,entry)
+
                 if(whitelistOn): #if whitelisted, check if entry is valid and add to stack
                     if(_iswhitelisted(filepath)):
                         print("[+] whitelist finding: "+str(filepath))
@@ -139,7 +140,7 @@ def _file_read():
         filepath= filestack.pop()
         print("[+] left on stack: "+str(len(filestack)))
         try:
-            with open(filepath, "rb") as scanfile: #open file on stack that needs sniffed
+            with open(filepath, "r") as scanfile: #open file on stack that needs sniffed
                 print("[+] file: "+filepath)
 
                 filestring = str(scanfile.read()).rstrip('\r\n') # turn file to string and clean it of newlines
@@ -147,6 +148,7 @@ def _file_read():
 
                 if (len(results.items())>0): # if we found something in the file, add it to the findings report
                     print("[+] results found")
+                    print(results)
                     cumulativeFindings.update({filepath:results})
 
         except Exception as e:

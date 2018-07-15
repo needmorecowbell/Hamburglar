@@ -8,14 +8,30 @@ Multithreaded and recursive directory scraping script. Stores useful information
 
 ## Operation
 
-`python3 hamburglar.py /path/directory/` or `python3 hamburglar.py /path/file.txt`
+`python3 hamburglar.py -w -v -h path`
 
-This will recursively scan for files, then analyzes each file for a variety of findings using regex filters
+
+**Directory Traversal**
+
+- `python3 hamburglar.py ~/Directory/`
+    - This will recursively scan for files in the given directory, then analyzes each file for a variety of findings using regex filters
+
+**Single File Analysis**
+
+- `python3 hamburglar.py ~/Directory/file.txt`
+    - This will recursively scan for files in the given directory, then analyzes each file for a variety of findings using regex filters
+
+
+**Web Request Mode**
+
+- `python3 hamburglar.py -w https://google.com`
+    - Adding a `-w` to hamburgler.py tells the script to handle the path as a url. 
+    - Currently this does not spider the page, it just analyzes the requested html content
+
 
 **Tips**
 
-- You can use this script as a webpage scraper with something like this:
- `wget https://www.google.com/ -O page ; python3 hamburglar.py page; rm page;`
+- Adding `-v` will set the script into verbose mode, and `-h` will show details of available arguments
 
 ## Settings
 

@@ -96,59 +96,27 @@ def webScan():
 def scan():
     """ scans the directory for files and adds them to the filestack """
     # check for directory
-    if(os.path.isfile(passedPath)==False):
-
-        for root, subFolders, files in os.walk(passedPath):     #iterate through every file in given directory
-            for entry in files:     #get all files from root directory
-
-                filepath= os.path.join(root,entry)
-
-                if(whitelistOn):
-                    #if whitelisted, check if entry is valid and add to stack
-                    if _iswhitelisted(filepath):
-                        print("[+] whitelist finding: "+str(filepath))
-                        filestack.add(filepath)
-                    else:
-                        #if its not, forget about the file
-                        break
-                elif _isfiltered(filepath):
-                    #if whitelist is off, check blacklist
-                            if(args.verbose): print("[-] "+filepath+" blacklisted, not scanning")
-                            break
-                else:
-                    #lastly, if it is not blacklisted, lets add the file to the stack
-                    try:
-                        print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
-                        filestack.add(filepath)
-                    except Exception as e:
-                        print("[-] read error: "+str(e) )
-
-            for folder in subFolders: # check every subFolder recursively
-                for entry in files:
-                    filepath= os.path.join(root,entry)
-                    if whitelistOn:
-                        #if whitelisted, check if entry is valid and add to stack
-                        if _iswhitelisted(filepath):
-                            print("[+] whitelist finding: "+str(filepath))
-                            filestack.add(filepath)
-                        else:#if its not, forget about the file
-                            break
-                    elif _isfiltered(filepath):
-                        #if whitelist is off, check blacklist
-                                if(args.verbose): print("[-] "+filepath+" blacklisted, not scanning")
-                                break
-                    else:
-                        #lastly, if it is not blacklisted, lets add the file to the stack
-                        try:
-                            print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
-                            filestack.add(filepath)
-                        except Exception as e:
-                            print("[-] read error: "+str(e) )
-
-    else:
+    if(os.path.isfile(passedPath)):
         #we just have a single file, so add it to the stack
         print("[+] single file passed")
         filestack.add(passedPath)
+        return
+    for root, _, files in os.walk(passedPath):     #iterate through every file in given directory
+        for entry in files:     #get all files from root directory
+            filepath= os.path.join(root,entry)
+            if(whitelistOn and _iswhitelisted(filepath)):
+                print("[+] whitelist finding: "+str(filepath))
+                filestack.add(filepath)
+            elif _isfiltered(filepath):
+                #if whitelist is off, check blacklist
+                if(args.verbose): print("[-] "+filepath+" blacklisted, not scanning")
+            else:
+                #lastly, if it is not blacklisted, lets add the file to the stack
+                try:
+                    print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
+                    filestack.add(filepath)
+                except Exception as e:
+                    print("[-] read error: "+str(e) )
 
 def _isfiltered(filepath):
     """ checks if the file is blacklisted """

@@ -56,7 +56,7 @@ regexList= {
     "monero-address": "(?:^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93})",
     "neo-address":"(?:^A[0-9a-zA-Z]{33})",
     "PGP private key block": "-----BEGIN PGP PRIVATE KEY BLOCK-----",
-    "phone":"^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}$",
+    "phone":"\(?\\b[2-9][0-9]{2}\)?[-. ]?[2-9][0-9]{2}[-. ]?[0-9]{4}\\b",
     "ripple-address":"(?:^r[0-9a-zA-Z]{33})",
     "RSA private key": "-----BEGIN RSA PRIVATE KEY-----",
     "site":"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+",

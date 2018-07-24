@@ -32,6 +32,7 @@ Multithreaded and recursive directory scraping script. Stores useful information
 **Tips**
 
 - Adding `-v` will set the script into verbose mode, and `-h` will show details of available arguments
+- Adding `-o FILENAME` will set the results filename, this is especially useful in scripting situations where you might want multiple results tables (ie github repo spidering)
 
 ## Settings
 

@@ -76,11 +76,18 @@ parser.add_argument("-v", "--verbose", help="increase output verbosity",
 parser.add_argument("-w","--web", help="sets Hamburgler to web request mode, enter url as path",
                     action="store_true")
 
+parser.add_argument("-o", "--out", dest="output",
+                    help="write results to FILE", metavar="FILE")
+
 parser.add_argument("path",help="path to directory, url, or file, depending on flag used")
 args= parser.parse_args()
 
 #Get Path Argument (file url or directory)
 passedPath = args.path
+if args.output is None:
+    outputFilename= "hamburglar-results.json"
+else:
+    outputFilename= args.output
 
 
 #only use unique filepaths(should be unique anyways, just redundant)
@@ -187,7 +194,7 @@ def displayCumulative():
 
 def _write_to_file():
     """ writes report to json file """
-    with open('hamburglar-results.json', 'w') as file:
+    with open(outputFilename, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
 
@@ -211,6 +218,6 @@ if __name__ == "__main__":
     for worker in workers:# join all workers to conclude scan
         worker.join()
 
-    print("[+] writing to hamburglar-results.json...")
+    print("[+] writing to " +outputFilename +"...")
     _write_to_file()
     print("[+] The Hamburglar has finished snooping")

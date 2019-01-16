@@ -4,6 +4,7 @@ import sys
 import threading
 import json
 from urllib.request import urlopen
+from bs4 import BeautifulSoup
 import argparse
 
 #if(len(sys.argv) != 2):
@@ -79,11 +80,15 @@ parser.add_argument("-w","--web", help="sets Hamburgler to web request mode, ent
 parser.add_argument("-o", "--out", dest="output",
                     help="write results to FILE", metavar="FILE")
 
-parser.add_argument("path",help="path to directory, url, or file, depending on flag used")
+parser.add_argument("-file", help="path to the file or file name for which hexdump is to be generated", type=str, metavar="hex-file")
+
+parser.add_argument("-path",help="path to directory, url, or file, depending on flag used")
+
 args= parser.parse_args()
 
 #Get Path Argument (file url or directory)
 passedPath = args.path
+
 if args.output is None:
     outputFilename= "hamburglar-results.json"
 else:
@@ -138,7 +143,7 @@ def _iswhitelisted(filepath):
     return False
 
 def _url_read():
-    """ opens the urls in requestStack, makes request, and if something matchest the regex, add it to the cumulativeFindings """
+    """ opens the urls in requestStack, makes request, and if something matches the regex, add it to the cumulativeFindings """
 
     while(requestStack): # while there are still requests to be made
         url=requestStack.pop()
@@ -197,19 +202,48 @@ def _write_to_file():
     with open(outputFilename, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
+def hexDump():
+    try:
+        with open(args.file, "rb") as f:
+            n = 0
+            b = f.read(16)
+
+            while b:
+                s1 = " ".join([f"{i:02x}" for i in b])
+                s1 = s1[0:23] + "  " + s1[:23]
+                s2 = "".join([chr(i) if 32 <= i <= 127 else "." for i in b])
+
+                print(f"{n*16:08x}  {s1:<48}  |{s2}|")
+
+                n += 1
+                b = f.read(16)
+
+    except Exception as e:
+        print(__file__, ": ", type(e).__name__, " - ", e, sep="", file=sys.stderr)
+
 
 if __name__ == "__main__":
     print("[+] scanning...")
     if(args.web):
         webScan()
-    else:
+        print("[+] writing to " + outputFilename + "...")
+        _write_to_file()
+        print("[+] The Hamburglar has finished snooping")
+
+    if (args.file):
+        hexDump()
+
+    if (args.path):
         scan()
+        print("[+] writing to " + outputFilename + "...")
+        _write_to_file()
+        print("[+] The Hamburglar has finished snooping")
     print("[+] scan complete")
 
 
     workerType = _url_read if args.web else _file_read #set scantype based of url or directory/file traverseal
 
-    workers= [] # workers to handle filestack
+    workers = [] # workers to handle filestack
     for x in range(maxWorkers):#start up file reading worker threads
         t=threading.Thread(target=workerType)
         t.start()
@@ -217,7 +251,3 @@ if __name__ == "__main__":
 
     for worker in workers:# join all workers to conclude scan
         worker.join()
-
-    print("[+] writing to " +outputFilename +"...")
-    _write_to_file()
-    print("[+] The Hamburglar has finished snooping")

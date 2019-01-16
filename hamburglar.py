@@ -4,7 +4,6 @@ import sys
 import threading
 import json
 from urllib.request import urlopen
-from bs4 import BeautifulSoup
 import argparse
 
 #if(len(sys.argv) != 2):

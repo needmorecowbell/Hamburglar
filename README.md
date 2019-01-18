@@ -4,7 +4,22 @@
     <img src="https://user-images.githubusercontent.com/7833164/51336290-29a79600-1a52-11e9-96a1-beac9207fdab.gif"></img>
 </p>
 
-Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. All in one file, no external packages required! 
+
+## Setup
+
+There are 2 versions of hamburglar, full and lite. The main branch is the full version, and hamburglar lite is on a separate branch.
+
+**Hamburglar Lite**
+
+Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. Hamburglar lite will never require external packages, and will always remain as a single script. Setup is as simple as requesting the file and using it:
+
+`wget https://raw.githubusercontent.com/needmorecowbell/Hamburglar/hamburglar-lite/hamburglar.py`
+
+**Hamburglar**
+
+Full fledged scraping tool for artifact retrieval from multiple sources. Dependencies are required, so install them first: 
+
+`pip3 install -r requirements.txt`
 
 ## Operation
 

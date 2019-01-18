@@ -9,17 +9,20 @@
 
 There are 2 versions of hamburglar, full and lite. The main branch is the full version, and hamburglar lite is on a separate branch.
 
+**Hamburglar**
+
+Full fledged scraping tool for artifact retrieval from multiple sources. There are some dependencies, so install them first: 
+
+`pip3 install -r requirements.txt`
+
 **Hamburglar Lite**
 
 Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. Hamburglar lite will never require external packages, and will always remain as a single script. Setup is as simple as requesting the file and using it:
 
-`wget https://raw.githubusercontent.com/needmorecowbell/Hamburglar/hamburglar-lite/hamburglar.py`
+`wget https://raw.githubusercontent.com/needmorecowbell/Hamburglar/hamburglar-lite/hamburglar-lite.py`
 
-**Hamburglar**
+This is designed to be quickly downloaded and executed on a machine.
 
-Full fledged scraping tool for artifact retrieval from multiple sources. Dependencies are required, so install them first: 
-
-`pip3 install -r requirements.txt`
 
 ## Operation
 

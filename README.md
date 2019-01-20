@@ -39,6 +39,9 @@ This is designed to be quickly downloaded and executed on a machine.
 - `python3 hamburglar.py ~/Directory/file.txt`
     - This will recursively scan for files in the given directory, then analyzes each file for a variety of findings using regex filters
 
+**YARA Rule Based Analysis**
+- `python3 hamburglar.py -y rules/ ~/Directory
+    - This will compile the yara rule files in the rules directory and then check them against every item in Directory.
 
 **Web Request Mode**
 

@@ -6,6 +6,12 @@ import json
 from urllib.request import urlopen
 import argparse
 
+import yara
+
+import os
+
+
+
 #if(len(sys.argv) != 2):
 #    print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
 #    exit()
@@ -75,9 +81,12 @@ parser.add_argument("-v", "--verbose", help="increase output verbosity",
 
 parser.add_argument("-w","--web", help="sets Hamburgler to web request mode, enter url as path",
                     action="store_true")
-
 parser.add_argument("-o", "--out", dest="output",
                     help="write results to FILE", metavar="FILE")
+parser.add_argument("-y", "--yara", dest="yara",
+                    help="use yara ruleset for checking")
+
+
 
 parser.add_argument("path",help="path to directory, url, or file, depending on flag used")
 args= parser.parse_args()
@@ -198,10 +207,64 @@ def _write_to_file():
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
 
+def isMatch(rule, target_path):
+    #rule = compiled yara rules
+    m = rule.match(target_path)
+    if m:
+        return True
+    else:
+        return False
+
+
+def compileRules(rule_path):
+    ruleSet=[]
+    for root, sub, files in os.walk(rule_path):
+        for file in files:
+            #print("\t"+os.path.join(root,file))
+            rule = yara.compile(os.path.join(root,file))
+            ruleSet.append(rule)
+    return ruleSet
+
+
+def scanTargetDirectory(target_path, ruleSet ):
+    result = []
+    for root, sub, files in os.walk(target_path):
+        for file in files: #check each file for rules
+            #print("\t"+os.path.join(root,file))
+            for rule in ruleSet:
+                if(isMatch(rule,os.path.join(root,file))):
+                    matches = rule.match(os.path.join(root,file))
+                    if(matches):
+                        for match in matches:
+                            print("\t\tYARA MATCH: "+ os.path.join(root,file)+"\t"+match.rule)
+                            result.append({ os.path.join(root,file): match.rule })
+                            
+    return result
+
+
+
+
 if __name__ == "__main__":
     print("[+] scanning...")
     if(args.web):
         webScan()
+    elif(args.yara is not None):
+             
+        rule_path = args.yara
+        print("Loading rules")
+        ruleset = compileRules(rule_path)
+        print("Scanning Directory ...")
+        rules =compileRules(args.yara)
+        cumulativeFindings=scanTargetDirectory(args.path, rules)
+
+        print("[+] writing to " +outputFilename +"...")
+
+        with open(outputFilename, 'w') as f:
+            json.dump({args.path: cumulativeFindings}, f ,sort_keys=True, indent=4)
+
+        print("[+] The Hamburglar has finished snooping")
+
+        exit()
     else:
         scan()
     print("[+] scan complete")
@@ -221,3 +284,4 @@ if __name__ == "__main__":
     print("[+] writing to " +outputFilename +"...")
     _write_to_file()
     print("[+] The Hamburglar has finished snooping")
+

@@ -27,7 +27,7 @@ This is designed to be quickly downloaded and executed on a machine.
 ## Operation
 
 ```
-usage: hamburglar.py [-h] [-v] [-w] [-o FILE] [-y YARA] [-g] path
+usage: hamburglar.py [-h] [-g] [-x] [-v] [-w] [-o FILE] [-y YARA] path
 
 positional arguments:
   path                  path to directory, url, or file, depending on flag
@@ -35,11 +35,12 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -g, --git             sets hamburglar into git mode
+  -x, --hexdump         give hexdump of file
   -v, --verbose         increase output verbosity
   -w, --web             sets Hamburgler to web request mode, enter url as path
   -o FILE, --out FILE   write results to FILE
   -y YARA, --yara YARA  use yara ruleset for checking
-  -g, --git             sets hamburglar into git mode
 
 ```
 
@@ -69,6 +70,11 @@ optional arguments:
     - Adding a `-w` to hamburgler.py tells the script to handle the path as a url. 
     - Currently this does not spider the page, it just analyzes the requested html content
 
+**Hex Dump Mode**
+
+- `python3 hamburglar.py -x ~/file-to-dump`
+    - This just does a hex dump and nothing more right now -- could be piped into a file
+    - This will eventually be used for binary analysis
 **Tips**
 
 - Adding `-v` will set the script into verbose mode, and `-h` will show details of available arguments
@@ -89,6 +95,7 @@ optional arguments:
 - private keys
 - urls
 - cryptocurrency addresses
+- anything you can imagine using regex filters and yara rules
 
 ## Example output:
 
@@ -114,10 +121,13 @@ optional arguments:
     }
 }
 ```
-## Notes
-
-- Inspiration came from needmorecowbell/sniff-paste, I wanted the same regex scraping but for every file in a given directory. 
+## Contributions ##
 
 - Please contribute! If there's an error let me know -- even better if you can fix it :)
-	- Regex Contributions would be very helpful, and should be pretty easy to add!
-- Please don't use this project maliciously, it is meant to be an analysis tool
+
+- A big thank you to anyone who has helped:
+
+      - [adi928](https://github.com/adi928)
+      - [jaeger-2601](https://github.com/jaeger-2601)
+      - [tijko](https://github.com/tijko)
+

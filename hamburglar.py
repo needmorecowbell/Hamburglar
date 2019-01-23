@@ -69,7 +69,10 @@ regexList= {
 
 
 parser = argparse.ArgumentParser()
-
+parser.add_argument("-g", "--git", action="store_true",
+                    help="sets hamburglar into git mode")
+parser.add_argument("-x", "--hexdump", action="store_true",
+                     help="give hexdump of file")
 parser.add_argument("-v", "--verbose", help="increase output verbosity",
                     action="store_true")
 
@@ -79,9 +82,7 @@ parser.add_argument("-o", "--out", dest="output",
                     help="write results to FILE", metavar="FILE")
 parser.add_argument("-y", "--yara", dest="yara",
                     help="use yara ruleset for checking")
-parser.add_argument("-g", "--git", action="store_true",
-                    help="sets hamburglar into git mode")
-parser.add_argument("-x", "--hexdump", action="store_true")
+
 
 
 

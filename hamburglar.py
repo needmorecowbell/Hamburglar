@@ -11,12 +11,6 @@ import yara
 import os
 
 
-
-#if(len(sys.argv) != 2):
-#    print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
-#    exit()
-
-
 whitelistOn= False #Set True to filter by whitelist
 
 maxWorkers= 20 #Max workers for reading and sniffing each file
@@ -85,10 +79,14 @@ parser.add_argument("-o", "--out", dest="output",
                     help="write results to FILE", metavar="FILE")
 parser.add_argument("-y", "--yara", dest="yara",
                     help="use yara ruleset for checking")
+parser.add_argument("-g", "--git", action="store_true",
+                    help="sets hamburglar into git mode")
+
 
 
 
 parser.add_argument("path",help="path to directory, url, or file, depending on flag used")
+
 args= parser.parse_args()
 
 #Get Path Argument (file url or directory)
@@ -201,9 +199,9 @@ def displayCumulative():
     """ Displays finding report """
     print(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
-def _write_to_file():
+def _write_to_file(fname):
     """ writes report to json file """
-    with open(outputFilename, 'w') as file:
+    with open(fname, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
 
@@ -226,7 +224,7 @@ def compileRules(rule_path):
     return ruleSet
 
 
-def scanTargetDirectory(target_path, ruleSet ):
+def scanTargetDirectory(target_path, ruleSet):
     result = []
     for root, sub, files in os.walk(target_path):
         for file in files: #check each file for rules
@@ -241,35 +239,7 @@ def scanTargetDirectory(target_path, ruleSet ):
                             
     return result
 
-
-
-
-if __name__ == "__main__":
-    print("[+] scanning...")
-    if(args.web):
-        webScan()
-    elif(args.yara is not None):
-             
-        rule_path = args.yara
-        print("Loading rules")
-        ruleset = compileRules(rule_path)
-        print("Scanning Directory ...")
-        rules =compileRules(args.yara)
-        cumulativeFindings=scanTargetDirectory(args.path, rules)
-
-        print("[+] writing to " +outputFilename +"...")
-
-        with open(outputFilename, 'w') as f:
-            json.dump({args.path: cumulativeFindings}, f ,sort_keys=True, indent=4)
-
-        print("[+] The Hamburglar has finished snooping")
-
-        exit()
-    else:
-        scan()
-    print("[+] scan complete")
-
-
+def _startWorkers(web=False ):
     workerType = _url_read if args.web else _file_read #set scantype based of url or directory/file traverseal
 
     workers= [] # workers to handle filestack
@@ -281,7 +251,114 @@ if __name__ == "__main__":
     for worker in workers:# join all workers to conclude scan
         worker.join()
 
-    print("[+] writing to " +outputFilename +"...")
-    _write_to_file()
+
+def scanGitRepo(target_path, ruleSet=None , yara=False):
+    
+    result = []
+
+    #Clone the repo
+    print("Cloning Repo Cloned")
+    os.system("git clone "+target_path+" tmp")
+    os.chdir("tmp")
+    os.system("git log -p >> tmp_git_log")
+    os.system("mv tmp_git_log ..")
+    os.chdir("..")
+    
+    #Git Diff results
+
+    if(yara):
+        for root, sub, files in os.walk("tmp"):
+            for file in files: #check each file for rules
+                for rule in ruleSet:
+
+                    if(isMatch(rule,os.path.join(root,file))):
+                        matches = rule.match(os.path.join(root,file))
+                        if(matches):
+                            for match in matches:
+                                print("\t\tYARA MATCH: "+ os.path.join(root,file)+"\t"+match.rule)
+                                result.append({ os.path.join(root,file): match.rule })
+                    
+        if(isMatch(rule, "tmp_git_log")):
+            matches = rule.match("tmp_git_log")
+            if(matches):
+                for match in matches:
+                    print("\t\tYARA MATCH: Git Log \t"+match.rule)
+
+    else:
+
+        for root, sub, files in os.walk("tmp"):     #iterate through every file in repo
+            for entry in files:     #get all files from root directory
+                filepath= os.path.join(root,entry)
+                if(whitelistOn and _iswhitelisted(filepath)):
+                    print("[+] whitelist finding: "+str(filepath))
+                    filestack.add(filepath)
+                elif _isfiltered(filepath):
+                    #if whitelist is off, check blacklist
+                    if(args.verbose): print("[-] "+filepath+" blacklisted, not scanning")
+                else:
+                    #lastly, if it is not blacklisted, lets add the file to the stack
+                    try:
+                        print("[+] adding:"+str(filepath)+" ("+str(os.stat(filepath).st_size >> 10)+"kb) to stack")
+                        filestack.add(filepath)
+                    except Exception as e:
+                        print("[-] read error: "+str(e) )
+                    
+
+        print("[+] adding: tmp_git_log"+" ("+str(os.stat("tmp_git_log").st_size >> 10)+"kb) to stack")
+        filestack.add("tmp_git_log")
+        _startWorkers()
+ 
+    #Remove the repository and log
+    os.system("rm  tmp -rf && rm tmp_git_log")
+
+    return result
+
+
+
+if __name__ == "__main__":
+
+    print("[+] scanning...")
+    if(args.web):
+        webScan()
+        _startWorkers(args.web)
+        _write_to_file(outputFilename)
+    elif(args.yara is not None):
+             
+        rule_path = args.yara
+        print("Loading rules")
+        rules = compileRules(rule_path)
+        print("Scanning Directory ...")
+
+        if(args.git):
+            rule_path = args.yara
+            print("Loading rules")
+            rules = compileRules(rule_path)
+            print("Scanning Directory...")
+            cumulativeFindings = scanGitRepo(args.path, rules, yara=True) 
+        else:
+            cumulativeFindings= scanTargetDirectory(args.path, rules)
+
+        
+        print("[+] writing to " +outputFilename +"...")
+
+        with open(outputFilename, 'w') as f:
+            json.dump({args.path: cumulativeFindings}, f ,sort_keys=True, indent=4)
+
+
+    elif(args.git):
+        print("Scanning Repository")
+        scanGitRepo(args.path)
+        print("[+] scan complete")
+        print("[+] writing to " +outputFilename +"...")
+        _write_to_file(outputFilename)
+
+
+    else:
+        scan()
+        _startWorkers()
+        print("[+] scan complete")
+        print("[+] writing to " +outputFilename +"...")
+        _write_to_file(outputFilename)
+
     print("[+] The Hamburglar has finished snooping")
 

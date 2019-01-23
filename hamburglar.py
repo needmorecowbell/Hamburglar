@@ -92,7 +92,10 @@ args= parser.parse_args()
 #Get Path Argument (file url or directory)
 passedPath = args.path
 if args.output is None:
-    outputFilename= "hamburglar-results.json"
+    if args.git:
+        outputFilename= args.path[args.path.rfind("/")+1:]+".json"
+    else:
+        outputFilename= "hamburglar-results.json"
 else:
     outputFilename= args.output
 

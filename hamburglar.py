@@ -81,7 +81,7 @@ parser.add_argument("-y", "--yara", dest="yara",
                     help="use yara ruleset for checking")
 parser.add_argument("-g", "--git", action="store_true",
                     help="sets hamburglar into git mode")
-
+parser.add_argument("-x", "--hexdump", action="store_true")
 
 
 
@@ -207,6 +207,24 @@ def _write_to_file(fname):
     with open(fname, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
+def hexDump():
+    try:
+        with open(args.path, "rb") as f:
+            n = 0
+            b = f.read(16)
+
+            while b:
+                s1 = " ".join([f"{i:02x}" for i in b])
+                s1 = s1[0:23] + "  " + s1[:23]
+                s2 = "".join([chr(i) if 32 <= i <= 127 else "." for i in b])
+
+                print(f"{n*16:08x}  {s1:<48}  |{s2}|")
+
+                n += 1
+                b = f.read(16)
+
+    except Exception as e:
+        print(__file__, ": ", type(e).__name__, " - ", e, sep="", file=sys.stderr)
 
 def isMatch(rule, target_path):
     #rule = compiled yara rules
@@ -321,9 +339,14 @@ def scanGitRepo(target_path, ruleSet=None , yara=False):
 if __name__ == "__main__":
 
     print("[+] scanning...")
+    if(args.hexdump):
+        hexDump()
+        #this may become the flag for checking embedded files, but right now it just prints out the hexdump
+        exit()
     if(args.web):
         webScan()
         _startWorkers(args.web)
+        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
     elif(args.yara is not None):
              
@@ -342,8 +365,8 @@ if __name__ == "__main__":
             cumulativeFindings= scanTargetDirectory(args.path, rules)
 
         
-        print("[+] writing to " +outputFilename +"...")
 
+        print("[+] writing to " +outputFilename +"...")
         with open(outputFilename, 'w') as f:
             json.dump({args.path: cumulativeFindings}, f ,sort_keys=True, indent=4)
 

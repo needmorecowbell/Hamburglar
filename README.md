@@ -75,6 +75,7 @@ optional arguments:
 - `python3 hamburglar.py -x ~/file-to-dump`
     - This just does a hex dump and nothing more right now -- could be piped into a file
     - This will eventually be used for binary analysis
+    
 **Tips**
 
 - Adding `-v` will set the script into verbose mode, and `-h` will show details of available arguments

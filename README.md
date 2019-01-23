@@ -26,7 +26,22 @@ This is designed to be quickly downloaded and executed on a machine.
 
 ## Operation
 
-`python3 hamburglar.py -w -v -h path`
+```
+usage: hamburglar.py [-h] [-v] [-w] [-o FILE] [-y YARA] [-g] path
+
+positional arguments:
+  path                  path to directory, url, or file, depending on flag
+                        used
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         increase output verbosity
+  -w, --web             sets Hamburgler to web request mode, enter url as path
+  -o FILE, --out FILE   write results to FILE
+  -y YARA, --yara YARA  use yara ruleset for checking
+  -g, --git             sets hamburglar into git mode
+
+```
 
 
 **Directory Traversal**
@@ -43,12 +58,16 @@ This is designed to be quickly downloaded and executed on a machine.
 - `python3 hamburglar.py -y rules/ ~/Directory`
     - This will compile the yara rule files in the rules directory and then check them against every item in Directory.
 
+**Git Scraping Mode**
+
+- `python3 hamburglar.py -g https://www.github.com/needmorecowbell/Hamburglar`
+    - Adding `-y <rulepath>` will allow the repo to be scraped using yara rules
+
 **Web Request Mode**
 
 - `python3 hamburglar.py -w https://google.com`
     - Adding a `-w` to hamburgler.py tells the script to handle the path as a url. 
     - Currently this does not spider the page, it just analyzes the requested html content
-
 
 **Tips**
 

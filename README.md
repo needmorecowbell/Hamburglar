@@ -1,14 +1,48 @@
 ## The Hamburglar
 
 <p align="center">
-    <img src="res/hamburglar.gif"></img>
+    <img src="https://user-images.githubusercontent.com/7833164/51336290-29a79600-1a52-11e9-96a1-beac9207fdab.gif"></img>
 </p>
 
-Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. All in one file, no external packages required! 
+
+## Setup
+
+There are 2 versions of hamburglar, full and lite. The main branch is the full version, and hamburglar lite is on a separate branch.
+
+**Hamburglar**
+
+Full fledged scraping tool for artifact retrieval from multiple sources. There are some dependencies, so install them first: 
+
+`pip3 install -r requirements.txt`
+
+**Hamburglar Lite**
+
+Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. Hamburglar lite will never require external packages, and will always remain as a single script. Setup is as simple as requesting the file and using it:
+
+`wget https://raw.githubusercontent.com/needmorecowbell/Hamburglar/hamburglar-lite/hamburglar-lite.py`
+
+This is designed to be quickly downloaded and executed on a machine.
+
 
 ## Operation
 
-`python3 hamburglar.py -w -v -h path`
+```
+usage: hamburglar.py [-h] [-g] [-x] [-v] [-w] [-o FILE] [-y YARA] path
+
+positional arguments:
+  path                  path to directory, url, or file, depending on flag
+                        used
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g, --git             sets hamburglar into git mode
+  -x, --hexdump         give hexdump of file
+  -v, --verbose         increase output verbosity
+  -w, --web             sets Hamburgler to web request mode, enter url as path
+  -o FILE, --out FILE   write results to FILE
+  -y YARA, --yara YARA  use yara ruleset for checking
+
+```
 
 
 **Directory Traversal**
@@ -21,6 +55,14 @@ Multithreaded and recursive directory scraping script. Stores useful information
 - `python3 hamburglar.py ~/Directory/file.txt`
     - This will recursively scan for files in the given directory, then analyzes each file for a variety of findings using regex filters
 
+**YARA Rule Based Analysis**
+- `python3 hamburglar.py -y rules/ ~/Directory`
+    - This will compile the yara rule files in the rules directory and then check them against every item in Directory.
+
+**Git Scraping Mode**
+
+- `python3 hamburglar.py -g https://www.github.com/needmorecowbell/Hamburglar`
+    - Adding `-y <rulepath>` will allow the repo to be scraped using yara rules
 
 **Web Request Mode**
 
@@ -28,7 +70,12 @@ Multithreaded and recursive directory scraping script. Stores useful information
     - Adding a `-w` to hamburgler.py tells the script to handle the path as a url. 
     - Currently this does not spider the page, it just analyzes the requested html content
 
+**Hex Dump Mode**
 
+- `python3 hamburglar.py -x ~/file-to-dump`
+    - This just does a hex dump and nothing more right now -- could be piped into a file
+    - This will eventually be used for binary analysis
+    
 **Tips**
 
 - Adding `-v` will set the script into verbose mode, and `-h` will show details of available arguments
@@ -49,6 +96,7 @@ Multithreaded and recursive directory scraping script. Stores useful information
 - private keys
 - urls
 - cryptocurrency addresses
+- anything you can imagine using regex filters and yara rules
 
 ## Example output:
 
@@ -74,10 +122,13 @@ Multithreaded and recursive directory scraping script. Stores useful information
     }
 }
 ```
-## Notes
-
-- Inspiration came from needmorecowbell/sniff-paste, I wanted the same regex scraping but for every file in a given directory. 
+## Contributions ##
 
 - Please contribute! If there's an error let me know -- even better if you can fix it :)
-	- Regex Contributions would be very helpful, and should be pretty easy to add!
-- Please don't use this project maliciously, it is meant to be an analysis tool
+
+- A big thank you to anyone who has helped:
+
+      - [adi928](https://github.com/adi928)
+      - [jaeger-2601](https://github.com/jaeger-2601)
+      - [tijko](https://github.com/tijko)
+

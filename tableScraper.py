@@ -2,6 +2,7 @@ import requests
 import lxml.html as lh
 import pandas as pd
 import sqlalchemy as db
+import re
 
 url='https://en.wikipedia.org/wiki/List_of_file_signatures'
 

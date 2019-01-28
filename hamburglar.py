@@ -5,6 +5,7 @@ import threading
 import json
 from urllib.request import urlopen
 import argparse
+import sqlalchemy as db
 
 #if(len(sys.argv) != 2):
 #    print("[-] Argument Error: Use hamburglar.py </path/to/file/or/directory>")
@@ -201,6 +202,55 @@ def _write_to_file():
     with open(outputFilename, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
+def get_offset(offsets):
+    formatted_offset = []
+    if offsets is None:
+        return formatted_offset
+
+    for offset in offsets.split():
+        if re.search('0[xX][0-9a-fA-F]+', offset):
+            if len(offset) <= 6:
+                formatted_offset.append(int(offset, 16))
+            else:
+                formatted_offset.append(int(offset[0:6], 16))
+                formatted_offset.append(int(offset[6:12], 16))
+        else:
+            return [0]
+    return formatted_offset
+
+def convert_to_regex(hex):
+    hex = "".join(hex.split())
+    hex = re.sub('\?+', '(.?)', hex)
+    hex_list = hex.split('(.?)')
+    hex_complete = ""
+    for hex_str in hex_list:
+        for i in range(0, len(hex_str)):
+            i = i * 2
+            hex_complete += " " + hex_str[i:i + 2]
+        hex_complete += "(.+)"
+    hex_complete = " ".join(hex_complete.split())
+    return hex_complete[:-4]
+
+def compare_signature():
+    db_engine = db.create_engine('mysql+pymysql://root:toorroot@localhost/fileSign')
+    conn = db_engine.connect()
+    signatures = conn.execute("SELECT * FROM signatures").fetchall()
+
+    with open(args.file, "rb") as faile:
+        fileHeader = faile.read()
+        s1 = " ".join([f"{i:02x}" for i in fileHeader])
+
+        for signs in signatures:
+            sig_list = signs[1].split('\n')
+            for sigs in sig_list:
+                if sigs == "":
+                    continue
+                sigs_regex = convert_to_regex(sigs).strip()
+                offset = get_offset(signs[3])
+                for offs in offset:
+                    if re.match(sigs_regex, s1[offs:len(sigs) + offs]):
+                        print("Gotya! --> ", signs[4], " with index as ", signs[0])
+
 def hexDump():
     try:
         with open(args.file, "rb") as f:
@@ -230,6 +280,7 @@ if __name__ == "__main__":
         print("[+] The Hamburglar has finished snooping")
 
     if (args.file):
+        compare_signature()
         hexDump()
 
     if (args.path):
@@ -237,8 +288,8 @@ if __name__ == "__main__":
         print("[+] writing to " + outputFilename + "...")
         _write_to_file()
         print("[+] The Hamburglar has finished snooping")
-    print("[+] scan complete")
 
+    print("[+] scan complete")
 
     workerType = _url_read if args.web else _file_read #set scantype based of url or directory/file traverseal
 

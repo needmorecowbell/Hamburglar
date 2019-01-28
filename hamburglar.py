@@ -6,7 +6,7 @@ import json
 from urllib.request import urlopen
 import argparse
 import sqlalchemy as db
-
+import configparser
 import yara
 
 import os
@@ -238,7 +238,12 @@ def convert_to_regex(hex):
     return hex_complete[:-4]
 
 def compare_signature():
-    db_engine = db.create_engine('mysql+pymysql://root:toorroot@localhost/fileSign')
+    config = configparser.ConfigParser()
+    config.read('ham.conf')
+    sql_user = config['mySql']['user']
+    sql_pass = config['mySql']['password']
+    conn_String = 'mysql+pymysql://' + sql_user + ':' + sql_pass +'@localhost/fileSign'
+    db_engine = db.create_engine(conn_String)
     conn = db_engine.connect()
     signatures = conn.execute("SELECT * FROM signatures").fetchall()
 

@@ -204,6 +204,7 @@ def displayCumulative():
 
 def _write_to_file(fname):
     """ writes report to json file """
+    print("[+] writing to " + outputFilename + "...")
     with open(fname, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
 
@@ -254,23 +255,25 @@ def compare_signature():
                 offset = get_offset(signs[3])
                 for offs in offset:
                     if re.match(sigs_regex, s1[offs:len(sigs) + offs]):
-                        print("Gotya! --> ", signs[4], " with index as ", signs[0])
+                        print("File format --> ", signs[4])
 
 def hexDump():
     try:
         with open(args.path, "rb") as f:
             n = 0
             b = f.read(16)
+            outputFilename = "hexdump.txt"
+            print("[+] writing to " + outputFilename + "...")
+            with open(outputFilename, 'w') as file:
+                while b:
+                    s1 = " ".join([f"{i:02x}" for i in b])
+                    s1 = s1[0:23] + "  " + s1[23:]
+                    s2 = "".join([chr(i) if 32 <= i <= 127 else "." for i in b])
 
-            while b:
-                s1 = " ".join([f"{i:02x}" for i in b])
-                s1 = s1[0:23] + "  " + s1[23:]
-                s2 = "".join([chr(i) if 32 <= i <= 127 else "." for i in b])
+                    file.write(f"{n*16:08x}  {s1:<48}  |{s2}|\n")
 
-                print(f"{n*16:08x}  {s1:<48}  |{s2}|")
-
-                n += 1
-                b = f.read(16)
+                    n += 1
+                    b = f.read(16)
 
     except Exception as e:
         print(__file__, ": ", type(e).__name__, " - ", e, sep="", file=sys.stderr)
@@ -395,7 +398,6 @@ if __name__ == "__main__":
     if(args.web):
         webScan()
         _startWorkers(args.web)
-        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
     elif(args.yara is not None):
              
@@ -421,14 +423,12 @@ if __name__ == "__main__":
         print("Scanning Repository")
         scanGitRepo(args.path)
         print("[+] scan complete")
-        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
 
     else:
         scan()
         _startWorkers()
         print("[+] scan complete")
-        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
 
     print("[+] The Hamburglar has finished snooping")

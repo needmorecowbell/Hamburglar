@@ -5,7 +5,8 @@ import threading
 import json
 from urllib.request import urlopen
 import argparse
-
+import sqlalchemy as db
+import configparser
 import yara
 
 import os
@@ -83,15 +84,13 @@ parser.add_argument("-o", "--out", dest="output",
 parser.add_argument("-y", "--yara", dest="yara",
                     help="use yara ruleset for checking")
 
-
-
-
-parser.add_argument("path",help="path to directory, url, or file, depending on flag used")
+parser.add_argument("path", help="path to directory, url, or file, depending on flag used")
 
 args= parser.parse_args()
 
 #Get Path Argument (file url or directory)
 passedPath = args.path
+
 if args.output is None:
     if args.git:
         outputFilename= args.path[args.path.rfind("/")+1:]+".json"
@@ -149,7 +148,7 @@ def _iswhitelisted(filepath):
     return False
 
 def _url_read():
-    """ opens the urls in requestStack, makes request, and if something matchest the regex, add it to the cumulativeFindings """
+    """ opens the urls in requestStack, makes request, and if something matches the regex, add it to the cumulativeFindings """
 
     while(requestStack): # while there are still requests to be made
         url=requestStack.pop()
@@ -205,24 +204,81 @@ def displayCumulative():
 
 def _write_to_file(fname):
     """ writes report to json file """
+    print("[+] writing to " + outputFilename + "...")
     with open(fname, 'w') as file:
         file.write(json.dumps(dict(cumulativeFindings), default=lambda x: str(x), sort_keys=True, indent=4))
+
+def get_offset(offsets):
+    formatted_offset = []
+    if offsets is None:
+        return formatted_offset
+
+    for offset in offsets.split():
+        if re.search('0[xX][0-9a-fA-F]+', offset):
+            if len(offset) <= 6:
+                formatted_offset.append(int(offset, 16))
+            else:
+                formatted_offset.append(int(offset[0:6], 16))
+                formatted_offset.append(int(offset[6:12], 16))
+        else:
+            return [0]
+    return formatted_offset
+
+def convert_to_regex(hex):
+    hex = "".join(hex.split())
+    hex = re.sub('\?+', '(.?)', hex)
+    hex_list = hex.split('(.?)')
+    hex_complete = ""
+    for hex_str in hex_list:
+        for i in range(0, len(hex_str)):
+            i = i * 2
+            hex_complete += " " + hex_str[i:i + 2]
+        hex_complete += "(.+)"
+    hex_complete = " ".join(hex_complete.split())
+    return hex_complete[:-4]
+
+def compare_signature():
+    config = configparser.ConfigParser()
+    config.read('ham.conf')
+    sql_user = config['mySql']['user']
+    sql_pass = config['mySql']['password']
+    conn_String = 'mysql+pymysql://' + sql_user + ':' + sql_pass +'@localhost/fileSign'
+    db_engine = db.create_engine(conn_String)
+    conn = db_engine.connect()
+    signatures = conn.execute("SELECT * FROM signatures").fetchall()
+
+    with open(args.path, "rb") as faile:
+        fileHeader = faile.read()
+        s1 = " ".join([f"{i:02x}" for i in fileHeader])
+
+        for signs in signatures:
+            sig_list = signs[1].split('\n')
+            for sigs in sig_list:
+                if sigs == "":
+                    continue
+                sigs_regex = convert_to_regex(sigs).strip()
+                offset = get_offset(signs[3])
+                for offs in offset:
+                    if re.match(sigs_regex, s1[offs:len(sigs) + offs]):
+                        print("File format --> ", signs[4])
 
 def hexDump():
     try:
         with open(args.path, "rb") as f:
             n = 0
             b = f.read(16)
+            outputFilename = "hexdump.txt"
+            print("[+] writing to " + outputFilename + "...")
+            with open(outputFilename, 'w') as file:
+                while b:
+                    s1 = " ".join([f"{i:02x}" for i in b])
+                    s1 = s1[0:23] + "  " + s1[23:]
+                    s2 = "".join([chr(i) if 32 <= i <= 127 else "." for i in b])
 
-            while b:
-                s1 = " ".join([f"{i:02x}" for i in b])
-                s1 = s1[0:23] + "  " + s1[:23]
-                s2 = "".join([chr(i) if 32 <= i <= 127 else "." for i in b])
+                    file.write(f"{n*16:08x}  {s1:<48}  |{s2}|\n")
 
-                print(f"{n*16:08x}  {s1:<48}  |{s2}|")
-
-                n += 1
-                b = f.read(16)
+                    n += 1
+                    b = f.read(16)
 
     except Exception as e:
         print(__file__, ": ", type(e).__name__, " - ", e, sep="", file=sys.stderr)
@@ -264,7 +320,7 @@ def scanTargetDirectory(target_path, ruleSet):
 def _startWorkers(web=False ):
     workerType = _url_read if args.web else _file_read #set scantype based of url or directory/file traverseal
 
-    workers= [] # workers to handle filestack
+    workers = [] # workers to handle filestack
     for x in range(maxWorkers):#start up file reading worker threads
         t=threading.Thread(target=workerType)
         t.start()
@@ -272,7 +328,6 @@ def _startWorkers(web=False ):
 
     for worker in workers:# join all workers to conclude scan
         worker.join()
-
 
 def scanGitRepo(target_path, ruleSet=None , yara=False):
     
@@ -341,13 +396,13 @@ if __name__ == "__main__":
 
     print("[+] scanning...")
     if(args.hexdump):
+        compare_signature()
         hexDump()
-        #this may become the flag for checking embedded files, but right now it just prints out the hexdump
         exit()
+
     if(args.web):
         webScan()
         _startWorkers(args.web)
-        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
     elif(args.yara is not None):
              
@@ -365,27 +420,20 @@ if __name__ == "__main__":
         else:
             cumulativeFindings= scanTargetDirectory(args.path, rules)
 
-        
-
         print("[+] writing to " +outputFilename +"...")
         with open(outputFilename, 'w') as f:
             json.dump({args.path: cumulativeFindings}, f ,sort_keys=True, indent=4)
-
 
     elif(args.git):
         print("Scanning Repository")
         scanGitRepo(args.path)
         print("[+] scan complete")
-        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
-
 
     else:
         scan()
         _startWorkers()
         print("[+] scan complete")
-        print("[+] writing to " +outputFilename +"...")
         _write_to_file(outputFilename)
 
     print("[+] The Hamburglar has finished snooping")
-

@@ -128,7 +128,8 @@ optional arguments:
 
 - A big thank you to anyone who has helped:
 
-      - [adi928](https://github.com/adi928)
-      - [jaeger-2601](https://github.com/jaeger-2601)
-      - [tijko](https://github.com/tijko)
+  - [adi928](https://github.com/adi928)
+  - [jaeger-2601](https://github.com/jaeger-2601)
+  - [tijko](https://github.com/tijko)
+  - [joanbono](https://github.com/joanbono) and [Xumeiquer](https://github.com/Xumeiquer) for the rules from [yara-forensics](https://github.com/Xumeiquer/yara-forensics)
 

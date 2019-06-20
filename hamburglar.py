@@ -8,8 +8,9 @@ import argparse
 import sqlalchemy as db
 import configparser
 import yara
-
+import iocextract
 import os
+from newspaper import Article
 
 
 whitelistOn= False #Set True to filter by whitelist
@@ -79,8 +80,10 @@ parser.add_argument("-v", "--verbose", help="increase output verbosity",
 
 parser.add_argument("-w","--web", help="sets Hamburgler to web request mode, enter url as path",
                     action="store_true")
+parser.add_argument("-i","--ioc", help="uses iocextract to parse contents", action="store_true")
 parser.add_argument("-o", "--out", dest="output",
                     help="write results to FILE", metavar="FILE")
+
 parser.add_argument("-y", "--yara", dest="yara",
                     help="use yara ruleset for checking")
 
@@ -107,7 +110,7 @@ requestStack= set()
 cumulativeFindings= {}
 
 def webScan():
-    """ Scans the url given in the path, then adds to request stack (eventually this may be a spider """
+    """ Scans the url given in the path, then adds to request stack (eventually this may be a spider)"""
     requestStack.add(passedPath)
 
 def scan():
@@ -155,15 +158,18 @@ def _url_read():
         if(args.verbose):print("[+] left on stack: "+str(len(requestStack)))
 
         try:
-            with urlopen(url) as response:
-                html = response.read()
-                data= str(html).rstrip("\r\n")
-                results= _sniff_text(data)
+            #with urlopen(url) as response:
+            article = Article(url)
+            article.download()
+            article.parse()
+                # html = response.read()
+                # data= str(html).rstrip("\r\n")
+            results= _sniff_text(article.text)
 
-                if(len(results.items())>0):
-                    totalResults=sum(map(len, results.values()))
-                    print("[+] "+url+" -- "+str(totalResults)+" result(s) found.")
-                    cumulativeFindings.update({url:results})
+            if(len(results.items())>0):
+                totalResults=sum(map(len, results.values()))
+                print("[+] "+url+" -- "+str(totalResults)+" result(s) found.")
+                cumulativeFindings.update({url:results})
 
         except Exception as e:
             print("Url Worker Error: "+str(e))
@@ -189,13 +195,21 @@ def _file_read():
             print("[-] "+filepath+": can't be read: "+str(e))
 
 
-def _sniff_text(text):
+def _sniff_text(text ):
     """ checks every regex for findings, and return a dictionary of all findings """
     results= {}
-    for key, value in regexList.items():
-        findings= set(re.findall(value, text))
-        if findings:
-            results.update({key:findings})
+    if(args.ioc):
+        print("")
+        urls = list(iocextract.extract_urls(text))
+        ips = list(iocextract.extract_ips(text))
+        if(urls):
+            results.update({"urls": urls})
+            results.update({"ips": ips})
+    else:
+        for key, value in regexList.items():
+            findings= set(re.findall(value, text))
+            if findings:
+                results.update({key:findings})
     return results
 
 def displayCumulative():
@@ -314,10 +328,10 @@ def scanTargetDirectory(target_path, ruleSet):
                         for match in matches:
                             print("\t\tYARA MATCH: "+ os.path.join(root,file)+"\t"+match.rule)
                             result.append({ os.path.join(root,file): match.rule })
-                            
+
     return result
 
-def _startWorkers(web=False ):
+def _startWorkers():
     workerType = _url_read if args.web else _file_read #set scantype based of url or directory/file traverseal
 
     workers = [] # workers to handle filestack
@@ -330,7 +344,7 @@ def _startWorkers(web=False ):
         worker.join()
 
 def scanGitRepo(target_path, ruleSet=None , yara=False):
-    
+
     result = []
 
     #Clone the repo
@@ -340,7 +354,7 @@ def scanGitRepo(target_path, ruleSet=None , yara=False):
     os.system("git log -p >> tmp_git_log")
     os.system("mv tmp_git_log ..")
     os.chdir("..")
-    
+
     #Git Diff results
 
     if(yara):
@@ -354,7 +368,7 @@ def scanGitRepo(target_path, ruleSet=None , yara=False):
                             for match in matches:
                                 print("\t\tYARA MATCH: "+ os.path.join(root,file)+"\t"+match.rule)
                                 result.append({ os.path.join(root,file): match.rule })
-                    
+
         if(isMatch(rule, "tmp_git_log")):
             matches = rule.match("tmp_git_log")
             if(matches):
@@ -379,12 +393,12 @@ def scanGitRepo(target_path, ruleSet=None , yara=False):
                         filestack.add(filepath)
                     except Exception as e:
                         print("[-] read error: "+str(e) )
-                    
+
 
         print("[+] adding: tmp_git_log"+" ("+str(os.stat("tmp_git_log").st_size >> 10)+"kb) to stack")
         filestack.add("tmp_git_log")
         _startWorkers()
- 
+
     #Remove the repository and log
     os.system("rm  tmp -rf && rm tmp_git_log")
 
@@ -402,10 +416,10 @@ if __name__ == "__main__":
 
     if(args.web):
         webScan()
-        _startWorkers(args.web)
+        _startWorkers()
         _write_to_file(outputFilename)
     elif(args.yara is not None):
-             
+
         rule_path = args.yara
         print("Loading rules")
         rules = compileRules(rule_path)
@@ -416,7 +430,7 @@ if __name__ == "__main__":
             print("Loading rules")
             rules = compileRules(rule_path)
             print("Scanning Directory...")
-            cumulativeFindings = scanGitRepo(args.path, rules, yara=True) 
+            cumulativeFindings = scanGitRepo(args.path, rules, yara=True)
         else:
             cumulativeFindings= scanTargetDirectory(args.path, rules)
 

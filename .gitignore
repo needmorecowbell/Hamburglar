@@ -2,3 +2,4 @@
 *.swp
 *.json
 test/
+env/

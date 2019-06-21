@@ -72,7 +72,7 @@ optional arguments:
 
 **IOC Extraction**
 - `python3 hamburglar.py -w -i https://pastebin.com/SYisR95m`
-    - Adding a `-i` will use iocextract to extract any ioc's from the requestred url
+    - Adding a `-i` will use iocextract to extract any ioc's from the requested url
     
 **Hex Dump Mode**
 

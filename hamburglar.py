@@ -202,9 +202,20 @@ def _sniff_text(text ):
         print("")
         urls = list(iocextract.extract_urls(text))
         ips = list(iocextract.extract_ips(text))
+        emails = list(iocextract.extract_emails(text))
+        hashes = list(iocextract.extract_hashes(text))
+        rules = list(iocextract.extract_yara_rules(text))
         if(urls):
             results.update({"urls": urls})
+        if(ips):
             results.update({"ips": ips})
+        if(emails):
+            results.update({"emails": emails})
+        if(hashes):
+            results.update({"hashes": hashes})
+        if(hashes):
+            results.update({"rules": rules})
+
     else:
         for key, value in regexList.items():
             findings= set(re.findall(value, text))

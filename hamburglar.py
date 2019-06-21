@@ -213,7 +213,7 @@ def _sniff_text(text ):
             results.update({"emails": emails})
         if(hashes):
             results.update({"hashes": hashes})
-        if(hashes):
+        if(rules):
             results.update({"rules": rules})
 
     else:

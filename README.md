@@ -27,7 +27,7 @@ This is designed to be quickly downloaded and executed on a machine.
 ## Operation
 
 ```
-usage: hamburglar.py [-h] [-g] [-x] [-v] [-w] [-o FILE] [-y YARA] path
+usage: hamburglar.py [-h] [-g] [-x] [-v] [-w] [-i] [-o FILE] [-y YARA] path
 
 positional arguments:
   path                  path to directory, url, or file, depending on flag
@@ -39,9 +39,9 @@ optional arguments:
   -x, --hexdump         give hexdump of file
   -v, --verbose         increase output verbosity
   -w, --web             sets Hamburgler to web request mode, enter url as path
+  -i, --ioc             uses iocextract to parse contents
   -o FILE, --out FILE   write results to FILE
   -y YARA, --yara YARA  use yara ruleset for checking
-
 ```
 
 
@@ -70,6 +70,10 @@ optional arguments:
     - Adding a `-w` to hamburgler.py tells the script to handle the path as a url. 
     - Currently this does not spider the page, it just analyzes the requested html content
 
+**IOC Extraction**
+- `python3 hamburglar.py -w -i https://pastebin.com/SYisR95m`
+    - Adding a `-i` will use iocextract to extract any ioc's from the requestred url
+    
 **Hex Dump Mode**
 
 - `python3 hamburglar.py -x ~/file-to-dump`
@@ -95,6 +99,7 @@ optional arguments:
 - emails
 - private keys
 - urls
+- ioc's (using iocextract)
 - cryptocurrency addresses
 - anything you can imagine using regex filters and yara rules
 

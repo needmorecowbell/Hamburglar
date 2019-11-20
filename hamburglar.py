@@ -15,7 +15,7 @@ from newspaper import Article
 
 whitelistOn= False #Set True to filter by whitelist
 
-maxWorkers= 20 #Max workers for reading and sniffing each file
+maxWorkers= 20 # Max workers for reading and sniffing each file
 
 whitelist= [".txt",".html",".md"] # Add to whitelist to ONLY sniff certain files or directories
 
@@ -98,7 +98,7 @@ if args.output is None:
     if args.git:
         outputFilename= args.path[args.path.rfind("/")+1:]+".json"
     else:
-        outputFilename= "hamburglar-results.json"
+        outputFilename= os.path.basename(args.path)+"_hamburgled.json"
 else:
     outputFilename= args.output
 

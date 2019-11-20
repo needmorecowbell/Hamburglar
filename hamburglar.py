@@ -263,36 +263,40 @@ def convert_to_regex(hex):
     return hex_complete[:-4]
 
 def compare_signature():
-    config = configparser.ConfigParser()
-    config.read('ham.conf')
-    sql_user = config['mySql']['user']
-    sql_pass = config['mySql']['password']
-    conn_String = 'mysql+pymysql://' + sql_user + ':' + sql_pass +'@localhost/fileSign'
-    db_engine = db.create_engine(conn_String)
-    conn = db_engine.connect()
-    signatures = conn.execute("SELECT * FROM signatures").fetchall()
+    print("[+] Attempting to identify by magic")
+    try:
+        config = configparser.ConfigParser()
+        config.read('ham.conf')
+        sql_user = config['mySql']['user']
+        sql_pass = config['mySql']['password']
+        conn_String = 'mysql+pymysql://' + sql_user + ':' + sql_pass +'@localhost/fileSign'
+        db_engine = db.create_engine(conn_String)
+        conn = db_engine.connect()
+        signatures = conn.execute("SELECT * FROM signatures").fetchall()
 
-    with open(args.path, "rb") as faile:
-        fileHeader = faile.read()
-        s1 = " ".join([f"{i:02x}" for i in fileHeader])
+        with open(args.path, "rb") as target:
+            fileHeader = target.read()
+            s1 = " ".join([f"{i:02x}" for i in fileHeader])
 
-        for signs in signatures:
-            sig_list = signs[1].split('\n')
-            for sigs in sig_list:
-                if sigs == "":
-                    continue
-                sigs_regex = convert_to_regex(sigs).strip()
-                offset = get_offset(signs[3])
-                for offs in offset:
-                    if re.match(sigs_regex, s1[offs:len(sigs) + offs]):
-                        print("File format --> ", signs[4])
+            for signs in signatures:
+                sig_list = signs[1].split('\n')
+                for sigs in sig_list:
+                    if sigs == "":
+                        continue
+                    sigs_regex = convert_to_regex(sigs).strip()
+                    offset = get_offset(signs[3])
+                    for offs in offset:
+                        if re.match(sigs_regex, s1[offs:len(sigs) + offs]):
+                            print("File format --> ", signs[4])
+    except Exception as e:
+        print("[-] File Signature table not set up properly")
 
 def hexDump():
     try:
         with open(args.path, "rb") as f:
             n = 0
             b = f.read(16)
-            outputFilename = "hexdump.txt"
+            outputFilename = os.path.basename(f.name)+".hexdump"
             print("[+] writing to " + outputFilename + "...")
             with open(outputFilename, 'w') as file:
                 while b:

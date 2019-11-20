@@ -15,6 +15,18 @@ Full fledged scraping tool for artifact retrieval from multiple sources. There a
 
 `pip3 install -r requirements.txt`
 
+Hamburglar also has the option of checking against file signatures during a hexdump. It will get skipped if not set up. To get it working, you will need to first create the database and a user:
+
+```sql
+CREATE DATABASE 
+CREATE USER 'hamman'@'localhost' IDENTIFIED BY 'deadbeef';
+GRANT ALL PRIVILEGES ON fileSign.signatures TO 'hamman'@'localhost';
+```
+
+Then, run magic_sig_scraper. This can be run on a cronjob to regularly update it, or just run it once:
+
+`python3 magic_sig_scraper.py`
+
 **Hamburglar Lite**
 
 Multithreaded and recursive directory scraping script. Stores useful information with the filepath and finding. Hamburglar lite will never require external packages, and will always remain as a single script. Setup is as simple as requesting the file and using it:

@@ -2,7 +2,7 @@ beautifulsoup4==4.7.1
 certifi==2019.6.16
 cffi==1.13.2
 chardet==3.0.4
-cryptography==2.8
+cryptography==3.2
 cssselect==1.0.3
 feedfinder2==0.0.4
 feedparser==5.2.1

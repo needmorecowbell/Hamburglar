@@ -51,7 +51,14 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Added 13 new tests covering: YaraCompilationError, max file size, timeout, availability check, and verbose logging
   - All 40 YARA detector tests pass
 
-- [ ] Update `src/hamburglar/cli/main.py` to: catch and display `HamburglarError` subclasses with rich formatting, show helpful error messages for common issues (path not found, permission denied, invalid YARA rules), add `--quiet/-q` flag to suppress non-error output, and return appropriate exit codes (0 success, 1 error, 2 no findings)
+- [x] Update `src/hamburglar/cli/main.py` to: catch and display `HamburglarError` subclasses with rich formatting, show helpful error messages for common issues (path not found, permission denied, invalid YARA rules), add `--quiet/-q` flag to suppress non-error output, and return appropriate exit codes (0 success, 1 error, 2 no findings)
+  - Added `_display_error()` helper function that displays rich Panel-formatted error messages for all exception types (YaraCompilationError, ScanError, ConfigError, OutputError, DetectorError, HamburglarError, PermissionError, FileNotFoundError)
+  - Added `--quiet/-q` flag that suppresses all non-error output while still writing to output files when specified
+  - Implemented exit codes: 0 (success with findings), 1 (error), 2 (no findings)
+  - Added logging setup integration with verbose mode
+  - Added KeyboardInterrupt handling for graceful scan interruption
+  - Added 11 new tests in `test_cli.py` covering: exit codes, quiet flag behavior, error display, and help documentation
+  - All 38 CLI tests pass, all 333 tests in the suite pass
 
 - [x] Create `tests/test_exceptions.py` with tests for: each exception class can be raised and caught, exception messages contain relevant context, exception hierarchy allows catching base `HamburglarError`
   - Added 44 tests covering all exception classes

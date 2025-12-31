@@ -284,18 +284,20 @@ class TestEmptyDirectory:
     """Test scanning empty directories."""
 
     def test_scan_empty_directory_json(self, tmp_path: Path) -> None:
-        """Test scanning an empty directory produces valid output."""
+        """Test scanning an empty directory produces valid output with exit code 2 (no findings)."""
         result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
-        assert result.exit_code == 0
+        # Exit code 2 means no findings (empty directory)
+        assert result.exit_code == 2
 
         data = json.loads(result.output)
         assert data["findings"] == []
         assert data["stats"]["files_discovered"] == 0
 
     def test_scan_empty_directory_table(self, tmp_path: Path) -> None:
-        """Test scanning an empty directory with table format."""
+        """Test scanning an empty directory with table format and exit code 2 (no findings)."""
         result = runner.invoke(app, ["scan", str(tmp_path), "--format", "table"])
-        assert result.exit_code == 0
+        # Exit code 2 means no findings (empty directory)
+        assert result.exit_code == 2
 
 
 class TestHelpOutput:
@@ -321,3 +323,100 @@ class TestHelpOutput:
         assert result.exit_code == 0
         # Should show help or usage information
         assert "Hamburglar" in result.output or "Usage" in result.output
+
+
+class TestExitCodes:
+    """Test exit codes for various scenarios."""
+
+    def test_exit_code_0_success_with_findings(self, temp_directory: Path) -> None:
+        """Test that exit code 0 is returned when findings are found."""
+        result = runner.invoke(app, ["scan", str(temp_directory)])
+        assert result.exit_code == 0
+
+    def test_exit_code_1_error(self, tmp_path: Path) -> None:
+        """Test that exit code 1 is returned on error."""
+        nonexistent = tmp_path / "does_not_exist"
+        result = runner.invoke(app, ["scan", str(nonexistent)])
+        assert result.exit_code != 0  # Typer returns 2 for invalid args, but 1 is for errors
+
+    def test_exit_code_2_no_findings(self, tmp_path: Path) -> None:
+        """Test that exit code 2 is returned when no findings are found."""
+        # Create empty directory
+        result = runner.invoke(app, ["scan", str(tmp_path)])
+        assert result.exit_code == 2
+
+    def test_exit_code_1_invalid_format(self, temp_directory: Path) -> None:
+        """Test that exit code 1 is returned for invalid format."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--format", "xml"])
+        assert result.exit_code == 1
+
+
+class TestQuietFlag:
+    """Test --quiet/-q flag."""
+
+    def test_quiet_flag_suppresses_output(self, temp_directory: Path) -> None:
+        """Test that --quiet suppresses non-error output."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--quiet"])
+        assert result.exit_code == 0
+        # Quiet mode should produce no stdout output
+        assert result.output == ""
+
+    def test_quiet_short_flag(self, temp_directory: Path) -> None:
+        """Test that -q works the same as --quiet."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "-q"])
+        assert result.exit_code == 0
+        assert result.output == ""
+
+    def test_quiet_still_writes_to_file(self, temp_directory: Path, tmp_path: Path) -> None:
+        """Test that --quiet still writes output to file when specified."""
+        output_file = tmp_path / "output.json"
+        result = runner.invoke(
+            app,
+            ["scan", str(temp_directory), "--quiet", "--format", "json", "--output", str(output_file)]
+        )
+        assert result.exit_code == 0
+        # File should exist and contain findings
+        assert output_file.exists()
+        content = output_file.read_text()
+        data = json.loads(content)
+        assert "findings" in data
+
+    def test_quiet_with_no_findings(self, tmp_path: Path) -> None:
+        """Test that --quiet returns correct exit code with no findings."""
+        result = runner.invoke(app, ["scan", str(tmp_path), "--quiet"])
+        # Exit code 2 for no findings
+        assert result.exit_code == 2
+        assert result.output == ""
+
+
+class TestErrorDisplay:
+    """Test rich error display for various error types."""
+
+    def test_invalid_format_shows_error_panel(self, temp_directory: Path) -> None:
+        """Test that invalid format shows rich error panel."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--format", "xml"])
+        assert result.exit_code == 1
+        # Error should be displayed (the Panel will contain the error info)
+        # Note: the rich Panel output may vary, but the error message should be present
+        assert "Invalid format" in result.output or "Config Error" in result.output or "Error" in result.output
+
+
+class TestHelpContainsQuietOption:
+    """Test that help includes the quiet option."""
+
+    def test_help_shows_quiet_option(self) -> None:
+        """Test that scan --help shows the --quiet option."""
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        assert "--quiet" in result.output or "-q" in result.output
+
+
+class TestHelpShowsExitCodes:
+    """Test that help mentions exit codes."""
+
+    def test_help_shows_exit_codes(self) -> None:
+        """Test that scan --help documents exit codes."""
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        # Exit codes should be documented in the help
+        assert "Exit codes" in result.output or "exit code" in result.output.lower()

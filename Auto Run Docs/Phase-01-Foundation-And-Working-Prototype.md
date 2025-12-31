@@ -52,7 +52,8 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `tests/conftest.py` with pytest fixtures: `temp_directory` (creates temp dir with sample files containing fake secrets), `sample_content_with_secrets` (returns string with AWS key, email, Bitcoin address, RSA private key header), and `scanner_config` (returns default ScanConfig)
   - Created `tests/conftest.py` with all required fixtures plus bonus fixtures (`scanner_config_non_recursive`, `scanner_config_with_whitelist`, `scanner_config_with_blacklist`) for comprehensive testing. Added path configuration to handle legacy `hamburglar.py` shadowing issue. Also added `pythonpath = ["src"]` to `pyproject.toml` pytest configuration.
 
-- [ ] Create `tests/test_models.py` with tests for: Finding model creation and serialization, ScanResult with multiple findings, ScanConfig defaults and validation
+- [x] Create `tests/test_models.py` with tests for: Finding model creation and serialization, ScanResult with multiple findings, ScanConfig defaults and validation
+  - Created comprehensive test suite with 26 tests covering: Severity enum values and string comparisons, OutputFormat enum values and string comparisons, Finding model creation (minimal/full), serialization (JSON/dict), empty matches, default severity. ScanResult creation, multiple findings, JSON serialization, empty findings. ScanConfig creation, defaults (including default blacklist patterns), path as string conversion, output format validation, custom/empty blacklist, whitelist patterns, and YARA configuration.
 
 - [ ] Create `tests/test_regex_detector.py` with tests for: detecting AWS API keys (AKIA pattern), detecting emails, detecting Bitcoin addresses, detecting RSA private key headers, returning empty list for clean content, handling binary content gracefully
 

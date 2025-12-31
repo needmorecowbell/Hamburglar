@@ -176,7 +176,13 @@ def scan(
             console.print(f"[red]Error writing output file:[/red] {e}")
             raise typer.Exit(code=1)
     else:
-        console.print(formatted_output)
+        # For JSON output, use print() directly to avoid Rich's text wrapping
+        # which can break JSON parsing. For table output, use Rich console
+        # for proper formatting.
+        if output_format == OutputFormat.JSON:
+            print(formatted_output)
+        else:
+            console.print(formatted_output)
 
     # Exit with non-zero code if findings with HIGH or CRITICAL severity
     from hamburglar.core.models import Severity

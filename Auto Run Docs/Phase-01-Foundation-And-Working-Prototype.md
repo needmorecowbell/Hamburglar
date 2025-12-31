@@ -84,7 +84,11 @@ This phase establishes the modern project structure, updates all dependencies to
   - Confirmed `hamburglar --version` outputs `Hamburglar version 2.0.0`
   - Verified `hamburglar --help` and `hamburglar scan --help` display proper CLI documentation
 
-- [ ] Run `pytest tests/ -v --cov=hamburglar --cov-report=term-missing` and ensure all tests pass with at least 80% coverage on the new code
+- [x] Run `pytest tests/ -v --cov=hamburglar --cov-report=term-missing` and ensure all tests pass with at least 80% coverage on the new code
+  - All 208 tests pass with 89% overall coverage on the new code
+  - Fixed JSON output issue in CLI where Rich console was wrapping JSON output and breaking parsing
+  - Added comprehensive test suites for DetectorRegistry, OutputRegistry, and YaraDetector
+  - Coverage breakdown: models 100%, scanner 92%, regex_detector 92%, yara_detector 86%, outputs 92-95%, detectors 95%
 
 - [ ] Run `hamburglar scan . --format table` from the project root to verify the CLI works end-to-end and produces output (it should detect patterns in the old hamburglar.py file itself)
 

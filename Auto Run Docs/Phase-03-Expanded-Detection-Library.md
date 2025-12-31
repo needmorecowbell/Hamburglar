@@ -8,7 +8,12 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
 
 - [x] Create `src/hamburglar/detectors/patterns/` directory for organizing pattern definitions
 
-- [ ] Create `src/hamburglar/detectors/patterns/__init__.py` with `PatternCategory` enum (CREDENTIALS, API_KEYS, CRYPTO, NETWORK, PRIVATE_KEYS, CLOUD, GENERIC) and `Pattern` dataclass (name, regex, severity, category, description, confidence)
+- [x] Create `src/hamburglar/detectors/patterns/__init__.py` with `PatternCategory` enum (CREDENTIALS, API_KEYS, CRYPTO, NETWORK, PRIVATE_KEYS, CLOUD, GENERIC) and `Pattern` dataclass (name, regex, severity, category, description, confidence)
+  - Implemented `PatternCategory` enum with 7 categories: CREDENTIALS, API_KEYS, CRYPTO, NETWORK, PRIVATE_KEYS, CLOUD, GENERIC
+  - Implemented `Confidence` enum with 3 levels: HIGH, MEDIUM, LOW
+  - Implemented `Pattern` dataclass with fields: name, regex, severity, category, description, confidence
+  - Added `to_dict()` method for compatibility with RegexDetector
+  - Created comprehensive test suite in `tests/test_pattern_models.py` with 20 tests
 
 - [ ] Create `src/hamburglar/detectors/patterns/api_keys.py` with patterns for: AWS Access Key ID, AWS Secret Key, GitHub Token (ghp_, gho_, ghu_, ghs_, ghr_), GitHub OAuth, GitLab Token, Slack Token, Slack Webhook, Google API Key, Google OAuth, Stripe API Key (sk_live_, rk_live_), Stripe Publishable Key, Twilio Account SID, Twilio Auth Token, SendGrid API Key, Mailgun API Key, Mailchimp API Key, NPM Token, PyPI Token, NuGet API Key, Heroku API Key, DigitalOcean Token, Datadog API Key, New Relic Key
 

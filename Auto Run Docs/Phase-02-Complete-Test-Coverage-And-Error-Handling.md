@@ -107,7 +107,16 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Updated `.gitignore` to allow `.txt` files in `tests/fixtures/` via `!tests/fixtures/*.txt` pattern
   - All 428 tests pass
 
-- [ ] Create `tests/test_encoding.py` with tests for: scanner handles UTF-8 files correctly, scanner handles Latin-1 files, scanner handles files with mixed/broken encoding (doesn't crash), scanner handles empty files
+- [x] Create `tests/test_encoding.py` with tests for: scanner handles UTF-8 files correctly, scanner handles Latin-1 files, scanner handles files with mixed/broken encoding (doesn't crash), scanner handles empty files
+  - Created comprehensive test suite with 30 tests organized into 8 test classes:
+    - `TestUTF8FileHandling`: 6 tests for ASCII, accented chars, Unicode symbols, CJK chars, emoji, and BOM handling
+    - `TestLatin1FileHandling`: 4 tests for basic Latin-1, extended chars, Windows-1252 compatibility, and fractions
+    - `TestMixedBrokenEncodingHandling`: 6 tests for mixed UTF-8/Latin-1, invalid sequences, truncated multibyte, null bytes, all byte values, and binary/text sections
+    - `TestEmptyFileHandling`: 5 tests for completely empty files, whitespace-only, newlines-only, and single character files
+    - `TestEncodingFallbackBehavior`: 4 tests verifying UTF-8 to Latin-1 fallback works correctly and secrets are found
+    - `TestEncodingWithFixtures`: 3 tests using the fixture files (mixed_encoding.txt, secret_file.txt, clean_file.txt)
+    - `TestEncodingWithMultipleFiles`: 2 tests for directories with mixed encodings and encoding errors
+  - All 30 tests pass, and all 458 tests in the suite pass
 
 - [ ] Update `tests/test_yara_detector.py` with additional tests for: invalid YARA rules raise YaraCompilationError, empty rules directory, rules directory that doesn't exist, YARA matching against binary files
 

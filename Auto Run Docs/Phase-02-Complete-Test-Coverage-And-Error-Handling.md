@@ -118,7 +118,23 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
     - `TestEncodingWithMultipleFiles`: 2 tests for directories with mixed encodings and encoding errors
   - All 30 tests pass, and all 458 tests in the suite pass
 
-- [ ] Update `tests/test_yara_detector.py` with additional tests for: invalid YARA rules raise YaraCompilationError, empty rules directory, rules directory that doesn't exist, YARA matching against binary files
+- [x] Update `tests/test_yara_detector.py` with additional tests for: invalid YARA rules raise YaraCompilationError, empty rules directory, rules directory that doesn't exist, YARA matching against binary files
+  - Added `TestYaraBinaryFileMatching` test class with 13 comprehensive binary file tests:
+    - ELF binary detection (Linux executables)
+    - PE/Windows binary detection (MZ header)
+    - PNG image detection (magic bytes)
+    - Null byte handling in binary content
+    - High-entropy content detection
+    - All 256 byte values test
+    - Multiple matches in binary files
+    - Mixed binary and text content
+    - SQLite database header detection
+    - Empty binary content handling
+    - String vs bytes equivalence test
+    - Compressed content (gzip) detection
+  - Verified existing tests already cover: invalid YARA syntax raises YaraCompilationError, empty directory raises ValueError, nonexistent path raises FileNotFoundError
+  - Total YARA detector tests increased from 40 to 52 (12 new tests)
+  - All 470 tests in the suite pass
 
 - [ ] Update `tests/test_regex_detector.py` with additional tests for: all 20 regex patterns have at least one positive test case, all 20 regex patterns have at least one negative test case (similar but not matching), patterns don't have catastrophic backtracking on adversarial input
 

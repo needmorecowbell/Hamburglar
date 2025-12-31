@@ -538,6 +538,223 @@ class TestYaraCompilationError:
         assert "bad.yar" in error.rule_file
 
 
+class TestYaraBinaryFileMatching:
+    """Tests for YARA matching against binary files."""
+
+    def test_detect_bytes_with_elf_binary(self, tmp_path: Path) -> None:
+        """Test YARA detection on ELF binary content."""
+        rule_file = tmp_path / "elf.yar"
+        rule_file.write_text("""
+rule elf_magic {
+    strings:
+        $magic = { 7F 45 4C 46 }  // ELF magic bytes
+    condition:
+        $magic at 0
+}
+""")
+        detector = YaraDetector(rule_file)
+        # ELF header: magic + class + endianness + version
+        elf_content = b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 8
+        findings = detector.detect_bytes(elf_content, "binary.elf")
+        assert len(findings) == 1
+        assert "elf_magic" in findings[0].detector_name
+
+    def test_detect_bytes_with_pe_binary(self, tmp_path: Path) -> None:
+        """Test YARA detection on PE/Windows binary content."""
+        rule_file = tmp_path / "pe.yar"
+        rule_file.write_text("""
+rule pe_magic {
+    strings:
+        $mz = { 4D 5A }  // MZ magic bytes
+    condition:
+        $mz at 0
+}
+""")
+        detector = YaraDetector(rule_file)
+        # PE header starts with MZ
+        pe_content = b"MZ" + b"\x00" * 58 + b"PE\x00\x00"
+        findings = detector.detect_bytes(pe_content, "binary.exe")
+        assert len(findings) == 1
+        assert "pe_magic" in findings[0].detector_name
+
+    def test_detect_bytes_with_png_image(self, tmp_path: Path) -> None:
+        """Test YARA detection on PNG image content."""
+        rule_file = tmp_path / "png.yar"
+        rule_file.write_text("""
+rule png_magic {
+    strings:
+        $png = { 89 50 4E 47 0D 0A 1A 0A }  // PNG signature
+    condition:
+        $png at 0
+}
+""")
+        detector = YaraDetector(rule_file)
+        png_content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+        findings = detector.detect_bytes(png_content, "image.png")
+        assert len(findings) == 1
+        assert "png_magic" in findings[0].detector_name
+
+    def test_detect_bytes_with_null_bytes(self, tmp_path: Path) -> None:
+        """Test YARA detection on content with embedded null bytes."""
+        rule_file = tmp_path / "nulls.yar"
+        rule_file.write_text("""
+rule find_pattern {
+    strings:
+        $pattern = "SECRET"
+    condition:
+        $pattern
+}
+""")
+        detector = YaraDetector(rule_file)
+        # Binary content with nulls surrounding the pattern
+        content = b"\x00\x00\x00SECRET\x00\x00\x00"
+        findings = detector.detect_bytes(content, "with_nulls.bin")
+        assert len(findings) == 1
+        assert "SECRET" in findings[0].matches
+
+    def test_detect_bytes_with_high_entropy_content(self, tmp_path: Path) -> None:
+        """Test YARA detection on high-entropy binary content."""
+        rule_file = tmp_path / "entropy.yar"
+        rule_file.write_text("""
+rule find_marker {
+    strings:
+        $marker = { DE AD BE EF }
+    condition:
+        $marker
+}
+""")
+        detector = YaraDetector(rule_file)
+        # Random-looking bytes with embedded marker
+        content = bytes(range(256)) + b"\xde\xad\xbe\xef" + bytes(range(255, -1, -1))
+        findings = detector.detect_bytes(content, "random.bin")
+        assert len(findings) == 1
+        assert "find_marker" in findings[0].detector_name
+
+    def test_detect_bytes_with_all_byte_values(self, tmp_path: Path) -> None:
+        """Test YARA detection works with all possible byte values."""
+        rule_file = tmp_path / "all_bytes.yar"
+        rule_file.write_text("""
+rule contains_ff {
+    strings:
+        $ff = { FF FF FF FF }
+    condition:
+        $ff
+}
+""")
+        detector = YaraDetector(rule_file)
+        # All possible bytes 0-255 with target pattern
+        content = bytes(range(256)) + b"\xff\xff\xff\xff" + bytes(range(256))
+        findings = detector.detect_bytes(content, "all_bytes.bin")
+        assert len(findings) == 1
+
+    def test_detect_bytes_multiple_matches_in_binary(self, tmp_path: Path) -> None:
+        """Test finding multiple instances of a pattern in binary content."""
+        rule_file = tmp_path / "multi.yar"
+        rule_file.write_text("""
+rule multi_match {
+    strings:
+        $pattern = { CA FE BA BE }
+    condition:
+        $pattern
+}
+""")
+        detector = YaraDetector(rule_file)
+        # Multiple occurrences
+        content = b"\xca\xfe\xba\xbe" + b"\x00" * 10 + b"\xca\xfe\xba\xbe"
+        findings = detector.detect_bytes(content, "multi.bin")
+        assert len(findings) == 1
+        # YARA finds all instances but returns one finding per rule
+        assert "multi_match" in findings[0].detector_name
+
+    def test_detect_bytes_mixed_binary_and_text(self, tmp_path: Path) -> None:
+        """Test YARA detection on content with mixed binary and text."""
+        rule_file = tmp_path / "mixed.yar"
+        rule_file.write_text("""
+rule text_in_binary {
+    strings:
+        $text = "CONFIDENTIAL"
+    condition:
+        $text
+}
+""")
+        detector = YaraDetector(rule_file)
+        # Binary content with embedded readable text
+        content = b"\x00\x01\x02CONFIDENTIAL\xfe\xff"
+        findings = detector.detect_bytes(content, "mixed.bin")
+        assert len(findings) == 1
+        assert "CONFIDENTIAL" in findings[0].matches
+
+    def test_detect_bytes_sqlite_database(self, tmp_path: Path) -> None:
+        """Test YARA detection on SQLite database header."""
+        rule_file = tmp_path / "sqlite.yar"
+        rule_file.write_text("""
+rule sqlite_db {
+    strings:
+        $magic = "SQLite format 3"
+    condition:
+        $magic at 0
+}
+""")
+        detector = YaraDetector(rule_file)
+        sqlite_content = b"SQLite format 3\x00" + b"\x00" * 100
+        findings = detector.detect_bytes(sqlite_content, "database.db")
+        assert len(findings) == 1
+        assert "sqlite_db" in findings[0].detector_name
+
+    def test_detect_bytes_empty_content(self, tmp_path: Path) -> None:
+        """Test YARA detection on empty binary content."""
+        rule_file = tmp_path / "empty.yar"
+        rule_file.write_text("""
+rule any_data {
+    strings:
+        $any = { ?? }
+    condition:
+        $any
+}
+""")
+        detector = YaraDetector(rule_file)
+        findings = detector.detect_bytes(b"", "empty.bin")
+        assert len(findings) == 0
+
+    def test_detect_string_vs_detect_bytes_equivalence(self, tmp_path: Path) -> None:
+        """Test that detect() and detect_bytes() give equivalent results for text."""
+        rule_file = tmp_path / "equiv.yar"
+        rule_file.write_text("""
+rule find_secret {
+    strings:
+        $secret = "API_KEY_12345"
+    condition:
+        $secret
+}
+""")
+        detector = YaraDetector(rule_file)
+        text_content = "Some text with API_KEY_12345 inside"
+        byte_content = text_content.encode("utf-8")
+
+        findings_str = detector.detect(text_content, "file.txt")
+        findings_bytes = detector.detect_bytes(byte_content, "file.txt")
+
+        assert len(findings_str) == len(findings_bytes) == 1
+        assert findings_str[0].detector_name == findings_bytes[0].detector_name
+
+    def test_detect_bytes_with_compressed_content(self, tmp_path: Path) -> None:
+        """Test YARA detection on gzip compressed content."""
+        rule_file = tmp_path / "gzip.yar"
+        rule_file.write_text("""
+rule gzip_magic {
+    strings:
+        $magic = { 1F 8B 08 }  // gzip magic + deflate method
+    condition:
+        $magic at 0
+}
+""")
+        detector = YaraDetector(rule_file)
+        gzip_content = b"\x1f\x8b\x08" + b"\x00" * 100
+        findings = detector.detect_bytes(gzip_content, "file.gz")
+        assert len(findings) == 1
+        assert "gzip_magic" in findings[0].detector_name
+
+
 class TestYaraVerboseLogging:
     """Tests for verbose logging of YARA detector."""
 

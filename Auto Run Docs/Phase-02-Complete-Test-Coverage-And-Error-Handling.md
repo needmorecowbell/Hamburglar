@@ -76,7 +76,16 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
     - `TestGracefulDegradation`: 3 tests for handling all-files-unreadable and mixed error scenarios
   - All 19 tests pass, and all 352 tests in the suite pass
 
-- [ ] Create `tests/test_binary_files.py` with tests for: regex detector skips binary files (ELF, images, etc.), regex detector correctly identifies text files, scanner processes mixed directories (binary and text), proper handling of files with null bytes
+- [x] Create `tests/test_binary_files.py` with tests for: regex detector skips binary files (ELF, images, etc.), regex detector correctly identifies text files, scanner processes mixed directories (binary and text), proper handling of files with null bytes
+  - Created comprehensive test suite with 46 tests organized into 8 test classes:
+    - `TestRegexDetectorSkipsBinaryFiles`: 11 tests for ELF, PE, PNG, JPEG, GIF, ZIP, GZIP, PDF, Java class, Mach-O, and WASM binaries
+    - `TestRegexDetectorIdentifiesTextFiles`: 10 tests for plain text, Python, JavaScript, JSON, YAML, XML, Markdown, HTML, .env, and shell scripts
+    - `TestScannerMixedDirectories`: 3 tests for mixed binary/text directories, recursive scanning, and image asset directories
+    - `TestNullByteHandling`: 6 tests for various null byte scenarios (few, many, terminated strings, single, start/end positions)
+    - `TestBinaryDetectionThreshold`: 3 tests for content at/below/above the 10% binary threshold
+    - `TestBinaryIndicatorBytes`: 5 tests verifying all binary indicator bytes trigger detection and whitespace is allowed
+    - `TestRealWorldBinaryPatterns`: 8 tests for SQLite, bzip2, 7z, tar, Python bytecode, object files, shared libraries, and DLLs
+  - All 46 tests pass, and all 398 tests in the suite pass
 
 - [ ] Create `tests/test_large_files.py` with tests for: scanner respects max file size setting, large file is skipped with warning (mock a large file), appropriate log message when file is skipped
 

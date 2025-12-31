@@ -165,7 +165,20 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
     - `TestMissingRequiredArguments`: 2 tests for missing path argument and help display
   - All 40 tests pass, and all 579 tests in the suite pass
 
-- [ ] Create `tests/test_outputs.py` with comprehensive output tests for: JSON output is valid JSON, JSON output contains all findings, table output renders without errors, table output handles long file paths (truncation), table output handles special characters in findings
+- [x] Create `tests/test_outputs.py` with comprehensive output tests for: JSON output is valid JSON, JSON output contains all findings, table output renders without errors, table output handles long file paths (truncation), table output handles special characters in findings
+  - Created comprehensive test suite with 52 tests organized into 12 test classes:
+    - `TestJsonOutputValidJson`: 6 tests for valid JSON output, indentation, special characters, and unicode handling
+    - `TestJsonOutputContainsAllFindings`: 7 tests for target path, scan duration, stats, findings, matches, and severity preservation
+    - `TestJsonOutputEdgeCases`: 5 tests for empty matches, empty stats, zero duration, very long paths, and many findings
+    - `TestTableOutputRendering`: 8 tests for empty/single/multiple findings, headers, title, summary, stats, and severity breakdown
+    - `TestTableOutputLongFilePaths`: 4 tests for truncation with ellipsis, very long paths, mixed lengths, and paths with spaces
+    - `TestTableOutputSpecialCharacters`: 8 tests for quotes, newlines, tabs, unicode, ANSI escapes, null bytes, Rich markup, and backslashes
+    - `TestTableOutputSeverityDisplay`: 2 tests for all severity levels and color definitions
+    - `TestTableOutputMatchCount`: 2 tests for match count display including zero matches
+    - `TestFormatterProperties`: 3 tests for formatter names and BaseOutput inheritance
+    - `TestOutputRegistryIntegration`: 3 tests for registering JSON and table formatters
+    - `TestMinimalResults`: 4 tests for minimal findings and empty target paths
+  - All 52 tests pass, and all 631 tests in the suite pass
 
 - [ ] Run `pytest tests/ -v --cov=hamburglar --cov-report=term-missing --cov-fail-under=95` and ensure coverage is at least 95%
 

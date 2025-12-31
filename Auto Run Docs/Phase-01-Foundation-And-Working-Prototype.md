@@ -46,9 +46,11 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/cli/main.py` with Typer app containing: `scan` command (positional path argument, --recursive/-r flag default True, --output/-o for output file, --format/-f choice of json/table default table, --yara/-y path to yara rules, --verbose/-v flag), version callback with `--version` flag, and rich console for styled output
   - Created `src/hamburglar/cli/main.py` with complete Typer CLI application. Implements `scan` command with all specified options: positional path argument (with exists/resolve_path validation), --recursive/-r flag (default True), --output/-o for file output, --format/-f choice (json/table, default table), --yara/-y for YARA rules path (with exists validation), --verbose/-v flag for detailed output. Includes --version callback at both app and command level. Uses Rich console for styled output with color-coded error messages and warnings. Initializes RegexDetector by default and YaraDetector when --yara is provided. Runs async Scanner.scan() and formats output using JsonOutput or TableOutput based on format selection.
 
-- [ ] Create `tests/__init__.py` as empty package init
+- [x] Create `tests/__init__.py` as empty package init
+  - Created empty package init with minimal comment header matching the style of core/__init__.py and cli/__init__.py
 
-- [ ] Create `tests/conftest.py` with pytest fixtures: `temp_directory` (creates temp dir with sample files containing fake secrets), `sample_content_with_secrets` (returns string with AWS key, email, Bitcoin address, RSA private key header), and `scanner_config` (returns default ScanConfig)
+- [x] Create `tests/conftest.py` with pytest fixtures: `temp_directory` (creates temp dir with sample files containing fake secrets), `sample_content_with_secrets` (returns string with AWS key, email, Bitcoin address, RSA private key header), and `scanner_config` (returns default ScanConfig)
+  - Created `tests/conftest.py` with all required fixtures plus bonus fixtures (`scanner_config_non_recursive`, `scanner_config_with_whitelist`, `scanner_config_with_blacklist`) for comprehensive testing. Added path configuration to handle legacy `hamburglar.py` shadowing issue. Also added `pythonpath = ["src"]` to `pyproject.toml` pytest configuration.
 
 - [ ] Create `tests/test_models.py` with tests for: Finding model creation and serialization, ScanResult with multiple findings, ScanConfig defaults and validation
 

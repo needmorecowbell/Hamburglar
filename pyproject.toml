@@ -75,6 +75,7 @@ include = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v"
+pythonpath = ["src"]
 
 [tool.mypy]
 python_version = "3.9"

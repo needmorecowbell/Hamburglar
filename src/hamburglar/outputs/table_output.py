@@ -12,7 +12,6 @@ from rich.table import Table
 from hamburglar.core.models import ScanResult, Severity
 from hamburglar.outputs import BaseOutput
 
-
 # Severity colors for visual distinction
 SEVERITY_COLORS = {
     Severity.CRITICAL: "bold red",
@@ -81,7 +80,7 @@ class TableOutput(BaseOutput):
         stats = result.stats
         summary_lines = [
             "",
-            f"[bold]Scan Summary[/bold]",
+            "[bold]Scan Summary[/bold]",
             f"  Duration: {result.scan_duration:.2f}s",
             f"  Total findings: {len(result.findings)}",
         ]
@@ -106,7 +105,9 @@ class TableOutput(BaseOutput):
                 count = severity_counts.get(severity.value, 0)
                 if count > 0:
                     style = SEVERITY_COLORS.get(severity, "white")
-                    summary_lines.append(f"    [{style}]{severity.value.upper()}: {count}[/{style}]")
+                    summary_lines.append(
+                        f"    [{style}]{severity.value.upper()}: {count}[/{style}]"
+                    )
 
         for line in summary_lines:
             console.print(line)

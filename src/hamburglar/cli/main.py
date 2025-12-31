@@ -6,7 +6,7 @@ with various options for output format, YARA rules, and verbosity.
 
 import asyncio
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import TYPE_CHECKING, Annotated, Optional
 
 import typer
 from rich.console import Console
@@ -14,11 +14,13 @@ from rich.console import Console
 from hamburglar import __version__
 from hamburglar.core.models import OutputFormat, ScanConfig
 from hamburglar.core.scanner import Scanner
-from hamburglar.detectors import BaseDetector
 from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.yara_detector import YaraDetector
 from hamburglar.outputs.json_output import JsonOutput
 from hamburglar.outputs.table_output import TableOutput
+
+if TYPE_CHECKING:
+    from hamburglar.detectors import BaseDetector
 
 # Initialize Typer app and Rich console
 app = typer.Typer(
@@ -139,13 +141,13 @@ def scan(
                 console.print(f"[dim]Loaded {yara_detector.rule_count} YARA rule file(s)[/dim]")
         except FileNotFoundError as e:
             console.print(f"[red]Error:[/red] YARA rules not found: {e}")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
         except ValueError as e:
             console.print(f"[red]Error:[/red] YARA rules error: {e}")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
         except Exception as e:
             console.print(f"[red]Error:[/red] Failed to load YARA rules: {e}")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
     # Run the scan
     scanner = Scanner(config, detectors)
@@ -157,13 +159,10 @@ def scan(
         result = asyncio.run(scanner.scan())
     except Exception as e:
         console.print(f"[red]Error during scan:[/red] {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Format output
-    if output_format == OutputFormat.JSON:
-        formatter = JsonOutput()
-    else:
-        formatter = TableOutput()
+    formatter = JsonOutput() if output_format == OutputFormat.JSON else TableOutput()
 
     formatted_output = formatter.format(result)
 
@@ -174,7 +173,7 @@ def scan(
             console.print(f"[green]Output written to:[/green] {output}")
         except OSError as e:
             console.print(f"[red]Error writing output file:[/red] {e}")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
     else:
         # For JSON output, use print() directly to avoid Rich's text wrapping
         # which can break JSON parsing. For table output, use Rich console
@@ -188,9 +187,7 @@ def scan(
     from hamburglar.core.models import Severity
 
     high_severity_count = sum(
-        1
-        for f in result.findings
-        if f.severity in (Severity.CRITICAL, Severity.HIGH)
+        1 for f in result.findings if f.severity in (Severity.CRITICAL, Severity.HIGH)
     )
     if high_severity_count > 0 and verbose:
         console.print(

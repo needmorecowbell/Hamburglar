@@ -78,11 +78,9 @@ class Scanner:
             return False
 
         # If whitelist is specified, file must match
-        if self.config.whitelist:
-            if not self._matches_pattern(file_path, self.config.whitelist):
-                return False
-
-        return True
+        return not (
+            self.config.whitelist and not self._matches_pattern(file_path, self.config.whitelist)
+        )
 
     def _discover_files(self) -> list[Path]:
         """Discover all files to scan based on configuration.

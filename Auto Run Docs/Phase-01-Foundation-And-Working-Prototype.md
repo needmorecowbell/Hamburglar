@@ -96,4 +96,10 @@ This phase establishes the modern project structure, updates all dependencies to
   - Table output renders properly with color-coded severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)
   - JSON output also verified working with valid JSON structure including full finding metadata
 
-- [ ] Run `ruff check src/` and `ruff format src/` to ensure code passes linting and is properly formatted
+- [x] Run `ruff check src/` and `ruff format src/` to ensure code passes linting and is properly formatted
+  - Fixed 12 linting issues across 4 files:
+    - `cli/main.py`: Moved `BaseDetector` import to TYPE_CHECKING block (TC001), added `from None` to exception re-raises (B904), converted if-else to ternary (SIM108)
+    - `core/scanner.py`: Combined nested if statements (SIM102), simplified return logic (SIM103)
+    - `detectors/regex_detector.py`: Added `stacklevel=2` to warnings.warn (B028), sorted imports (I001)
+    - `outputs/table_output.py`: Removed extraneous f-string prefix (F541), sorted imports (I001)
+  - All 208 tests continue to pass after fixes

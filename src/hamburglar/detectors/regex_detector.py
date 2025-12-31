@@ -5,11 +5,11 @@ sensitive data patterns such as API keys, credentials, and other secrets.
 """
 
 import re
+import warnings
 from typing import Any
 
 from hamburglar.core.models import Finding, Severity
 from hamburglar.detectors import BaseDetector
-
 
 # Default patterns with severity levels - Top 20 critical patterns
 DEFAULT_PATTERNS: dict[str, dict[str, Any]] = {
@@ -180,9 +180,7 @@ class RegexDetector(BaseDetector):
                 )
             except re.error as e:
                 # Skip invalid patterns but log the issue
-                import warnings
-
-                warnings.warn(f"Invalid regex pattern '{name}': {e}")
+                warnings.warn(f"Invalid regex pattern '{name}': {e}", stacklevel=2)
 
     @property
     def name(self) -> str:

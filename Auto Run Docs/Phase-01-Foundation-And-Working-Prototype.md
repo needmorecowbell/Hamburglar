@@ -40,9 +40,11 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/outputs/table_output.py` with a `TableOutput` class that uses `rich.table.Table` to create a console-friendly table showing file path, detector, match count, and severity for each finding
   - Created `TableOutput` class that renders `ScanResult` as a Rich table with columns for file path, detector name, match count, and severity. Includes color-coded severity levels (CRITICAL=bold red, HIGH=red, MEDIUM=yellow, LOW=blue, INFO=dim) and a comprehensive summary section showing scan duration, total findings, file statistics, and severity breakdown.
 
-- [ ] Create `src/hamburglar/cli/__init__.py` as empty package init
+- [x] Create `src/hamburglar/cli/__init__.py` as empty package init
+  - Created empty package init with minimal comment header matching the core/__init__.py style
 
-- [ ] Create `src/hamburglar/cli/main.py` with Typer app containing: `scan` command (positional path argument, --recursive/-r flag default True, --output/-o for output file, --format/-f choice of json/table default table, --yara/-y path to yara rules, --verbose/-v flag), version callback with `--version` flag, and rich console for styled output
+- [x] Create `src/hamburglar/cli/main.py` with Typer app containing: `scan` command (positional path argument, --recursive/-r flag default True, --output/-o for output file, --format/-f choice of json/table default table, --yara/-y path to yara rules, --verbose/-v flag), version callback with `--version` flag, and rich console for styled output
+  - Created `src/hamburglar/cli/main.py` with complete Typer CLI application. Implements `scan` command with all specified options: positional path argument (with exists/resolve_path validation), --recursive/-r flag (default True), --output/-o for file output, --format/-f choice (json/table, default table), --yara/-y for YARA rules path (with exists validation), --verbose/-v flag for detailed output. Includes --version callback at both app and command level. Uses Rich console for styled output with color-coded error messages and warnings. Initializes RegexDetector by default and YaraDetector when --yara is provided. Runs async Scanner.scan() and formats output using JsonOutput or TableOutput based on format selection.
 
 - [ ] Create `tests/__init__.py` as empty package init
 

@@ -151,7 +151,19 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Total regex detector tests increased from 68 to 137 (69 new tests)
   - All 539 tests in the suite pass
 
-- [ ] Create `tests/test_cli_errors.py` with CLI error handling tests: scan non-existent path shows error and exits 1, scan path without read permission shows error, invalid --format value shows error, invalid --yara path shows error, keyboard interrupt is handled gracefully
+- [x] Create `tests/test_cli_errors.py` with CLI error handling tests: scan non-existent path shows error and exits 1, scan path without read permission shows error, invalid --format value shows error, invalid --yara path shows error, keyboard interrupt is handled gracefully
+  - Created comprehensive test suite with 40 tests organized into 11 test classes:
+    - `TestScanNonExistentPath`: 5 tests for nonexistent paths, nested paths, and empty path handling
+    - `TestPermissionDenied`: 4 tests for unreadable directories/files, partial permission denied, and unwritable output files (Unix-only)
+    - `TestInvalidFormatOption`: 6 tests for invalid format values including xml, csv, yaml, empty, and whitespace
+    - `TestInvalidYaraPath`: 7 tests for nonexistent YARA paths, invalid syntax, empty files, comments-only files, and unreadable files
+    - `TestKeyboardInterrupt`: 3 tests for keyboard interrupt handling with exit codes and messages
+    - `TestUnexpectedErrors`: 4 tests for unexpected exceptions, ScanError, and PermissionError during scan
+    - `TestOutputFileErrors`: 2 tests for writing output to invalid/nonexistent paths
+    - `TestCombinedErrorScenarios`: 3 tests for combinations of errors with verbose/quiet modes
+    - `TestErrorExitCodes`: 4 tests verifying exit codes 0 (success), 1 (error), and 2 (no findings/Typer validation)
+    - `TestMissingRequiredArguments`: 2 tests for missing path argument and help display
+  - All 40 tests pass, and all 579 tests in the suite pass
 
 - [ ] Create `tests/test_outputs.py` with comprehensive output tests for: JSON output is valid JSON, JSON output contains all findings, table output renders without errors, table output handles long file paths (truncation), table output handles special characters in findings
 

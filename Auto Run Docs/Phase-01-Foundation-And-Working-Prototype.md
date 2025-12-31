@@ -19,7 +19,8 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/core/models.py` with Pydantic models: `Finding` (file_path, detector_name, matches list, severity enum, metadata dict), `ScanResult` (target_path, findings list, scan_duration, stats dict), and `ScanConfig` (target_path, recursive bool, use_yara bool, yara_rules_path, output_format enum, blacklist list, whitelist list)
   - Created Pydantic models with all required fields plus `Severity` enum (CRITICAL/HIGH/MEDIUM/LOW/INFO) and `OutputFormat` enum (JSON/TABLE). Added sensible default blacklist patterns for common excludes (.git, __pycache__, node_modules, etc.)
 
-- [ ] Create `src/hamburglar/core/scanner.py` with a `Scanner` class that: takes a `ScanConfig`, has an async `scan()` method that walks directories respecting blacklist/whitelist, reads files, passes content to detectors, and returns a `ScanResult`
+- [x] Create `src/hamburglar/core/scanner.py` with a `Scanner` class that: takes a `ScanConfig`, has an async `scan()` method that walks directories respecting blacklist/whitelist, reads files, passes content to detectors, and returns a `ScanResult`
+  - Created `Scanner` class with async `scan()` method that handles file discovery via `_discover_files()`, file reading via async `_read_file()`, and detector orchestration via `_scan_file()`. Supports blacklist/whitelist pattern matching with fnmatch, handles permission errors gracefully, provides UTF-8/latin-1 fallback for file encoding, and returns comprehensive stats in ScanResult.
 
 - [ ] Create `src/hamburglar/detectors/__init__.py` with a `BaseDetector` abstract class defining `name` property and `detect(content: str) -> list[Finding]` method, plus a `DetectorRegistry` class to register and retrieve detectors
 

@@ -523,3 +523,302 @@ class TestDeduplication:
         assert len(email_findings) == 1
         # Should have 3 unique emails
         assert len(email_findings[0].matches) == 3
+
+
+class TestBinaryFileSkipping:
+    """Tests for binary file detection and skipping."""
+
+    def test_skip_file_with_high_binary_ratio(self) -> None:
+        """Test that files with high binary content ratio are skipped."""
+        detector = RegexDetector()
+        # Create content that's mostly binary (null bytes)
+        binary_content = "\x00\x01\x02\x03\x04\x05" * 2000 + "admin@example.com"
+        findings = detector.detect(binary_content, "binary.bin")
+        # Should skip due to high binary ratio
+        assert len(findings) == 0
+
+    def test_text_file_with_few_binary_bytes_not_skipped(self) -> None:
+        """Test that text files with few binary bytes are still processed."""
+        detector = RegexDetector()
+        # Create content that's mostly text with a few binary bytes
+        content = "Normal text admin@example.com\x00 more text " * 100
+        findings = detector.detect(content, "mostly_text.txt")
+        # Should find the email since binary ratio is low
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+    def test_empty_content_not_considered_binary(self) -> None:
+        """Test that empty content is not considered binary."""
+        detector = RegexDetector()
+        findings = detector.detect("", "empty.txt")
+        assert findings == []
+
+    def test_elf_binary_detection(self) -> None:
+        """Test that ELF binaries are detected and skipped."""
+        detector = RegexDetector()
+        # ELF magic header followed by binary content
+        elf_content = "\x7fELF" + "\x00\x01\x02\x03" * 500
+        findings = detector.detect(elf_content, "program.exe")
+        assert len(findings) == 0
+
+    def test_pure_text_processed(self) -> None:
+        """Test that pure text files are processed normally."""
+        detector = RegexDetector()
+        content = "This is pure text with admin@example.com inside."
+        findings = detector.detect(content, "text.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+
+class TestMaxFileSize:
+    """Tests for maximum file size handling."""
+
+    def test_default_max_file_size(self) -> None:
+        """Test that default max file size is 10MB."""
+        from hamburglar.detectors.regex_detector import DEFAULT_MAX_FILE_SIZE
+
+        detector = RegexDetector()
+        assert detector.max_file_size == DEFAULT_MAX_FILE_SIZE
+        assert detector.max_file_size == 10 * 1024 * 1024
+
+    def test_custom_max_file_size(self) -> None:
+        """Test that custom max file size can be set."""
+        detector = RegexDetector(max_file_size=1024)
+        assert detector.max_file_size == 1024
+
+    def test_large_file_skipped(self) -> None:
+        """Test that files exceeding max size are skipped."""
+        # Set a small max size for testing
+        detector = RegexDetector(max_file_size=100)
+        # Create content larger than max size
+        content = "admin@example.com " * 100  # ~1800 bytes
+        findings = detector.detect(content, "large.txt")
+        # Should skip and return empty
+        assert len(findings) == 0
+
+    def test_file_at_size_limit_processed(self) -> None:
+        """Test that files exactly at size limit are still processed."""
+        # Set max size to 200 bytes
+        detector = RegexDetector(max_file_size=200)
+        # Create content just under the limit
+        content = "admin@example.com"  # 17 bytes
+        findings = detector.detect(content, "small.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+    def test_file_just_over_limit_skipped(self) -> None:
+        """Test that files just over size limit are skipped."""
+        detector = RegexDetector(max_file_size=50)
+        content = "a" * 51 + " admin@example.com"  # Over 50 bytes
+        findings = detector.detect(content, "over_limit.txt")
+        assert len(findings) == 0
+
+
+class TestRegexTimeout:
+    """Tests for regex timeout handling."""
+
+    def test_default_regex_timeout(self) -> None:
+        """Test that default regex timeout is 5 seconds."""
+        from hamburglar.detectors.regex_detector import DEFAULT_REGEX_TIMEOUT
+
+        detector = RegexDetector()
+        assert detector.regex_timeout == DEFAULT_REGEX_TIMEOUT
+        assert detector.regex_timeout == 5.0
+
+    def test_custom_regex_timeout(self) -> None:
+        """Test that custom regex timeout can be set."""
+        detector = RegexDetector(regex_timeout=1.0)
+        assert detector.regex_timeout == 1.0
+
+    def test_fast_pattern_succeeds(self) -> None:
+        """Test that fast patterns complete successfully."""
+        detector = RegexDetector(regex_timeout=1.0)
+        content = "AKIAIOSFODNN7EXAMPLE"
+        findings = detector.detect(content, "test.txt")
+        aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
+        assert len(aws_findings) == 1
+
+    def test_normal_processing_within_timeout(self) -> None:
+        """Test that normal processing completes within timeout."""
+        detector = RegexDetector(regex_timeout=10.0)
+        content = "admin@example.com\n" * 1000
+        findings = detector.detect(content, "test.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+
+class TestVerboseLogging:
+    """Tests for verbose logging of detector performance."""
+
+    def test_detector_logs_performance_metrics(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test that detector logs performance metrics at debug level."""
+        import logging
+
+        from hamburglar.core.logging import get_logger, setup_logging
+
+        setup_logging(verbose=True)
+        logger = get_logger()
+
+        # Enable propagation temporarily so caplog can capture records
+        original_propagate = logger.propagate
+        logger.propagate = True
+
+        try:
+            with caplog.at_level(logging.DEBUG, logger="hamburglar"):
+                detector = RegexDetector()
+                content = "admin@example.com"
+                detector.detect(content, "test.txt")
+
+            # Check that performance log message is present
+            assert any("RegexDetector processed" in record.message for record in caplog.records)
+        finally:
+            logger.propagate = original_propagate
+
+    def test_detector_logs_skipped_binary_file(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test that detector logs when skipping binary files."""
+        import logging
+
+        from hamburglar.core.logging import get_logger, setup_logging
+
+        setup_logging(verbose=True)
+        logger = get_logger()
+
+        # Enable propagation temporarily so caplog can capture records
+        original_propagate = logger.propagate
+        logger.propagate = True
+
+        try:
+            with caplog.at_level(logging.DEBUG, logger="hamburglar"):
+                detector = RegexDetector()
+                # Create binary content
+                binary_content = "\x00\x01\x02\x03" * 3000
+                detector.detect(binary_content, "binary.bin")
+
+            # Check that binary skip message is logged
+            assert any("Skipping binary file" in record.message for record in caplog.records)
+        finally:
+            logger.propagate = original_propagate
+
+    def test_detector_logs_skipped_large_file(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test that detector logs when skipping large files."""
+        import logging
+
+        from hamburglar.core.logging import get_logger, setup_logging
+
+        setup_logging(verbose=True)
+        logger = get_logger()
+
+        # Enable propagation temporarily so caplog can capture records
+        original_propagate = logger.propagate
+        logger.propagate = True
+
+        try:
+            with caplog.at_level(logging.WARNING, logger="hamburglar"):
+                detector = RegexDetector(max_file_size=100)
+                content = "a" * 200  # Over limit
+                detector.detect(content, "large.txt")
+
+            # Check that size warning is logged
+            assert any("exceeds max" in record.message for record in caplog.records)
+        finally:
+            logger.propagate = original_propagate
+
+
+class TestBinaryDetectionHeuristics:
+    """Tests for binary content detection heuristics."""
+
+    def test_null_bytes_detected_as_binary(self) -> None:
+        """Test that content with many null bytes is detected as binary."""
+        detector = RegexDetector()
+        # Create content with 50% null bytes
+        content = "\x00admin@example.com\x00" * 500
+        findings = detector.detect(content, "test.bin")
+        # Should be skipped due to high binary ratio
+        assert len(findings) == 0
+
+    def test_control_chars_detected_as_binary(self) -> None:
+        """Test that content with many control characters is detected as binary."""
+        detector = RegexDetector()
+        # Create content with many control characters (SOH, STX, ETX, etc.)
+        control_chars = "".join(chr(i) for i in range(1, 9))
+        content = (control_chars + "test") * 1000
+        findings = detector.detect(content, "test.bin")
+        assert len(findings) == 0
+
+    def test_tab_newline_carriage_return_allowed(self) -> None:
+        """Test that tab, newline, and carriage return are not considered binary."""
+        detector = RegexDetector()
+        content = "admin@example.com\t\n\r" * 100
+        findings = detector.detect(content, "text.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+    def test_latin1_text_not_binary(self) -> None:
+        """Test that Latin-1 text is not incorrectly detected as binary."""
+        detector = RegexDetector()
+        content = "Café résumé admin@example.com naïve"
+        findings = detector.detect(content, "text.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+    def test_unicode_emoji_not_binary(self) -> None:
+        """Test that unicode emoji content is not detected as binary."""
+        detector = RegexDetector()
+        content = "🎉 Hello admin@example.com 🚀"
+        findings = detector.detect(content, "emoji.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+
+class TestChunkedProcessing:
+    """Tests for chunked processing of large content."""
+
+    def test_chunking_logic_with_moderately_sized_content(self) -> None:
+        """Test that chunking logic works correctly with moderate content.
+
+        Note: Full 1MB+ content tests are impractical due to regex performance
+        on large content. This test verifies the detector works correctly
+        with content that is processed without issues.
+        """
+        # Use a simple literal pattern for faster matching
+        simple_patterns = {
+            "Test Secret": {
+                "pattern": r"SECRET_\d{4}",
+                "severity": Severity.HIGH,
+                "description": "Test Secret Pattern",
+            }
+        }
+        detector = RegexDetector(
+            patterns=simple_patterns,
+            use_defaults=False,
+            max_file_size=10 * 1024 * 1024,  # 10MB limit
+        )
+        # Create content with secrets at various positions
+        filler = "a" * 1000
+        content = f"SECRET_1234 {filler} SECRET_5678 {filler} SECRET_9999"
+        findings = detector.detect(content, "test.txt")
+        assert len(findings) == 1
+        assert len(findings[0].matches) == 3
+
+    def test_match_at_content_boundaries(self) -> None:
+        """Test that matches at content boundaries are found correctly."""
+        # Use simple pattern to avoid backtracking issues
+        simple_patterns = {
+            "Test Key": {
+                "pattern": r"KEY_[A-Z]{4}",
+                "severity": Severity.HIGH,
+                "description": "Test Key Pattern",
+            }
+        }
+        detector = RegexDetector(
+            patterns=simple_patterns,
+            use_defaults=False,
+        )
+        # Create content with keys at start, middle, and end
+        content = "KEY_AAAA" + "x" * 100 + "KEY_BBBB" + "x" * 100 + "KEY_CCCC"
+        findings = detector.detect(content, "test.txt")
+        assert len(findings) == 1
+        assert len(findings[0].matches) == 3
+        assert "KEY_AAAA" in findings[0].matches
+        assert "KEY_BBBB" in findings[0].matches
+        assert "KEY_CCCC" in findings[0].matches

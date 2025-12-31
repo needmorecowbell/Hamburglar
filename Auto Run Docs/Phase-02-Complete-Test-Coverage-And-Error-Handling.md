@@ -30,7 +30,15 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Added 4 new tests for progress callback functionality in `test_scanner.py`
   - All 33 scanner tests pass
 
-- [ ] Update `src/hamburglar/detectors/regex_detector.py` to: handle binary content detection (skip files that appear binary), catch regex timeout errors on pathological patterns, add configurable max file size (default 10MB, skip larger files with warning), and log detector performance metrics in verbose mode
+- [x] Update `src/hamburglar/detectors/regex_detector.py` to: handle binary content detection (skip files that appear binary), catch regex timeout errors on pathological patterns, add configurable max file size (default 10MB, skip larger files with warning), and log detector performance metrics in verbose mode
+  - Implementation already existed with full feature set:
+    - Binary detection via `_is_binary_content()` using heuristics for null bytes and control characters
+    - Regex timeout via `_find_matches_with_timeout()` with configurable timeout (default 5s)
+    - Configurable max file size via `max_file_size` parameter (default 10MB)
+    - Verbose logging of performance metrics at DEBUG level
+  - Fixed 3 failing verbose logging tests by enabling logger propagation for caplog capture
+  - Refactored chunked processing tests to use simpler patterns (avoids O(n²) regex backtracking on large content)
+  - All 68 regex detector tests pass
 
 - [ ] Update `src/hamburglar/detectors/yara_detector.py` to: raise `YaraCompilationError` with helpful message when rules fail to compile, handle YARA timeout on large files, skip files that exceed YARA's size limits, and provide fallback when yara-python is not installed (optional dependency)
 

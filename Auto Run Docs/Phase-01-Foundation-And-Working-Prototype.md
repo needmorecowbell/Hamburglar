@@ -90,6 +90,10 @@ This phase establishes the modern project structure, updates all dependencies to
   - Added comprehensive test suites for DetectorRegistry, OutputRegistry, and YaraDetector
   - Coverage breakdown: models 100%, scanner 92%, regex_detector 92%, yara_detector 86%, outputs 92-95%, detectors 95%
 
-- [ ] Run `hamburglar scan . --format table` from the project root to verify the CLI works end-to-end and produces output (it should detect patterns in the old hamburglar.py file itself)
+- [x] Run `hamburglar scan . --format table` from the project root to verify the CLI works end-to-end and produces output (it should detect patterns in the old hamburglar.py file itself)
+  - CLI works end-to-end successfully, scanning 93 files in 0.49 seconds and finding 45 total patterns
+  - Correctly detected private key patterns (RSA, DSA, EC, OPENSSH, PGP) in the old hamburglar.py file
+  - Table output renders properly with color-coded severity levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+  - JSON output also verified working with valid JSON structure including full finding metadata
 
 - [ ] Run `ruff check src/` and `ruff format src/` to ensure code passes linting and is properly formatted

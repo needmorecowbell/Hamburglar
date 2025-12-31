@@ -16,7 +16,8 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/core/__init__.py` as empty package init
   - Created empty package init with minimal comment header
 
-- [ ] Create `src/hamburglar/core/models.py` with Pydantic models: `Finding` (file_path, detector_name, matches list, severity enum, metadata dict), `ScanResult` (target_path, findings list, scan_duration, stats dict), and `ScanConfig` (target_path, recursive bool, use_yara bool, yara_rules_path, output_format enum, blacklist list, whitelist list)
+- [x] Create `src/hamburglar/core/models.py` with Pydantic models: `Finding` (file_path, detector_name, matches list, severity enum, metadata dict), `ScanResult` (target_path, findings list, scan_duration, stats dict), and `ScanConfig` (target_path, recursive bool, use_yara bool, yara_rules_path, output_format enum, blacklist list, whitelist list)
+  - Created Pydantic models with all required fields plus `Severity` enum (CRITICAL/HIGH/MEDIUM/LOW/INFO) and `OutputFormat` enum (JSON/TABLE). Added sensible default blacklist patterns for common excludes (.git, __pycache__, node_modules, etc.)
 
 - [ ] Create `src/hamburglar/core/scanner.py` with a `Scanner` class that: takes a `ScanConfig`, has an async `scan()` method that walks directories respecting blacklist/whitelist, reads files, passes content to detectors, and returns a `ScanResult`
 

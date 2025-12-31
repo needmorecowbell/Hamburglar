@@ -22,8 +22,14 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
+from hamburglar.core.exceptions import YaraCompilationError
 from hamburglar.core.models import Severity
-from hamburglar.detectors.yara_detector import YaraDetector
+from hamburglar.detectors.yara_detector import (
+    DEFAULT_MAX_FILE_SIZE,
+    DEFAULT_YARA_TIMEOUT,
+    YaraDetector,
+    is_yara_available,
+)
 from hamburglar.rules import get_rules_path
 
 
@@ -361,12 +367,13 @@ rule rule_two {
 class TestYaraDetectorErrorHandling:
     """Tests for YaraDetector error handling."""
 
-    def test_invalid_yara_syntax_raises(self, tmp_path: Path) -> None:
-        """Test that invalid YARA syntax raises an error."""
+    def test_invalid_yara_syntax_raises_compilation_error(self, tmp_path: Path) -> None:
+        """Test that invalid YARA syntax raises YaraCompilationError."""
         rule_file = tmp_path / "invalid.yar"
         rule_file.write_text("this is not valid yara syntax")
-        with pytest.raises(Exception):  # yara.SyntaxError
+        with pytest.raises(YaraCompilationError) as exc_info:
             YaraDetector(rule_file)
+        assert "Failed to compile YARA rules" in str(exc_info.value)
 
     def test_detect_handles_encoding_gracefully(self, tmp_path: Path) -> None:
         """Test that detect handles encoding issues gracefully."""
@@ -385,3 +392,217 @@ rule test_rule {
         findings = detector.detect(content, "test.txt")
         # Should not raise an exception
         assert isinstance(findings, list)
+
+
+class TestYaraAvailability:
+    """Tests for YARA availability checking."""
+
+    def test_is_yara_available(self) -> None:
+        """Test that is_yara_available returns True when yara is installed."""
+        assert is_yara_available() is True
+
+
+class TestYaraMaxFileSize:
+    """Tests for maximum file size handling."""
+
+    def test_default_max_file_size(self, tmp_path: Path) -> None:
+        """Test that default max file size is 100MB."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("rule empty { condition: false }")
+        detector = YaraDetector(rule_file)
+        assert detector.max_file_size == DEFAULT_MAX_FILE_SIZE
+        assert detector.max_file_size == 100 * 1024 * 1024
+
+    def test_custom_max_file_size(self, tmp_path: Path) -> None:
+        """Test that custom max file size can be set."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("rule empty { condition: false }")
+        detector = YaraDetector(rule_file, max_file_size=1024)
+        assert detector.max_file_size == 1024
+
+    def test_large_content_skipped_detect(self, tmp_path: Path) -> None:
+        """Test that large content is skipped in detect()."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("""
+rule test_rule {
+    strings:
+        $test = "FIND_ME"
+    condition:
+        $test
+}
+""")
+        # Set a small max size for testing
+        detector = YaraDetector(rule_file, max_file_size=100)
+        # Create content larger than max size
+        content = "FIND_ME " * 50  # ~400 bytes
+        findings = detector.detect(content, "large.txt")
+        # Should skip and return empty
+        assert len(findings) == 0
+
+    def test_large_content_skipped_detect_bytes(self, tmp_path: Path) -> None:
+        """Test that large content is skipped in detect_bytes()."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("""
+rule test_rule {
+    strings:
+        $test = "FIND_ME"
+    condition:
+        $test
+}
+""")
+        # Set a small max size for testing
+        detector = YaraDetector(rule_file, max_file_size=100)
+        # Create content larger than max size
+        content = b"FIND_ME " * 50  # ~400 bytes
+        findings = detector.detect_bytes(content, "large.bin")
+        # Should skip and return empty
+        assert len(findings) == 0
+
+    def test_content_at_size_limit_processed(self, tmp_path: Path) -> None:
+        """Test that content at size limit is still processed."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("""
+rule test_rule {
+    strings:
+        $test = "FIND_ME"
+    condition:
+        $test
+}
+""")
+        # Set max size to 200 bytes
+        detector = YaraDetector(rule_file, max_file_size=200)
+        # Create content just under the limit
+        content = "FIND_ME"  # 7 bytes
+        findings = detector.detect(content, "small.txt")
+        assert len(findings) == 1
+
+
+class TestYaraTimeout:
+    """Tests for YARA timeout handling."""
+
+    def test_default_timeout(self, tmp_path: Path) -> None:
+        """Test that default timeout is 60 seconds."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("rule empty { condition: false }")
+        detector = YaraDetector(rule_file)
+        assert detector.timeout == DEFAULT_YARA_TIMEOUT
+        assert detector.timeout == 60
+
+    def test_custom_timeout(self, tmp_path: Path) -> None:
+        """Test that custom timeout can be set."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("rule empty { condition: false }")
+        detector = YaraDetector(rule_file, timeout=30)
+        assert detector.timeout == 30
+
+    def test_fast_match_succeeds(self, tmp_path: Path) -> None:
+        """Test that fast matches complete successfully."""
+        rule_file = tmp_path / "test.yar"
+        rule_file.write_text("""
+rule test_rule {
+    strings:
+        $test = "FIND_ME"
+    condition:
+        $test
+}
+""")
+        detector = YaraDetector(rule_file, timeout=1)
+        content = "FIND_ME"
+        findings = detector.detect(content, "test.txt")
+        assert len(findings) == 1
+
+
+class TestYaraCompilationError:
+    """Tests for YaraCompilationError details."""
+
+    def test_compilation_error_includes_message(self, tmp_path: Path) -> None:
+        """Test that compilation error includes helpful message."""
+        rule_file = tmp_path / "bad.yar"
+        rule_file.write_text("rule bad { strings: $x = condition: $x }")
+        with pytest.raises(YaraCompilationError) as exc_info:
+            YaraDetector(rule_file)
+        error = exc_info.value
+        assert error.message
+        assert "Failed to compile" in error.message or "YARA" in error.message
+
+    def test_compilation_error_for_single_file_includes_path(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that compilation error includes rule file path for single file."""
+        rule_file = tmp_path / "bad.yar"
+        rule_file.write_text("invalid syntax here")
+        with pytest.raises(YaraCompilationError) as exc_info:
+            YaraDetector(rule_file)
+        error = exc_info.value
+        assert error.rule_file is not None
+        assert "bad.yar" in error.rule_file
+
+
+class TestYaraVerboseLogging:
+    """Tests for verbose logging of YARA detector."""
+
+    def test_detector_logs_performance_metrics(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test that detector logs performance metrics at debug level."""
+        import logging
+
+        from hamburglar.core.logging import get_logger, setup_logging
+
+        setup_logging(verbose=True)
+        logger = get_logger()
+
+        # Enable propagation temporarily so caplog can capture records
+        original_propagate = logger.propagate
+        logger.propagate = True
+
+        try:
+            with caplog.at_level(logging.DEBUG, logger="hamburglar"):
+                rule_file = tmp_path / "test.yar"
+                rule_file.write_text("""
+rule test_rule {
+    strings:
+        $test = "FIND_ME"
+    condition:
+        $test
+}
+""")
+                detector = YaraDetector(rule_file)
+                detector.detect("FIND_ME", "test.txt")
+
+            # Check that performance log message is present
+            assert any(
+                "YaraDetector processed" in record.message for record in caplog.records
+            )
+        finally:
+            logger.propagate = original_propagate
+
+    def test_detector_logs_skipped_large_file(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test that detector logs when skipping large files."""
+        import logging
+
+        from hamburglar.core.logging import get_logger, setup_logging
+
+        setup_logging(verbose=True)
+        logger = get_logger()
+
+        # Enable propagation temporarily so caplog can capture records
+        original_propagate = logger.propagate
+        logger.propagate = True
+
+        try:
+            with caplog.at_level(logging.WARNING, logger="hamburglar"):
+                rule_file = tmp_path / "test.yar"
+                rule_file.write_text("rule empty { condition: false }")
+                detector = YaraDetector(rule_file, max_file_size=100)
+                content = "x" * 200  # Over limit
+                detector.detect(content, "large.txt")
+
+            # Check that size warning is logged
+            assert any(
+                "exceeds YARA max" in record.message for record in caplog.records
+            )
+        finally:
+            logger.propagate = original_propagate

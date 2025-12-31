@@ -40,7 +40,16 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Refactored chunked processing tests to use simpler patterns (avoids O(n²) regex backtracking on large content)
   - All 68 regex detector tests pass
 
-- [ ] Update `src/hamburglar/detectors/yara_detector.py` to: raise `YaraCompilationError` with helpful message when rules fail to compile, handle YARA timeout on large files, skip files that exceed YARA's size limits, and provide fallback when yara-python is not installed (optional dependency)
+- [x] Update `src/hamburglar/detectors/yara_detector.py` to: raise `YaraCompilationError` with helpful message when rules fail to compile, handle YARA timeout on large files, skip files that exceed YARA's size limits, and provide fallback when yara-python is not installed (optional dependency)
+  - Added `YaraCompilationError` exception with helpful messages including rule file path and line number extraction
+  - Added `is_yara_available()` function to check if yara-python is installed
+  - Added `max_file_size` parameter (default 100MB) with warning logging when files are skipped
+  - Added `timeout` parameter (default 60s) for YARA matching with timeout handling
+  - Added performance metrics logging at DEBUG level (elapsed time, findings count)
+  - Raises `ImportError` with helpful message when yara-python is not installed
+  - Refactored `detect()` and `detect_bytes()` to use shared `_match_and_extract()` helper
+  - Added 13 new tests covering: YaraCompilationError, max file size, timeout, availability check, and verbose logging
+  - All 40 YARA detector tests pass
 
 - [ ] Update `src/hamburglar/cli/main.py` to: catch and display `HamburglarError` subclasses with rich formatting, show helpful error messages for common issues (path not found, permission denied, invalid YARA rules), add `--quiet/-q` flag to suppress non-error output, and return appropriate exit codes (0 success, 1 error, 2 no findings)
 

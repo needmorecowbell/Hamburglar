@@ -37,7 +37,8 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/outputs/json_output.py` with a `JsonOutput` class that serializes `ScanResult` to formatted JSON using Pydantic's `.model_dump_json(indent=2)`
   - Created `JsonOutput` class with `name` property returning "json" and `format(result)` method that serializes `ScanResult` using Pydantic's `model_dump_json(indent=2)` for human-readable output
 
-- [ ] Create `src/hamburglar/outputs/table_output.py` with a `TableOutput` class that uses `rich.table.Table` to create a console-friendly table showing file path, detector, match count, and severity for each finding
+- [x] Create `src/hamburglar/outputs/table_output.py` with a `TableOutput` class that uses `rich.table.Table` to create a console-friendly table showing file path, detector, match count, and severity for each finding
+  - Created `TableOutput` class that renders `ScanResult` as a Rich table with columns for file path, detector name, match count, and severity. Includes color-coded severity levels (CRITICAL=bold red, HIGH=red, MEDIUM=yellow, LOW=blue, INFO=dim) and a comprehensive summary section showing scan duration, total findings, file statistics, and severity breakdown.
 
 - [ ] Create `src/hamburglar/cli/__init__.py` as empty package init
 

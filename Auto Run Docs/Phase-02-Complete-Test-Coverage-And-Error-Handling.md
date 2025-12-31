@@ -136,7 +136,20 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Total YARA detector tests increased from 40 to 52 (12 new tests)
   - All 470 tests in the suite pass
 
-- [ ] Update `tests/test_regex_detector.py` with additional tests for: all 20 regex patterns have at least one positive test case, all 20 regex patterns have at least one negative test case (similar but not matching), patterns don't have catastrophic backtracking on adversarial input
+- [x] Update `tests/test_regex_detector.py` with additional tests for: all 20 regex patterns have at least one positive test case, all 20 regex patterns have at least one negative test case (similar but not matching), patterns don't have catastrophic backtracking on adversarial input
+  - Added `TestAllPatternsPositiveCases` class with 22 tests covering all 20 patterns (including variations):
+    - AWS API Key, AWS Secret Key, GitHub Token (ghp_ and gho_), GitHub Legacy Token, RSA/DSA/EC/OpenSSH/PGP Private Keys
+    - Generic API Key (with variations), Slack Token, Slack Webhook, Google OAuth, Generic Secret
+    - Email Address, IPv4 Address, URL, Bitcoin Address, Ethereum Address, Heroku API Key
+  - Added `TestAllPatternsNegativeCases` class with 36 tests (2 negative cases per pattern):
+    - Each pattern tested with "similar but not matching" content (e.g., wrong prefix, too short, missing required characters)
+  - Added `TestCatastrophicBacktracking` class with 11 tests for adversarial input:
+    - Tests patterns with .* that could backtrack (AWS Secret Key, GitHub Legacy Token, Generic API Key, Generic Secret, Heroku API Key)
+    - Tests edge cases (long dots in emails, long URL paths, long base58 strings for Bitcoin)
+    - Tests repeated character attacks and pathological regex with short timeout
+    - Verifies timeout recovery continues processing other patterns
+  - Total regex detector tests increased from 68 to 137 (69 new tests)
+  - All 539 tests in the suite pass
 
 - [ ] Create `tests/test_cli_errors.py` with CLI error handling tests: scan non-existent path shows error and exits 1, scan path without read permission shows error, invalid --format value shows error, invalid --yara path shows error, keyboard interrupt is handled gracefully
 

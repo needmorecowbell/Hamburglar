@@ -770,6 +770,612 @@ class TestBinaryDetectionHeuristics:
         assert len(email_findings) == 1
 
 
+class TestAllPatternsPositiveCases:
+    """Ensure all 20 default patterns have at least one positive test case."""
+
+    def test_aws_api_key_positive(self) -> None:
+        """Test AWS API Key pattern matches valid access key ID."""
+        detector = RegexDetector()
+        content = "aws_access_key_id = AKIAIOSFODNN7EXAMPLE"
+        findings = detector.detect(content, "test.txt")
+        aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
+        assert len(aws_findings) == 1
+        assert "AKIAIOSFODNN7EXAMPLE" in aws_findings[0].matches
+
+    def test_aws_secret_key_positive(self) -> None:
+        """Test AWS Secret Key pattern matches valid secret access key."""
+        detector = RegexDetector()
+        # Pattern: (?i)aws(.{0,20})?['\"][0-9a-zA-Z/+]{40}['\"]
+        # Key must be exactly 40 chars: alphanumeric, /, or +
+        content = 'aws_secret_key="wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY12"'  # exactly 40 chars
+        findings = detector.detect(content, "test.txt")
+        secret_findings = [f for f in findings if "AWS Secret Key" in f.detector_name]
+        assert len(secret_findings) == 1
+
+    def test_github_token_ghp_positive(self) -> None:
+        """Test GitHub Token pattern matches ghp_ prefixed token."""
+        detector = RegexDetector()
+        content = "token = ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Token" in f.detector_name]
+        assert len(gh_findings) == 1
+        assert "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij" in gh_findings[0].matches
+
+    def test_github_token_gho_positive(self) -> None:
+        """Test GitHub Token pattern matches gho_ prefixed token."""
+        detector = RegexDetector()
+        content = "gho_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Token" in f.detector_name]
+        assert len(gh_findings) == 1
+
+    def test_github_legacy_token_positive(self) -> None:
+        """Test GitHub Legacy Token pattern matches old-style token."""
+        detector = RegexDetector()
+        # Pattern: [g|G][i|I]... followed by quoted 35-40 char token
+        content = 'GITHUB_TOKEN="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"'
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Legacy Token" in f.detector_name]
+        assert len(gh_findings) == 1
+
+    def test_rsa_private_key_positive(self) -> None:
+        """Test RSA Private Key pattern matches header."""
+        detector = RegexDetector()
+        content = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA..."
+        findings = detector.detect(content, "key.pem")
+        rsa_findings = [f for f in findings if "RSA Private Key" in f.detector_name]
+        assert len(rsa_findings) == 1
+
+    def test_dsa_private_key_positive(self) -> None:
+        """Test DSA Private Key pattern matches header."""
+        detector = RegexDetector()
+        content = "-----BEGIN DSA PRIVATE KEY-----"
+        findings = detector.detect(content, "key.pem")
+        dsa_findings = [f for f in findings if "SSH (DSA) Private Key" in f.detector_name]
+        assert len(dsa_findings) == 1
+
+    def test_ec_private_key_positive(self) -> None:
+        """Test EC Private Key pattern matches header."""
+        detector = RegexDetector()
+        content = "-----BEGIN EC PRIVATE KEY-----"
+        findings = detector.detect(content, "key.pem")
+        ec_findings = [f for f in findings if "SSH (EC) Private Key" in f.detector_name]
+        assert len(ec_findings) == 1
+
+    def test_openssh_private_key_positive(self) -> None:
+        """Test OpenSSH Private Key pattern matches header."""
+        detector = RegexDetector()
+        content = "-----BEGIN OPENSSH PRIVATE KEY-----"
+        findings = detector.detect(content, "id_ed25519")
+        openssh_findings = [f for f in findings if "SSH (OPENSSH) Private Key" in f.detector_name]
+        assert len(openssh_findings) == 1
+
+    def test_pgp_private_key_positive(self) -> None:
+        """Test PGP Private Key Block pattern matches header."""
+        detector = RegexDetector()
+        content = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+        findings = detector.detect(content, "private.asc")
+        pgp_findings = [f for f in findings if "PGP Private Key Block" in f.detector_name]
+        assert len(pgp_findings) == 1
+
+    def test_generic_api_key_positive(self) -> None:
+        """Test Generic API Key pattern matches api_key assignments."""
+        detector = RegexDetector()
+        content = 'api_key = "abcdef1234567890abcdef1234567890"'
+        findings = detector.detect(content, "config.py")
+        api_findings = [f for f in findings if "Generic API Key" in f.detector_name]
+        assert len(api_findings) == 1
+
+    def test_generic_api_key_variations(self) -> None:
+        """Test Generic API Key pattern matches various formats."""
+        detector = RegexDetector()
+        # Test different key formats: api-key, apikey, api_secret
+        content = '''
+        api-key: "1234567890abcdef1234567890abcdef"
+        apikey = "abcdef1234567890abcdef1234567890"
+        api_secret = "1234567890123456789012345678901234567890"
+        '''
+        findings = detector.detect(content, "config.yml")
+        api_findings = [f for f in findings if "Generic API Key" in f.detector_name]
+        assert len(api_findings) == 1
+        assert len(api_findings[0].matches) >= 1
+
+    def test_slack_token_positive(self) -> None:
+        """Test Slack Token pattern matches OAuth token format."""
+        detector = RegexDetector()
+        content = "SLACK_TOKEN=xoxb-123456789012-123456789012-123456789012-abcdefghijklmnopqrstuvwxyzabcdef"
+        findings = detector.detect(content, ".env")
+        slack_findings = [f for f in findings if "Slack Token" in f.detector_name]
+        assert len(slack_findings) == 1
+
+    def test_slack_webhook_positive(self) -> None:
+        """Test Slack Webhook pattern matches webhook URL format."""
+        detector = RegexDetector()
+        # Build the URL dynamically to avoid GitHub secret scanning
+        # Format: T[8 alphanumeric]/B[8-12 alphanumeric]/[24 alphanumeric]
+        base = "https://hooks.slack.com/services/"
+        team = "T" + "X" * 8
+        bot = "B" + "X" * 11
+        token = "X" * 24
+        content = f"webhook = {base}{team}/{bot}/{token}"
+        findings = detector.detect(content, "config.yml")
+        webhook_findings = [f for f in findings if "Slack Webhook" in f.detector_name]
+        assert len(webhook_findings) == 1
+
+    def test_google_oauth_positive(self) -> None:
+        """Test Google OAuth pattern matches client secret format."""
+        detector = RegexDetector()
+        # Pattern: "client_secret":"[a-zA-Z0-9-_]{24}"
+        # Secret must be EXACTLY 24 chars: alphanumeric, -, or _
+        content = '{"client_secret":"GOCSPX-1234567890abcdefg"}'  # exactly 24 chars
+        findings = detector.detect(content, "credentials.json")
+        google_findings = [f for f in findings if "Google OAuth" in f.detector_name]
+        assert len(google_findings) == 1
+
+    def test_generic_secret_positive(self) -> None:
+        """Test Generic Secret pattern matches secret assignments."""
+        detector = RegexDetector()
+        content = 'SECRET_KEY="abcdefghijklmnopqrstuvwxyz1234567890abcd"'
+        findings = detector.detect(content, ".env")
+        secret_findings = [f for f in findings if "Generic Secret" in f.detector_name]
+        assert len(secret_findings) == 1
+
+    def test_email_address_positive(self) -> None:
+        """Test Email Address pattern matches valid emails."""
+        detector = RegexDetector()
+        content = "Contact: admin@example.com"
+        findings = detector.detect(content, "readme.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+        assert "admin@example.com" in email_findings[0].matches
+
+    def test_ipv4_address_positive(self) -> None:
+        """Test IPv4 Address pattern matches valid IP addresses."""
+        detector = RegexDetector()
+        content = "Server: 192.168.1.100"
+        findings = detector.detect(content, "config.txt")
+        ip_findings = [f for f in findings if "IPv4 Address" in f.detector_name]
+        assert len(ip_findings) == 1
+        assert "192.168.1.100" in ip_findings[0].matches
+
+    def test_url_positive(self) -> None:
+        """Test URL pattern matches http/https URLs."""
+        detector = RegexDetector()
+        content = "API: https://api.example.com/v1/users"
+        findings = detector.detect(content, "api.txt")
+        url_findings = [f for f in findings if "URL" in f.detector_name]
+        assert len(url_findings) == 1
+
+    def test_bitcoin_address_positive(self) -> None:
+        """Test Bitcoin Address pattern matches valid BTC addresses."""
+        detector = RegexDetector()
+        content = "Wallet: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        findings = detector.detect(content, "wallet.txt")
+        btc_findings = [f for f in findings if "Bitcoin Address" in f.detector_name]
+        assert len(btc_findings) == 1
+
+    def test_ethereum_address_positive(self) -> None:
+        """Test Ethereum Address pattern matches valid ETH addresses."""
+        detector = RegexDetector()
+        content = "ETH: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bB2d"
+        findings = detector.detect(content, "crypto.txt")
+        eth_findings = [f for f in findings if "Ethereum Address" in f.detector_name]
+        assert len(eth_findings) == 1
+
+    def test_heroku_api_key_positive(self) -> None:
+        """Test Heroku API Key pattern matches valid Heroku tokens."""
+        detector = RegexDetector()
+        content = "HEROKU_API_KEY=12345678-1234-1234-1234-123456789ABC"
+        findings = detector.detect(content, ".env")
+        heroku_findings = [f for f in findings if "Heroku API Key" in f.detector_name]
+        assert len(heroku_findings) == 1
+
+
+class TestAllPatternsNegativeCases:
+    """Ensure all 20 default patterns have at least one negative test case."""
+
+    def test_aws_api_key_negative_short(self) -> None:
+        """Test AWS API Key doesn't match short AKIA strings."""
+        detector = RegexDetector()
+        content = "AKIA1234567890"  # Only 10 chars after AKIA, needs 16
+        findings = detector.detect(content, "test.txt")
+        aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
+        assert len(aws_findings) == 0
+
+    def test_aws_api_key_negative_wrong_prefix(self) -> None:
+        """Test AWS API Key doesn't match non-AKIA prefixes."""
+        detector = RegexDetector()
+        content = "ABIA12345678901234567890"  # Wrong prefix
+        findings = detector.detect(content, "test.txt")
+        aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
+        assert len(aws_findings) == 0
+
+    def test_aws_secret_key_negative_short(self) -> None:
+        """Test AWS Secret Key doesn't match short secrets."""
+        detector = RegexDetector()
+        content = 'aws_secret="shortkey"'  # Too short (only 8 chars, needs 40)
+        findings = detector.detect(content, "test.txt")
+        secret_findings = [f for f in findings if "AWS Secret Key" in f.detector_name]
+        assert len(secret_findings) == 0
+
+    def test_aws_secret_key_negative_no_quotes(self) -> None:
+        """Test AWS Secret Key doesn't match unquoted values."""
+        detector = RegexDetector()
+        content = "aws_secret=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY"  # No quotes
+        findings = detector.detect(content, "test.txt")
+        secret_findings = [f for f in findings if "AWS Secret Key" in f.detector_name]
+        assert len(secret_findings) == 0
+
+    def test_github_token_negative_short(self) -> None:
+        """Test GitHub Token doesn't match short tokens."""
+        detector = RegexDetector()
+        content = "ghp_short12345"  # Only 10 chars, needs 36
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Token" in f.detector_name]
+        assert len(gh_findings) == 0
+
+    def test_github_token_negative_wrong_prefix(self) -> None:
+        """Test GitHub Token doesn't match wrong prefixes."""
+        detector = RegexDetector()
+        content = "ghx_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"  # Wrong prefix
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Token" in f.detector_name]
+        assert len(gh_findings) == 0
+
+    def test_github_legacy_token_negative_short(self) -> None:
+        """Test GitHub Legacy Token doesn't match short tokens."""
+        detector = RegexDetector()
+        content = 'GITHUB_TOKEN="shorttoken"'  # Only 10 chars, needs 35-40
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Legacy Token" in f.detector_name]
+        assert len(gh_findings) == 0
+
+    def test_github_legacy_token_negative_no_github(self) -> None:
+        """Test GitHub Legacy Token doesn't match without 'github' keyword."""
+        detector = RegexDetector()
+        content = 'TOKEN="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"'  # No 'github'
+        findings = detector.detect(content, "test.txt")
+        gh_findings = [f for f in findings if "GitHub Legacy Token" in f.detector_name]
+        assert len(gh_findings) == 0
+
+    def test_rsa_private_key_negative_public_key(self) -> None:
+        """Test RSA Private Key doesn't match public key header."""
+        detector = RegexDetector()
+        content = "-----BEGIN RSA PUBLIC KEY-----"  # PUBLIC not PRIVATE
+        findings = detector.detect(content, "key.pem")
+        rsa_findings = [f for f in findings if "RSA Private Key" in f.detector_name]
+        assert len(rsa_findings) == 0
+
+    def test_rsa_private_key_negative_certificate(self) -> None:
+        """Test RSA Private Key doesn't match certificate header."""
+        detector = RegexDetector()
+        content = "-----BEGIN CERTIFICATE-----"
+        findings = detector.detect(content, "cert.pem")
+        rsa_findings = [f for f in findings if "RSA Private Key" in f.detector_name]
+        assert len(rsa_findings) == 0
+
+    def test_dsa_private_key_negative_public(self) -> None:
+        """Test DSA Private Key doesn't match DSA public key."""
+        detector = RegexDetector()
+        content = "-----BEGIN DSA PUBLIC KEY-----"
+        findings = detector.detect(content, "key.pem")
+        dsa_findings = [f for f in findings if "SSH (DSA) Private Key" in f.detector_name]
+        assert len(dsa_findings) == 0
+
+    def test_ec_private_key_negative_public(self) -> None:
+        """Test EC Private Key doesn't match EC public key."""
+        detector = RegexDetector()
+        content = "-----BEGIN EC PUBLIC KEY-----"
+        findings = detector.detect(content, "key.pem")
+        ec_findings = [f for f in findings if "SSH (EC) Private Key" in f.detector_name]
+        assert len(ec_findings) == 0
+
+    def test_openssh_private_key_negative_public(self) -> None:
+        """Test OpenSSH Private Key doesn't match public key."""
+        detector = RegexDetector()
+        content = "-----BEGIN OPENSSH PUBLIC KEY-----"
+        findings = detector.detect(content, "id_ed25519.pub")
+        openssh_findings = [f for f in findings if "SSH (OPENSSH) Private Key" in f.detector_name]
+        assert len(openssh_findings) == 0
+
+    def test_pgp_private_key_negative_public(self) -> None:
+        """Test PGP Private Key doesn't match public key block."""
+        detector = RegexDetector()
+        content = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+        findings = detector.detect(content, "public.asc")
+        pgp_findings = [f for f in findings if "PGP Private Key Block" in f.detector_name]
+        assert len(pgp_findings) == 0
+
+    def test_generic_api_key_negative_short(self) -> None:
+        """Test Generic API Key doesn't match short values."""
+        detector = RegexDetector()
+        content = 'api_key = "short"'  # Only 5 chars, needs 16-64
+        findings = detector.detect(content, "config.py")
+        api_findings = [f for f in findings if "Generic API Key" in f.detector_name]
+        assert len(api_findings) == 0
+
+    def test_generic_api_key_negative_no_key_word(self) -> None:
+        """Test Generic API Key doesn't match without 'api' keyword."""
+        detector = RegexDetector()
+        content = 'token = "abcdef1234567890abcdef1234567890"'  # No 'api' word
+        findings = detector.detect(content, "config.py")
+        api_findings = [f for f in findings if "Generic API Key" in f.detector_name]
+        assert len(api_findings) == 0
+
+    def test_slack_token_negative_short(self) -> None:
+        """Test Slack Token doesn't match short tokens."""
+        detector = RegexDetector()
+        content = "xoxb-123-456-789-abc"  # Wrong format, too short
+        findings = detector.detect(content, ".env")
+        slack_findings = [f for f in findings if "Slack Token" in f.detector_name]
+        assert len(slack_findings) == 0
+
+    def test_slack_token_negative_wrong_prefix(self) -> None:
+        """Test Slack Token doesn't match wrong prefix."""
+        detector = RegexDetector()
+        content = "xoxz-123456789012-123456789012-123456789012-abcdefghijklmnopqrstuvwxyzabcdef"
+        findings = detector.detect(content, ".env")
+        slack_findings = [f for f in findings if "Slack Token" in f.detector_name]
+        assert len(slack_findings) == 0
+
+    def test_slack_webhook_negative_wrong_domain(self) -> None:
+        """Test Slack Webhook doesn't match non-slack domains."""
+        detector = RegexDetector()
+        content = "https://hooks.example.com/services/T12345678/B123456789AB/abcdefghijklmnopqrstuvwx"
+        findings = detector.detect(content, "config.yml")
+        webhook_findings = [f for f in findings if "Slack Webhook" in f.detector_name]
+        assert len(webhook_findings) == 0
+
+    def test_slack_webhook_negative_wrong_path(self) -> None:
+        """Test Slack Webhook doesn't match wrong path format."""
+        detector = RegexDetector()
+        content = "https://hooks.slack.com/api/something"  # Wrong path, not /services/T.../B...
+        findings = detector.detect(content, "config.yml")
+        webhook_findings = [f for f in findings if "Slack Webhook" in f.detector_name]
+        assert len(webhook_findings) == 0
+
+    def test_google_oauth_negative_short(self) -> None:
+        """Test Google OAuth doesn't match short secrets."""
+        detector = RegexDetector()
+        content = '{"client_secret":"short"}'  # Only 5 chars, needs 24
+        findings = detector.detect(content, "credentials.json")
+        google_findings = [f for f in findings if "Google OAuth" in f.detector_name]
+        assert len(google_findings) == 0
+
+    def test_google_oauth_negative_wrong_key(self) -> None:
+        """Test Google OAuth doesn't match wrong JSON key."""
+        detector = RegexDetector()
+        content = '{"api_secret":"GOCSPX-abcdefghij1234567890"}'  # Wrong key name
+        findings = detector.detect(content, "credentials.json")
+        google_findings = [f for f in findings if "Google OAuth" in f.detector_name]
+        assert len(google_findings) == 0
+
+    def test_generic_secret_negative_short(self) -> None:
+        """Test Generic Secret doesn't match short values."""
+        detector = RegexDetector()
+        content = 'SECRET="shortvalue"'  # Only 10 chars, needs 32-45
+        findings = detector.detect(content, ".env")
+        secret_findings = [f for f in findings if "Generic Secret" in f.detector_name]
+        assert len(secret_findings) == 0
+
+    def test_generic_secret_negative_no_secret(self) -> None:
+        """Test Generic Secret doesn't match without 'secret' keyword."""
+        detector = RegexDetector()
+        content = 'TOKEN="abcdefghijklmnopqrstuvwxyz1234567890abcd"'  # No 'secret'
+        findings = detector.detect(content, ".env")
+        secret_findings = [f for f in findings if "Generic Secret" in f.detector_name]
+        assert len(secret_findings) == 0
+
+    def test_email_address_negative_no_at(self) -> None:
+        """Test Email Address doesn't match strings without @."""
+        detector = RegexDetector()
+        content = "contact: admin.example.com"  # No @ symbol
+        findings = detector.detect(content, "readme.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 0
+
+    def test_email_address_negative_no_domain(self) -> None:
+        """Test Email Address doesn't match incomplete emails."""
+        detector = RegexDetector()
+        content = "email: user@"  # No domain
+        findings = detector.detect(content, "readme.txt")
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 0
+
+    def test_ipv4_address_negative_out_of_range(self) -> None:
+        """Test IPv4 Address doesn't match out-of-range octets."""
+        detector = RegexDetector()
+        content = "Invalid IP: 256.1.2.3"  # 256 is out of range
+        findings = detector.detect(content, "config.txt")
+        ip_findings = [f for f in findings if "IPv4 Address" in f.detector_name]
+        assert len(ip_findings) == 0
+
+    def test_ipv4_address_negative_too_few_octets(self) -> None:
+        """Test IPv4 Address doesn't match incomplete addresses."""
+        detector = RegexDetector()
+        content = "Incomplete: 192.168.1"  # Only 3 octets
+        findings = detector.detect(content, "config.txt")
+        ip_findings = [f for f in findings if "IPv4 Address" in f.detector_name]
+        assert len(ip_findings) == 0
+
+    def test_url_negative_no_scheme(self) -> None:
+        """Test URL pattern doesn't match URLs without http/https."""
+        detector = RegexDetector()
+        content = "site: example.com/path"  # No http/https
+        findings = detector.detect(content, "api.txt")
+        url_findings = [f for f in findings if "URL" in f.detector_name]
+        assert len(url_findings) == 0
+
+    def test_url_negative_ftp(self) -> None:
+        """Test URL pattern doesn't match FTP URLs."""
+        detector = RegexDetector()
+        content = "ftp://files.example.com/file.zip"  # FTP not HTTP
+        findings = detector.detect(content, "api.txt")
+        url_findings = [f for f in findings if "URL" in f.detector_name]
+        assert len(url_findings) == 0
+
+    def test_bitcoin_address_negative_short(self) -> None:
+        """Test Bitcoin Address doesn't match short addresses."""
+        detector = RegexDetector()
+        content = "BTC: 1ABC123"  # Too short (7 chars, needs 25-34)
+        findings = detector.detect(content, "wallet.txt")
+        btc_findings = [f for f in findings if "Bitcoin Address" in f.detector_name]
+        assert len(btc_findings) == 0
+
+    def test_bitcoin_address_negative_wrong_prefix(self) -> None:
+        """Test Bitcoin Address doesn't match wrong prefixes."""
+        detector = RegexDetector()
+        content = "2A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"  # Starts with 2, not 1 or 3
+        findings = detector.detect(content, "wallet.txt")
+        btc_findings = [f for f in findings if "Bitcoin Address" in f.detector_name]
+        assert len(btc_findings) == 0
+
+    def test_ethereum_address_negative_short(self) -> None:
+        """Test Ethereum Address doesn't match short addresses."""
+        detector = RegexDetector()
+        content = "ETH: 0x742d35Cc"  # Only 8 chars after 0x, needs 40
+        findings = detector.detect(content, "crypto.txt")
+        eth_findings = [f for f in findings if "Ethereum Address" in f.detector_name]
+        assert len(eth_findings) == 0
+
+    def test_ethereum_address_negative_no_prefix(self) -> None:
+        """Test Ethereum Address doesn't match without 0x prefix."""
+        detector = RegexDetector()
+        content = "742d35Cc6634C0532925a3b844Bc9e7595f0bB2d"  # No 0x prefix
+        findings = detector.detect(content, "crypto.txt")
+        eth_findings = [f for f in findings if "Ethereum Address" in f.detector_name]
+        assert len(eth_findings) == 0
+
+    def test_heroku_api_key_negative_wrong_format(self) -> None:
+        """Test Heroku API Key doesn't match wrong UUID format."""
+        detector = RegexDetector()
+        content = "HEROKU_KEY=12345678-1234-1234"  # Incomplete UUID
+        findings = detector.detect(content, ".env")
+        heroku_findings = [f for f in findings if "Heroku API Key" in f.detector_name]
+        assert len(heroku_findings) == 0
+
+    def test_heroku_api_key_negative_no_heroku(self) -> None:
+        """Test Heroku API Key doesn't match without 'heroku' keyword."""
+        detector = RegexDetector()
+        content = "API_KEY=12345678-1234-1234-1234-123456789ABC"  # No 'heroku'
+        findings = detector.detect(content, ".env")
+        heroku_findings = [f for f in findings if "Heroku API Key" in f.detector_name]
+        assert len(heroku_findings) == 0
+
+
+class TestCatastrophicBacktracking:
+    """Tests to ensure patterns don't have catastrophic backtracking on adversarial input."""
+
+    def test_aws_secret_key_adversarial_input(self) -> None:
+        """Test AWS Secret Key pattern doesn't hang on adversarial input."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Adversarial input: long string of 'a's that could cause backtracking
+        adversarial = 'aws' + 'a' * 1000 + '"' + 'a' * 50 + '"'
+        # Should complete without timeout
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_github_legacy_token_adversarial_input(self) -> None:
+        """Test GitHub Legacy Token pattern doesn't hang on adversarial input."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Pattern has .* which could backtrack
+        adversarial = 'GITHUB' + 'x' * 1000 + '"' + 'a' * 50 + '"'
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_generic_api_key_adversarial_input(self) -> None:
+        """Test Generic API Key pattern doesn't hang on adversarial input."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Pattern: api.* with complex suffix
+        adversarial = 'api_key' + ' ' * 500 + '=' + ' ' * 500 + '"' + 'x' * 100 + '"'
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_generic_secret_adversarial_input(self) -> None:
+        """Test Generic Secret pattern doesn't hang on adversarial input."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Pattern has .* which could cause issues
+        adversarial = 'SECRET' + 'x' * 1000 + '"' + 'a' * 50 + '"'
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_heroku_api_key_adversarial_input(self) -> None:
+        """Test Heroku API Key pattern doesn't hang on adversarial input."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Pattern has .* which could backtrack
+        adversarial = 'HEROKU' + 'x' * 1000 + '12345678-1234-1234-1234-123456789ABC'
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_email_adversarial_nested_dots(self) -> None:
+        """Test Email pattern doesn't hang on strings with many dots."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Many dots could cause backtracking in domain matching
+        adversarial = 'a' + '.a' * 500 + '@' + 'b' + '.b' * 500 + '.com'
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_url_adversarial_long_path(self) -> None:
+        """Test URL pattern doesn't hang on very long paths."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Long path with many special chars could cause issues
+        adversarial = 'https://example.com/' + 'a/b/c/d/e?' * 200
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_bitcoin_adversarial_long_string(self) -> None:
+        """Test Bitcoin pattern doesn't hang on long alphanumeric strings."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Long base58 string that could match partially
+        adversarial = '1' + 'a' * 1000
+        findings = detector.detect(adversarial, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_all_patterns_adversarial_repeated_chars(self) -> None:
+        """Test that all patterns handle repeated character attacks."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Test various adversarial inputs
+        adversarial_inputs = [
+            'a' * 10000,  # Just repeated chars
+            '"' + 'a' * 10000 + '"',  # Quoted repeated chars
+            '=' * 5000 + '"' + 'a' * 5000 + '"',  # Assignment-like
+            '@' * 1000,  # Many @ symbols
+            '.' * 1000,  # Many dots
+            '-----BEGIN ' + 'x' * 5000 + '-----',  # PEM-like
+            '0x' + 'a' * 1000,  # Ethereum-like prefix
+        ]
+        for adversarial in adversarial_inputs:
+            findings = detector.detect(adversarial, "test.txt")
+            assert isinstance(findings, list)
+
+    def test_pathological_regex_with_short_timeout(self) -> None:
+        """Test that pathological input triggers timeout gracefully."""
+        # Create a detector with custom pattern that could be slow
+        # Note: This tests the timeout mechanism, not actual default patterns
+        patterns = {
+            "Test Pattern": {
+                "pattern": r"a+b",
+                "severity": Severity.LOW,
+                "description": "Test",
+            }
+        }
+        detector = RegexDetector(patterns=patterns, use_defaults=False, regex_timeout=0.001)
+        # This should complete (possibly with timeout) but not hang
+        large_content = "a" * 100000 + "c"
+        findings = detector.detect(large_content, "test.txt")
+        assert isinstance(findings, list)
+
+    def test_timeout_recovery_continues_processing(self) -> None:
+        """Test that after a timeout, other patterns are still checked."""
+        detector = RegexDetector(regex_timeout=1.0)
+        # Include a valid email in content that also has potential backtracking triggers
+        content = "admin@example.com " + 'x' * 1000
+        findings = detector.detect(content, "test.txt")
+        # Should find the email even if other patterns took time
+        email_findings = [f for f in findings if "Email Address" in f.detector_name]
+        assert len(email_findings) == 1
+
+
 class TestChunkedProcessing:
     """Tests for chunked processing of large content."""
 

@@ -1,0 +1,26 @@
+# Ruff configuration for Hamburglar
+# https://docs.astral.sh/ruff/configuration/
+
+line-length = 100
+target-version = "py39"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+]
+ignore = [
+    "E501",  # line too long - ignored for long regex patterns
+]
+
+[lint.isort]
+known-first-party = ["hamburglar"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

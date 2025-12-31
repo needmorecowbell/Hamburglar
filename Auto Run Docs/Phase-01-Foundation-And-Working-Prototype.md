@@ -72,9 +72,11 @@ This phase establishes the modern project structure, updates all dependencies to
   - Updated `pyproject.toml` with `[tool.hatch.build]` section to include `*.yar` files in package distribution
   - Added `tests/test_rules.py` with comprehensive tests for the rules module (path existence, file count, expected rules, content validation)
 
-- [ ] Create `.python-version` file containing `3.11` for pyenv compatibility
+- [x] Create `.python-version` file containing `3.11` for pyenv compatibility
+  - Created `.python-version` file with `3.11` to ensure pyenv selects the correct Python version matching the project's Python 3.11+ requirement
 
-- [ ] Create `ruff.toml` with configuration: line-length 100, target Python 3.9, select rules (E, F, I, UP, B, SIM, TCH), ignore E501 for long regex patterns
+- [x] Create `ruff.toml` with configuration: line-length 100, target Python 3.9, select rules (E, F, I, UP, B, SIM, TCH), ignore E501 for long regex patterns
+  - Created `ruff.toml` with line-length 100, target-version py39, lint select for E/F/I/UP/B/SIM/TCH rules, E501 ignored for long regex patterns, isort configuration for hamburglar as first-party, and format configuration for double quotes and space indent
 
 - [ ] Run `pip install -e ".[dev]"` to install the package in development mode and verify the `hamburglar` command is available
 

@@ -61,6 +61,13 @@ Homepage = "https://github.com/needmorecowbell/Hamburglar"
 Repository = "https://github.com/needmorecowbell/Hamburglar"
 Issues = "https://github.com/needmorecowbell/Hamburglar/issues"
 
+[tool.hatch.build]
+# Include YARA rules as package data
+include = [
+    "src/hamburglar/**/*.py",
+    "src/hamburglar/rules/*.yar",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/hamburglar"]
 

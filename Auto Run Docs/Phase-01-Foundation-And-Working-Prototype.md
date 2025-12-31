@@ -66,7 +66,11 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `tests/test_cli.py` with CLI tests using Typer's CliRunner: test --version outputs version, test scan command with temp directory produces output, test --format json produces valid JSON, test --format table produces table output
   - Created comprehensive test suite with 27 tests across 9 test classes: TestVersionOutput (version flag tests), TestScanCommand (scan functionality, single files, nonexistent paths, recursive flag), TestJsonFormatOutput (JSON validity, required fields, findings structure, case-insensitivity), TestTableFormatOutput (table output, default format verification), TestInvalidFormat (error handling), TestVerboseFlag (verbose output), TestOutputFileOption (file output), TestEmptyDirectory (empty dir handling), TestHelpOutput (help information). All tests pass.
 
-- [ ] Copy the existing `rules/` directory YARA files into the project structure at `src/hamburglar/rules/` and update `pyproject.toml` to include them as package data
+- [x] Copy the existing `rules/` directory YARA files into the project structure at `src/hamburglar/rules/` and update `pyproject.toml` to include them as package data
+  - Created `src/hamburglar/rules/` directory and copied all 19 YARA rule files (apple.yar, audio.yar, compressed.yar, crypto.yar, executables.yar, gif.yar, gps.yar, jpeg.yar, mem_dumps.yar, office.yar, pdf.yar, png.yar, skype.yar, sqlite.yar, vcard.yar, vector.yar, video.yar, vmware.yar, win_reg.yar)
+  - Created `src/hamburglar/rules/__init__.py` with `get_rules_path()` and `list_rules()` helper functions for accessing bundled rules
+  - Updated `pyproject.toml` with `[tool.hatch.build]` section to include `*.yar` files in package distribution
+  - Added `tests/test_rules.py` with comprehensive tests for the rules module (path existence, file count, expected rules, content validation)
 
 - [ ] Create `.python-version` file containing `3.11` for pyenv compatibility
 

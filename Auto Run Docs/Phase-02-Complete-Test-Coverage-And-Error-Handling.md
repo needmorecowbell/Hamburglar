@@ -1,0 +1,64 @@
+# Phase 02: Complete Test Coverage and Error Handling
+
+> **Branch Directive:** All work for this phase MUST be done on the `claude-overhaul` branch. Push commits to `origin/claude-overhaul` only. Do NOT push to `master` or `main`.
+
+This phase achieves the 100% test coverage goal by adding comprehensive tests for all edge cases, error conditions, and integration scenarios. It also implements robust error handling throughout the codebase, replacing silent failures with proper exception handling and logging. The result is a battle-tested foundation that gracefully handles malformed files, permission issues, and unexpected input.
+
+## Tasks
+
+- [x] Create `src/hamburglar/core/exceptions.py` with custom exception hierarchy: `HamburglarError` (base), `ScanError`, `DetectorError`, `ConfigError`, `OutputError`, and `YaraCompilationError` with appropriate error messages and context
+  - Created full exception hierarchy with message and context support
+  - Each exception has specific attributes (e.g., `path` for ScanError, `detector_name` for DetectorError)
+  - String representation includes context when present for improved debugging
+
+- [x] Create `src/hamburglar/core/logging.py` with a `setup_logging(verbose: bool)` function that configures Python logging with rich handler, sets appropriate log levels, and returns a logger instance for use throughout the application
+  - Created `setup_logging(verbose: bool)` function that configures RichHandler with timestamps, log levels, rich tracebacks, and markup support
+  - Verbose mode sets DEBUG level, non-verbose sets WARNING level
+  - Added `get_logger()` helper function for retrieving the configured logger throughout the application
+  - Created comprehensive test suite (`tests/test_logging.py`) with 29 tests covering all functionality
+
+- [x] Update `src/hamburglar/core/scanner.py` to: wrap file operations in try/except blocks, log warnings for permission errors and continue scanning, log errors for corrupted files and continue, raise `ScanError` for fatal issues (target doesn't exist), and add progress tracking with optional callback
+  - Added `ScanError` import from exceptions module
+  - Now raises `ScanError` when target path doesn't exist (instead of silently returning empty results)
+  - Added comprehensive try/except blocks around file discovery with inner exception handling for individual files
+  - Added `FileNotFoundError` and `IsADirectoryError` handling for files that disappear during scan
+  - Added debug logging for UTF-8 decode fallback to latin-1
+  - Added `ProgressCallback` type alias and optional `progress_callback` parameter to `__init__`
+  - Added `_report_progress()` method that calls callback with (current, total, file_path)
+  - Progress callback errors are caught and logged at debug level to prevent scan disruption
+  - Added completion log message with scan statistics
+  - Added 4 new tests for progress callback functionality in `test_scanner.py`
+  - All 33 scanner tests pass
+
+- [ ] Update `src/hamburglar/detectors/regex_detector.py` to: handle binary content detection (skip files that appear binary), catch regex timeout errors on pathological patterns, add configurable max file size (default 10MB, skip larger files with warning), and log detector performance metrics in verbose mode
+
+- [ ] Update `src/hamburglar/detectors/yara_detector.py` to: raise `YaraCompilationError` with helpful message when rules fail to compile, handle YARA timeout on large files, skip files that exceed YARA's size limits, and provide fallback when yara-python is not installed (optional dependency)
+
+- [ ] Update `src/hamburglar/cli/main.py` to: catch and display `HamburglarError` subclasses with rich formatting, show helpful error messages for common issues (path not found, permission denied, invalid YARA rules), add `--quiet/-q` flag to suppress non-error output, and return appropriate exit codes (0 success, 1 error, 2 no findings)
+
+- [x] Create `tests/test_exceptions.py` with tests for: each exception class can be raised and caught, exception messages contain relevant context, exception hierarchy allows catching base `HamburglarError`
+  - Added 44 tests covering all exception classes
+  - Tests verify exception creation, attributes, inheritance, context propagation
+  - All tests pass with 100% coverage on exceptions.py
+
+- [ ] Create `tests/test_error_handling.py` with integration tests for: scanner handles missing target path gracefully, scanner handles permission denied on directory, scanner handles permission denied on individual files (continues scanning others), scanner handles symlink loops, scanner handles file that disappears during scan
+
+- [ ] Create `tests/test_binary_files.py` with tests for: regex detector skips binary files (ELF, images, etc.), regex detector correctly identifies text files, scanner processes mixed directories (binary and text), proper handling of files with null bytes
+
+- [ ] Create `tests/test_large_files.py` with tests for: scanner respects max file size setting, large file is skipped with warning (mock a large file), appropriate log message when file is skipped
+
+- [ ] Create `tests/fixtures/` directory with test fixture files: `secret_file.txt` (contains AWS key, email, private key header), `clean_file.txt` (no secrets), `binary_file.bin` (random binary data), `mixed_encoding.txt` (UTF-8 with some Latin-1 chars)
+
+- [ ] Create `tests/test_encoding.py` with tests for: scanner handles UTF-8 files correctly, scanner handles Latin-1 files, scanner handles files with mixed/broken encoding (doesn't crash), scanner handles empty files
+
+- [ ] Update `tests/test_yara_detector.py` with additional tests for: invalid YARA rules raise YaraCompilationError, empty rules directory, rules directory that doesn't exist, YARA matching against binary files
+
+- [ ] Update `tests/test_regex_detector.py` with additional tests for: all 20 regex patterns have at least one positive test case, all 20 regex patterns have at least one negative test case (similar but not matching), patterns don't have catastrophic backtracking on adversarial input
+
+- [ ] Create `tests/test_cli_errors.py` with CLI error handling tests: scan non-existent path shows error and exits 1, scan path without read permission shows error, invalid --format value shows error, invalid --yara path shows error, keyboard interrupt is handled gracefully
+
+- [ ] Create `tests/test_outputs.py` with comprehensive output tests for: JSON output is valid JSON, JSON output contains all findings, table output renders without errors, table output handles long file paths (truncation), table output handles special characters in findings
+
+- [ ] Run `pytest tests/ -v --cov=hamburglar --cov-report=term-missing --cov-fail-under=95` and ensure coverage is at least 95%
+
+- [ ] Create `tests/test_logging.py` with tests for: verbose mode produces debug output, quiet mode suppresses info output, log messages contain timestamps, log messages contain source context

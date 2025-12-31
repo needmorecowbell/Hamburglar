@@ -9,14 +9,18 @@ import fnmatch
 import logging
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
+from hamburglar.core.exceptions import ScanError
 from hamburglar.core.models import Finding, ScanConfig, ScanResult
 
 if TYPE_CHECKING:
     from hamburglar.detectors import BaseDetector
 
 logger = logging.getLogger(__name__)
+
+# Type alias for progress callback
+ProgressCallback = Callable[[int, int, str], None]
 
 
 class Scanner:
@@ -27,19 +31,29 @@ class Scanner:
     the findings into a ScanResult.
     """
 
-    def __init__(self, config: ScanConfig, detectors: list["BaseDetector"] | None = None):
+    def __init__(
+        self,
+        config: ScanConfig,
+        detectors: list["BaseDetector"] | None = None,
+        progress_callback: ProgressCallback | None = None,
+    ):
         """Initialize the scanner.
 
         Args:
             config: Scan configuration specifying target, filters, and options.
             detectors: List of detector instances to use for scanning.
                       If None, no detections will be performed.
+            progress_callback: Optional callback function for progress updates.
+                              Called with (current_file_index, total_files, current_file_path).
         """
         self.config = config
         self.detectors = detectors or []
+        self.progress_callback = progress_callback
         self._files_scanned = 0
         self._files_skipped = 0
         self._errors: list[str] = []
+        self._total_files = 0
+        self._current_file_index = 0
 
     def _matches_pattern(self, path: Path, patterns: list[str]) -> bool:
         """Check if a path matches any of the given glob patterns.
@@ -87,12 +101,17 @@ class Scanner:
 
         Returns:
             List of file paths to scan.
+
+        Raises:
+            ScanError: If the target path does not exist.
         """
         target = self.config.target_path
 
         if not target.exists():
-            logger.warning(f"Target path does not exist: {target}")
-            return []
+            raise ScanError(
+                f"Target path does not exist: {target}",
+                path=str(target),
+            )
 
         if target.is_file():
             if self._should_scan_file(target):
@@ -103,19 +122,39 @@ class Scanner:
         if self.config.recursive:
             try:
                 for item in target.rglob("*"):
-                    if item.is_file() and self._should_scan_file(item):
-                        files.append(item)
+                    try:
+                        if item.is_file() and self._should_scan_file(item):
+                            files.append(item)
+                    except PermissionError:
+                        logger.warning(f"Permission denied accessing: {item}")
+                        self._errors.append(f"Permission denied: {item}")
+                    except OSError as e:
+                        logger.error(f"Error accessing file {item}: {e}")
+                        self._errors.append(f"Error accessing {item}: {e}")
             except PermissionError as e:
                 logger.warning(f"Permission denied during directory walk: {e}")
                 self._errors.append(f"Permission denied: {e}")
+            except OSError as e:
+                logger.error(f"Error during directory walk: {e}")
+                self._errors.append(f"Error during directory walk: {e}")
         else:
             try:
                 for item in target.iterdir():
-                    if item.is_file() and self._should_scan_file(item):
-                        files.append(item)
+                    try:
+                        if item.is_file() and self._should_scan_file(item):
+                            files.append(item)
+                    except PermissionError:
+                        logger.warning(f"Permission denied accessing: {item}")
+                        self._errors.append(f"Permission denied: {item}")
+                    except OSError as e:
+                        logger.error(f"Error accessing file {item}: {e}")
+                        self._errors.append(f"Error accessing {item}: {e}")
             except PermissionError as e:
                 logger.warning(f"Permission denied reading directory: {e}")
                 self._errors.append(f"Permission denied: {e}")
+            except OSError as e:
+                logger.error(f"Error reading directory: {e}")
+                self._errors.append(f"Error reading directory: {e}")
 
         return files
 
@@ -136,19 +175,53 @@ class Scanner:
                     return file_path.read_text(encoding="utf-8")
                 except UnicodeDecodeError:
                     # Fall back to latin-1 which can read any byte sequence
+                    logger.debug(f"UTF-8 decode failed for {file_path}, falling back to latin-1")
                     return file_path.read_text(encoding="latin-1")
             except PermissionError:
                 logger.warning(f"Permission denied reading file: {file_path}")
                 self._errors.append(f"Permission denied: {file_path}")
                 return None
+            except IsADirectoryError:
+                logger.warning(f"Path is a directory, not a file: {file_path}")
+                self._errors.append(f"Path is a directory: {file_path}")
+                return None
+            except FileNotFoundError:
+                # File may have been deleted during scan
+                logger.warning(f"File not found (may have been deleted): {file_path}")
+                self._errors.append(f"File not found: {file_path}")
+                return None
             except OSError as e:
-                logger.warning(f"Error reading file {file_path}: {e}")
+                # Handles corrupted files, I/O errors, and other OS-level issues
+                logger.error(f"Error reading file {file_path}: {e}")
                 self._errors.append(f"Error reading {file_path}: {e}")
+                return None
+            except Exception as e:
+                # Catch any unexpected errors to prevent scan failure
+                logger.error(f"Unexpected error reading file {file_path}: {e}")
+                self._errors.append(f"Unexpected error reading {file_path}: {e}")
                 return None
 
         # Run file I/O in thread pool to not block the event loop
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, _read_sync)
+
+    def _report_progress(self, file_path: Path) -> None:
+        """Report progress via callback if one is configured.
+
+        Args:
+            file_path: Path of the file currently being processed.
+        """
+        self._current_file_index += 1
+        if self.progress_callback is not None:
+            try:
+                self.progress_callback(
+                    self._current_file_index,
+                    self._total_files,
+                    str(file_path),
+                )
+            except Exception as e:
+                # Don't let callback errors disrupt the scan
+                logger.debug(f"Progress callback error: {e}")
 
     async def _scan_file(self, file_path: Path) -> list[Finding]:
         """Scan a single file with all detectors.
@@ -159,6 +232,9 @@ class Scanner:
         Returns:
             List of findings from all detectors.
         """
+        # Report progress
+        self._report_progress(file_path)
+
         content = await self._read_file(file_path)
         if content is None:
             self._files_skipped += 1
@@ -185,6 +261,9 @@ class Scanner:
 
         Returns:
             ScanResult containing all findings and scan statistics.
+
+        Raises:
+            ScanError: If the target path does not exist.
         """
         start_time = time.time()
 
@@ -192,9 +271,12 @@ class Scanner:
         self._files_scanned = 0
         self._files_skipped = 0
         self._errors = []
+        self._current_file_index = 0
+        self._total_files = 0
 
         # Discover files to scan
         files = self._discover_files()
+        self._total_files = len(files)
         logger.info(f"Found {len(files)} files to scan")
 
         # Scan all files concurrently
@@ -206,6 +288,10 @@ class Scanner:
                 all_findings.extend(file_findings)
 
         scan_duration = time.time() - start_time
+        logger.info(
+            f"Scan complete: {self._files_scanned} files scanned, "
+            f"{self._files_skipped} skipped, {len(all_findings)} findings"
+        )
 
         return ScanResult(
             target_path=str(self.config.target_path),

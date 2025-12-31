@@ -7,13 +7,9 @@ various edge cases like empty directories and permission errors.
 
 from __future__ import annotations
 
-import asyncio
 import os
-import stat
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -28,10 +24,11 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.core.models import ScanConfig, Severity
-from hamburglar.core.scanner import Scanner
-from hamburglar.detectors import BaseDetector
-from hamburglar.detectors.regex_detector import RegexDetector
+from hamburglar.core.exceptions import ScanError  # noqa: E402
+from hamburglar.core.models import ScanConfig, Severity  # noqa: E402
+from hamburglar.core.scanner import Scanner  # noqa: E402
+from hamburglar.detectors import BaseDetector  # noqa: E402
+from hamburglar.detectors.regex_detector import RegexDetector  # noqa: E402
 
 
 class TestScannerWithSecrets:
@@ -60,9 +57,7 @@ class TestScannerWithSecrets:
 
         result = await scanner.scan()
 
-        aws_findings = [
-            f for f in result.findings if "AWS" in f.detector_name.upper()
-        ]
+        aws_findings = [f for f in result.findings if "AWS" in f.detector_name.upper()]
         assert len(aws_findings) > 0, "Should find AWS keys in temp_directory"
 
     @pytest.mark.asyncio
@@ -74,9 +69,7 @@ class TestScannerWithSecrets:
 
         result = await scanner.scan()
 
-        email_findings = [
-            f for f in result.findings if "email" in f.detector_name.lower()
-        ]
+        email_findings = [f for f in result.findings if "email" in f.detector_name.lower()]
         assert len(email_findings) > 0, "Should find emails in temp_directory"
 
     @pytest.mark.asyncio
@@ -88,9 +81,7 @@ class TestScannerWithSecrets:
 
         result = await scanner.scan()
 
-        key_findings = [
-            f for f in result.findings if "private key" in f.detector_name.lower()
-        ]
+        key_findings = [f for f in result.findings if "private key" in f.detector_name.lower()]
         assert len(key_findings) > 0, "Should find private key headers in temp_directory"
 
     @pytest.mark.asyncio
@@ -116,9 +107,7 @@ class TestScannerWithSecrets:
         result = await scanner.scan()
 
         # Check that we found findings in the nested file (contains ethereum address)
-        nested_findings = [
-            f for f in result.findings if "subdir" in f.file_path
-        ]
+        nested_findings = [f for f in result.findings if "subdir" in f.file_path]
         assert len(nested_findings) > 0, "Should find secrets in nested subdir"
 
 
@@ -155,10 +144,7 @@ class TestBlacklistPatterns:
     @pytest.mark.asyncio
     async def test_blacklist_multiple_patterns(self, temp_directory: Path) -> None:
         """Test blacklist with multiple patterns."""
-        config = ScanConfig(
-            target_path=temp_directory,
-            blacklist=["*.txt", "*.py", "subdir"]
-        )
+        config = ScanConfig(target_path=temp_directory, blacklist=["*.txt", "*.py", "subdir"])
         detector = RegexDetector()
         scanner = Scanner(config, [detector])
 
@@ -210,9 +196,7 @@ class TestWhitelistPatterns:
     """Test that scanner respects whitelist patterns."""
 
     @pytest.mark.asyncio
-    async def test_whitelist_only_includes_matching_files(
-        self, temp_directory: Path
-    ) -> None:
+    async def test_whitelist_only_includes_matching_files(self, temp_directory: Path) -> None:
         """Test that only whitelisted files are scanned."""
         config = ScanConfig(target_path=temp_directory, whitelist=["*.py"])
         detector = RegexDetector()
@@ -231,7 +215,7 @@ class TestWhitelistPatterns:
         config = ScanConfig(
             target_path=temp_directory,
             whitelist=["*.py", "secrets.txt"],
-            blacklist=[]  # Clear default blacklist
+            blacklist=[],  # Clear default blacklist
         )
         detector = RegexDetector()
         scanner = Scanner(config, [detector])
@@ -257,9 +241,7 @@ class TestWhitelistPatterns:
     async def test_whitelist_combined_with_blacklist(self, temp_directory: Path) -> None:
         """Test that blacklist takes precedence over whitelist."""
         config = ScanConfig(
-            target_path=temp_directory,
-            whitelist=["*.txt"],
-            blacklist=["clean.txt"]
+            target_path=temp_directory, whitelist=["*.txt"], blacklist=["clean.txt"]
         )
         detector = RegexDetector()
         scanner = Scanner(config, [detector])
@@ -308,9 +290,7 @@ class TestNonRecursiveScanning:
     """Test non-recursive scanning mode."""
 
     @pytest.mark.asyncio
-    async def test_non_recursive_ignores_subdirectories(
-        self, temp_directory: Path
-    ) -> None:
+    async def test_non_recursive_ignores_subdirectories(self, temp_directory: Path) -> None:
         """Test that non-recursive mode doesn't scan subdirectories."""
         config = ScanConfig(target_path=temp_directory, recursive=False)
         detector = RegexDetector()
@@ -327,9 +307,7 @@ class TestPermissionErrors:
     """Test handling of permission errors."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.name == "nt", reason="Permission tests not reliable on Windows"
-    )
+    @pytest.mark.skipif(os.name == "nt", reason="Permission tests not reliable on Windows")
     async def test_handles_unreadable_file_gracefully(self, tmp_path: Path) -> None:
         """Test that scanner handles unreadable files gracefully."""
         # Create a file and make it unreadable
@@ -353,12 +331,8 @@ class TestPermissionErrors:
             unreadable_file.chmod(original_mode)
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.name == "nt", reason="Permission tests not reliable on Windows"
-    )
-    async def test_handles_unreadable_directory_gracefully(
-        self, tmp_path: Path
-    ) -> None:
+    @pytest.mark.skipif(os.name == "nt", reason="Permission tests not reliable on Windows")
+    async def test_handles_unreadable_directory_gracefully(self, tmp_path: Path) -> None:
         """Test that scanner handles unreadable directories gracefully."""
         # Create a directory and make it unreadable
         unreadable_dir = tmp_path / "unreadable_dir"
@@ -382,16 +356,17 @@ class TestPermissionErrors:
 
     @pytest.mark.asyncio
     async def test_handles_nonexistent_path(self, tmp_path: Path) -> None:
-        """Test that scanner handles nonexistent paths gracefully."""
+        """Test that scanner raises ScanError for nonexistent paths."""
         nonexistent = tmp_path / "does_not_exist"
         config = ScanConfig(target_path=nonexistent)
         detector = RegexDetector()
         scanner = Scanner(config, [detector])
 
-        result = await scanner.scan()
+        with pytest.raises(ScanError) as exc_info:
+            await scanner.scan()
 
-        assert result.stats["files_discovered"] == 0
-        assert len(result.findings) == 0
+        assert "does not exist" in str(exc_info.value)
+        assert exc_info.value.path == str(nonexistent)
 
 
 class TestScannerWithNoDetectors:
@@ -540,7 +515,7 @@ class TestBinaryFileHandling:
         """Test file with mixed text and binary content."""
         mixed_file = tmp_path / "mixed.txt"
         # Text with embedded null bytes and a secret
-        content = b'normal text\x00\x00AKIAIOSFODNN7EXAMPLE\x00more text'
+        content = b"normal text\x00\x00AKIAIOSFODNN7EXAMPLE\x00more text"
         mixed_file.write_bytes(content)
 
         config = ScanConfig(target_path=tmp_path, blacklist=[])
@@ -552,3 +527,79 @@ class TestBinaryFileHandling:
         # Should still find the AWS key in mixed content
         aws_findings = [f for f in result.findings if "AWS" in f.detector_name.upper()]
         assert len(aws_findings) > 0
+
+
+class TestProgressCallback:
+    """Test progress callback functionality."""
+
+    @pytest.mark.asyncio
+    async def test_progress_callback_is_called(self, tmp_path: Path) -> None:
+        """Test that progress callback is called for each file."""
+        # Create test files
+        (tmp_path / "file1.txt").write_text("content1")
+        (tmp_path / "file2.txt").write_text("content2")
+        (tmp_path / "file3.txt").write_text("content3")
+
+        progress_calls: list[tuple[int, int, str]] = []
+
+        def progress_callback(current: int, total: int, file_path: str) -> None:
+            progress_calls.append((current, total, file_path))
+
+        config = ScanConfig(target_path=tmp_path, blacklist=[])
+        detector = RegexDetector()
+        scanner = Scanner(config, [detector], progress_callback=progress_callback)
+
+        await scanner.scan()
+
+        # Should have been called 3 times (once per file)
+        assert len(progress_calls) == 3
+        # All calls should have correct total
+        for current, total, _ in progress_calls:
+            assert total == 3
+            assert 1 <= current <= 3
+
+    @pytest.mark.asyncio
+    async def test_progress_callback_error_handling(self, tmp_path: Path) -> None:
+        """Test that callback errors don't disrupt the scan."""
+        (tmp_path / "file1.txt").write_text("AKIAIOSFODNN7EXAMPLE")
+
+        def failing_callback(current: int, total: int, file_path: str) -> None:
+            raise RuntimeError("Callback failure!")
+
+        config = ScanConfig(target_path=tmp_path, blacklist=[])
+        detector = RegexDetector()
+        scanner = Scanner(config, [detector], progress_callback=failing_callback)
+
+        # Scan should complete despite callback failure
+        result = await scanner.scan()
+
+        assert result.stats["files_scanned"] == 1
+        assert len(result.findings) > 0
+
+    @pytest.mark.asyncio
+    async def test_progress_callback_with_empty_directory(self, tmp_path: Path) -> None:
+        """Test progress callback with no files to scan."""
+        progress_calls: list[tuple[int, int, str]] = []
+
+        def progress_callback(current: int, total: int, file_path: str) -> None:
+            progress_calls.append((current, total, file_path))
+
+        config = ScanConfig(target_path=tmp_path, blacklist=[])
+        scanner = Scanner(config, [], progress_callback=progress_callback)
+
+        await scanner.scan()
+
+        # No files, so no progress calls
+        assert len(progress_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_no_progress_callback(self, tmp_path: Path) -> None:
+        """Test scanning works without progress callback."""
+        (tmp_path / "file1.txt").write_text("content")
+
+        config = ScanConfig(target_path=tmp_path, blacklist=[])
+        scanner = Scanner(config, [], progress_callback=None)
+
+        # Should complete without issues
+        result = await scanner.scan()
+        assert result.stats["files_scanned"] == 1

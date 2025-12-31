@@ -65,7 +65,16 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
   - Tests verify exception creation, attributes, inheritance, context propagation
   - All tests pass with 100% coverage on exceptions.py
 
-- [ ] Create `tests/test_error_handling.py` with integration tests for: scanner handles missing target path gracefully, scanner handles permission denied on directory, scanner handles permission denied on individual files (continues scanning others), scanner handles symlink loops, scanner handles file that disappears during scan
+- [x] Create `tests/test_error_handling.py` with integration tests for: scanner handles missing target path gracefully, scanner handles permission denied on directory, scanner handles permission denied on individual files (continues scanning others), scanner handles symlink loops, scanner handles file that disappears during scan
+  - Created 19 integration tests organized into 7 test classes:
+    - `TestMissingTargetPath`: 3 tests for nonexistent path/file handling with ScanError
+    - `TestPermissionDeniedOnDirectory`: 3 tests for inaccessible directories (both recursive rglob and non-recursive iterdir modes)
+    - `TestPermissionDeniedOnIndividualFiles`: 2 tests for continuing scan when individual files are unreadable
+    - `TestSymlinkLoops`: 3 tests for symlink loops, self-referencing symlinks, and broken symlinks
+    - `TestFileDisappearsDuringScan`: 3 tests for files deleted during scan, directory race conditions, and OS errors
+    - `TestErrorRecovery`: 2 tests for detector error handling and error stat collection
+    - `TestGracefulDegradation`: 3 tests for handling all-files-unreadable and mixed error scenarios
+  - All 19 tests pass, and all 352 tests in the suite pass
 
 - [ ] Create `tests/test_binary_files.py` with tests for: regex detector skips binary files (ELF, images, etc.), regex detector correctly identifies text files, scanner processes mixed directories (binary and text), proper handling of files with null bytes
 

@@ -194,4 +194,16 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
     - `cli/main.py` lines 249-296: Specific error paths during YARA loading and output formatting (module caching issues with mocking)
   - All existing 631 tests plus 49 new tests pass (total: 680 tests)
 
-- [ ] Create `tests/test_logging.py` with tests for: verbose mode produces debug output, quiet mode suppresses info output, log messages contain timestamps, log messages contain source context
+- [x] Create `tests/test_logging.py` with tests for: verbose mode produces debug output, quiet mode suppresses info output, log messages contain timestamps, log messages contain source context
+  - Extended existing test file (which already had 29 tests) with a new `TestLogOutputFormat` class containing 10 additional tests:
+    - `test_rich_handler_shows_time`: Verifies RichHandler is configured with `show_time=True`
+    - `test_rich_handler_shows_path`: Verifies RichHandler is configured with `show_path=True` for source context
+    - `test_rich_handler_shows_level`: Verifies RichHandler is configured with `show_level=True`
+    - `test_date_format_includes_time`: Verifies DATE_FORMAT contains time directive (%X)
+    - `test_handler_formatter_has_date_format`: Verifies formatter has non-empty datefmt
+    - `test_verbose_mode_produces_debug_output`: Verifies DEBUG level enabled with verbose=True
+    - `test_quiet_mode_suppresses_info_output`: Verifies INFO suppressed with verbose=False
+    - `test_log_record_contains_source_file`: Captures log records and verifies filename, lineno, funcName present
+    - `test_log_record_contains_timestamp`: Captures log records and verifies created timestamp within expected range
+  - Total logging tests: 38 tests (previously 29 + 9 new tests)
+  - All 689 tests in the suite pass

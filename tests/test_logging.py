@@ -203,3 +203,126 @@ class TestLogMessageContent:
             raise ValueError("Test exception")
         except ValueError:
             logger.exception("Caught an error")
+
+
+class TestLogOutputFormat:
+    """Tests for verifying log output contains timestamps and source context."""
+
+    def test_rich_handler_shows_time(self) -> None:
+        """Test that the Rich handler is configured to show timestamps."""
+        logger = setup_logging(verbose=True)
+        handler = next(h for h in logger.handlers if isinstance(h, RichHandler))
+        # RichHandler stores show_time in _log_render
+        assert handler._log_render.show_time is True
+
+    def test_rich_handler_shows_path(self) -> None:
+        """Test that the Rich handler is configured to show source path/context."""
+        logger = setup_logging(verbose=True)
+        handler = next(h for h in logger.handlers if isinstance(h, RichHandler))
+        # RichHandler stores show_path in _log_render
+        assert handler._log_render.show_path is True
+
+    def test_rich_handler_shows_level(self) -> None:
+        """Test that the Rich handler is configured to show log level."""
+        logger = setup_logging(verbose=True)
+        handler = next(h for h in logger.handlers if isinstance(h, RichHandler))
+        # RichHandler stores show_level in _log_render
+        assert handler._log_render.show_level is True
+
+    def test_date_format_includes_time(self) -> None:
+        """Test that the date format string includes time components."""
+        from hamburglar.core.logging import DATE_FORMAT
+
+        # The format should contain time directive (%X = locale's appropriate time representation)
+        assert "%X" in DATE_FORMAT or "%H" in DATE_FORMAT or "%T" in DATE_FORMAT
+
+    def test_handler_formatter_has_date_format(self) -> None:
+        """Test that the handler's formatter has a date format set."""
+        logger = setup_logging(verbose=True)
+        handler = next(h for h in logger.handlers if isinstance(h, RichHandler))
+        # RichHandler sets the date format via the formatter
+        assert handler.formatter is not None
+        assert handler.formatter.datefmt is not None
+        assert len(handler.formatter.datefmt) > 0
+
+    def test_verbose_mode_produces_debug_output(self) -> None:
+        """Test that verbose mode enables debug level logging output."""
+        logger = setup_logging(verbose=True)
+        # In verbose mode, DEBUG level should be enabled
+        assert logger.level == logging.DEBUG
+        assert logger.isEnabledFor(logging.DEBUG)
+        # The handler should also be set to DEBUG
+        handler = logger.handlers[0]
+        assert handler.level == logging.DEBUG
+
+    def test_quiet_mode_suppresses_info_output(self) -> None:
+        """Test that quiet mode (non-verbose) suppresses info level output."""
+        logger = setup_logging(verbose=False)
+        # In quiet mode, INFO level should be suppressed
+        assert logger.level == logging.WARNING
+        assert not logger.isEnabledFor(logging.INFO)
+        assert not logger.isEnabledFor(logging.DEBUG)
+        # But WARNING and above should still be enabled
+        assert logger.isEnabledFor(logging.WARNING)
+        assert logger.isEnabledFor(logging.ERROR)
+
+    def test_log_record_contains_source_file(self) -> None:
+        """Test that log records include source file information."""
+        logger = setup_logging(verbose=True)
+
+        # Create a custom handler to capture log records
+        captured_records: list[logging.LogRecord] = []
+
+        class RecordCapture(logging.Handler):
+            def emit(self, record: logging.LogRecord) -> None:
+                captured_records.append(record)
+
+        capture_handler = RecordCapture()
+        capture_handler.setLevel(logging.DEBUG)
+        logger.addHandler(capture_handler)
+
+        # Log a message
+        logger.debug("Test message from source")
+
+        # Verify the log record contains source context
+        assert len(captured_records) == 1
+        record = captured_records[0]
+        # Log records should contain filename, lineno, and funcName
+        assert record.filename == "test_logging.py"
+        assert record.lineno > 0
+        assert record.funcName == "test_log_record_contains_source_file"
+
+        # Clean up
+        logger.removeHandler(capture_handler)
+
+    def test_log_record_contains_timestamp(self) -> None:
+        """Test that log records include timestamp information."""
+        import time
+
+        logger = setup_logging(verbose=True)
+
+        # Create a custom handler to capture log records
+        captured_records: list[logging.LogRecord] = []
+
+        class RecordCapture(logging.Handler):
+            def emit(self, record: logging.LogRecord) -> None:
+                captured_records.append(record)
+
+        capture_handler = RecordCapture()
+        capture_handler.setLevel(logging.DEBUG)
+        logger.addHandler(capture_handler)
+
+        # Record time before logging
+        before_time = time.time()
+        logger.debug("Test message with timestamp")
+        after_time = time.time()
+
+        # Verify the log record contains timestamp
+        assert len(captured_records) == 1
+        record = captured_records[0]
+        # Log records should contain created timestamp
+        assert hasattr(record, "created")
+        assert before_time <= record.created <= after_time
+
+        # Clean up
+        logger.removeHandler(capture_handler)

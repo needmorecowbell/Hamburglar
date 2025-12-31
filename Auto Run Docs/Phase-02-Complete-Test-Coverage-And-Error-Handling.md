@@ -98,7 +98,14 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
     - `TestEdgeCases`: 5 tests for unicode size calculation, zero size limit, whitespace, newlines, and binary content
   - All 30 tests pass, and all 428 tests in the suite pass
 
-- [ ] Create `tests/fixtures/` directory with test fixture files: `secret_file.txt` (contains AWS key, email, private key header), `clean_file.txt` (no secrets), `binary_file.bin` (random binary data), `mixed_encoding.txt` (UTF-8 with some Latin-1 chars)
+- [x] Create `tests/fixtures/` directory with test fixture files: `secret_file.txt` (contains AWS key, email, private key header), `clean_file.txt` (no secrets), `binary_file.bin` (random binary data), `mixed_encoding.txt` (UTF-8 with some Latin-1 chars)
+  - Created `tests/fixtures/` directory with 4 test fixture files
+  - `secret_file.txt`: Contains AWS Access Key, AWS Secret Key, GitHub token, RSA private key header, generic API key, email addresses (2), IP addresses (2), and URLs (2) - yields 8 findings across 8 pattern categories
+  - `clean_file.txt`: Regular text file with code examples and configuration - yields 0 findings (as expected)
+  - `binary_file.bin`: 1036 bytes of binary data with PNG-like header and null bytes - correctly detected as binary and skipped
+  - `mixed_encoding.txt`: UTF-8 text with special characters (accents, currency symbols, Japanese chars, curly quotes) - processed without encoding errors
+  - Updated `.gitignore` to allow `.txt` files in `tests/fixtures/` via `!tests/fixtures/*.txt` pattern
+  - All 428 tests pass
 
 - [ ] Create `tests/test_encoding.py` with tests for: scanner handles UTF-8 files correctly, scanner handles Latin-1 files, scanner handles files with mixed/broken encoding (doesn't crash), scanner handles empty files
 

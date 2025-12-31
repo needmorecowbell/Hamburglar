@@ -13,7 +13,8 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/__init__.py` with `__version__ = "2.0.0"` and package docstring describing Hamburglar as a static analysis tool for extracting sensitive information
   - Created `src/hamburglar/__init__.py` with module docstring describing Hamburglar as a static analysis tool for extracting sensitive information from files using regex and YARA rules, plus `__version__ = "2.0.0"`
 
-- [ ] Create `src/hamburglar/core/__init__.py` as empty package init
+- [x] Create `src/hamburglar/core/__init__.py` as empty package init
+  - Created empty package init with minimal comment header
 
 - [ ] Create `src/hamburglar/core/models.py` with Pydantic models: `Finding` (file_path, detector_name, matches list, severity enum, metadata dict), `ScanResult` (target_path, findings list, scan_duration, stats dict), and `ScanConfig` (target_path, recursive bool, use_yara bool, yara_rules_path, output_format enum, blacklist list, whitelist list)
 

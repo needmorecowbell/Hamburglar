@@ -1,5 +1,7 @@
 # Phase 01: Foundation and Working Prototype
 
+> **Branch Directive:** All work for this phase MUST be done on the `claude-overhaul` branch. Push commits to `origin/claude-overhaul` only. Do NOT push to `master` or `main`.
+
 This phase establishes the modern project structure, updates all dependencies to secure versions, creates the modular architecture, and delivers a working CLI that can scan a directory and output findings. By the end of this phase, you will have a fully functional `hamburglar` command that installs via pip and produces real detection results—proving the modernization is on solid ground.
 
 ## Tasks
@@ -61,7 +63,8 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `tests/test_scanner.py` with integration tests for: scanning a directory with secrets and finding them, respecting blacklist patterns, respecting whitelist when enabled, handling empty directories, handling permission errors gracefully
   - Created comprehensive integration test suite with 29 tests across 11 test classes: TestScannerWithSecrets (directory scanning, AWS keys, emails, private keys, single files, nested files), TestBlacklistPatterns (file exclusions, directory exclusions, multiple patterns, default .git and __pycache__ exclusions), TestWhitelistPatterns (include only matching files, multiple patterns, no matching files, whitelist + blacklist interaction), TestEmptyDirectories (empty dirs, dirs with only subdirs), TestNonRecursiveScanning (non-recursive mode), TestPermissionErrors (unreadable files/directories, nonexistent paths), TestScannerWithNoDetectors (no detectors, empty detector list), TestScannerWithMultipleDetectors (multiple detectors), TestScannerDetectorErrors (graceful error handling), TestScanResult (duration/stats), TestBinaryFileHandling (binary files, mixed content). All 29 tests pass.
 
-- [ ] Create `tests/test_cli.py` with CLI tests using Typer's CliRunner: test --version outputs version, test scan command with temp directory produces output, test --format json produces valid JSON, test --format table produces table output
+- [x] Create `tests/test_cli.py` with CLI tests using Typer's CliRunner: test --version outputs version, test scan command with temp directory produces output, test --format json produces valid JSON, test --format table produces table output
+  - Created comprehensive test suite with 27 tests across 9 test classes: TestVersionOutput (version flag tests), TestScanCommand (scan functionality, single files, nonexistent paths, recursive flag), TestJsonFormatOutput (JSON validity, required fields, findings structure, case-insensitivity), TestTableFormatOutput (table output, default format verification), TestInvalidFormat (error handling), TestVerboseFlag (verbose output), TestOutputFileOption (file output), TestEmptyDirectory (empty dir handling), TestHelpOutput (help information). All tests pass.
 
 - [ ] Copy the existing `rules/` directory YARA files into the project structure at `src/hamburglar/rules/` and update `pyproject.toml` to include them as package data
 

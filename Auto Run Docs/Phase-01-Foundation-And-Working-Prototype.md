@@ -31,9 +31,11 @@ This phase establishes the modern project structure, updates all dependencies to
 - [x] Create `src/hamburglar/detectors/yara_detector.py` with a `YaraDetector` class that compiles YARA rules from a directory path and returns `Finding` objects for rule matches
   - Created `YaraDetector` class that compiles YARA rules from a directory (recursively finds .yar/.yara files) or single file. Supports both string content via `detect()` and raw bytes via `detect_bytes()`. Extracts rule metadata (author, description, tags) into Finding metadata. Includes `reload_rules()` method for dynamic rule updates and optional `severity_mapping` parameter to customize severity per rule. Handles YARA errors gracefully and returns empty list on match failures.
 
-- [ ] Create `src/hamburglar/outputs/__init__.py` with a `BaseOutput` abstract class defining `format(result: ScanResult) -> str` method and an `OutputRegistry` class
+- [x] Create `src/hamburglar/outputs/__init__.py` with a `BaseOutput` abstract class defining `format(result: ScanResult) -> str` method and an `OutputRegistry` class
+  - Created `BaseOutput` ABC with abstract `name` property and `format(result: ScanResult) -> str` method. Created `OutputRegistry` class with `register()`, `unregister()`, `get()`, `get_all()`, `list_names()` methods plus `__len__` and `__contains__` for convenience. Follows the same pattern as DetectorRegistry. Included a `default_registry` global instance for easy access.
 
-- [ ] Create `src/hamburglar/outputs/json_output.py` with a `JsonOutput` class that serializes `ScanResult` to formatted JSON using Pydantic's `.model_dump_json(indent=2)`
+- [x] Create `src/hamburglar/outputs/json_output.py` with a `JsonOutput` class that serializes `ScanResult` to formatted JSON using Pydantic's `.model_dump_json(indent=2)`
+  - Created `JsonOutput` class with `name` property returning "json" and `format(result)` method that serializes `ScanResult` using Pydantic's `model_dump_json(indent=2)` for human-readable output
 
 - [ ] Create `src/hamburglar/outputs/table_output.py` with a `TableOutput` class that uses `rich.table.Table` to create a console-friendly table showing file path, detector, match count, and severity for each finding
 

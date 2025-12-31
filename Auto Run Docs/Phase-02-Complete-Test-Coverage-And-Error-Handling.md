@@ -87,7 +87,16 @@ This phase achieves the 100% test coverage goal by adding comprehensive tests fo
     - `TestRealWorldBinaryPatterns`: 8 tests for SQLite, bzip2, 7z, tar, Python bytecode, object files, shared libraries, and DLLs
   - All 46 tests pass, and all 398 tests in the suite pass
 
-- [ ] Create `tests/test_large_files.py` with tests for: scanner respects max file size setting, large file is skipped with warning (mock a large file), appropriate log message when file is skipped
+- [x] Create `tests/test_large_files.py` with tests for: scanner respects max file size setting, large file is skipped with warning (mock a large file), appropriate log message when file is skipped
+  - Created comprehensive test suite with 30 tests organized into 7 test classes:
+    - `TestRegexDetectorMaxFileSizeSettings`: 4 tests for default/custom/small/large max file size settings
+    - `TestLargeFileSkipping`: 6 tests for file size boundary conditions (exceeds, under, exact, one-byte-over, empty, logging)
+    - `TestLargeFileWarningLogs`: 5 tests for warning log messages (content, file path, file size, max limit, no warning for small files)
+    - `TestMockedLargeFiles`: 4 tests for simulated large files, scanner integration, and independent detector limits
+    - `TestYaraDetectorMaxFileSize`: 3 tests for YARA detector's 100MB default limit and custom limits
+    - `TestScannerWithLargeFileSizeLimit`: 3 tests for scanner integration with default/custom limits and mixed file sizes
+    - `TestEdgeCases`: 5 tests for unicode size calculation, zero size limit, whitespace, newlines, and binary content
+  - All 30 tests pass, and all 428 tests in the suite pass
 
 - [ ] Create `tests/fixtures/` directory with test fixture files: `secret_file.txt` (contains AWS key, email, private key header), `clean_file.txt` (no secrets), `binary_file.bin` (random binary data), `mixed_encoding.txt` (UTF-8 with some Latin-1 chars)
 

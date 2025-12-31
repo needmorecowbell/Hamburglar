@@ -1,0 +1,30 @@
+# Mixed Encoding Test File
+# Contains both UTF-8 and Latin-1 characters
+
+## UTF-8 Content (Standard)
+Hello, World! This is regular ASCII text.
+The quick brown fox jumps over the lazy dog.
+
+## UTF-8 Special Characters
+Cafe with accent: Café
+German greetings: Grüß Gott
+Euro symbol: €100
+Japanese: こんにちは
+
+## Latin-1 Characters (ISO-8859-1)
+Copyright: © 2024
+Registered: ®
+Degrees: 25°C
+Fractions: ½, ¼, ¾
+Currencies: £, ¥
+
+## Mixed Line
+The café serves éclairs for €5.50 each.
+Naïve résumé with ümlaut.
+
+## Edge Cases
+Empty line above, and text with special dash: –
+Curly quotes: “Hello” and ‘World’
+Ellipsis: …
+
+End of mixed encoding file.

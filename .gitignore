@@ -1,4 +1,5 @@
 *.txt
+!tests/fixtures/*.txt
 *.swp
 *.json
 test/

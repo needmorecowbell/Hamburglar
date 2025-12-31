@@ -1,0 +1,36 @@
+# Clean Test File
+# This file contains no sensitive information and should produce zero findings
+
+This is a simple text file used for testing purposes.
+It contains ordinary content without any secrets, API keys,
+private keys, email addresses, or other sensitive patterns.
+
+## Sample Content
+
+Here is some regular text that the scanner should analyze
+but should not flag as containing any sensitive information.
+
+### Code Example (no secrets)
+
+def hello_world():
+    """A simple function that prints a greeting."""
+    print("Hello, World!")
+    return True
+
+### Configuration (no secrets)
+
+[settings]
+debug = false
+log_level = info
+max_connections = 100
+
+### List of Items
+
+1. First item in the list
+2. Second item in the list
+3. Third item in the list
+
+The quick brown fox jumps over the lazy dog.
+Pack my box with five dozen liquor jugs.
+
+End of clean file.

@@ -1,0 +1,106 @@
+# Cloud Provider Credentials Test Fixture
+# Contains FAKE placeholder credentials for testing detection patterns
+# All values use FAKEFAKE/00000 patterns to avoid triggering secret scanners
+
+# ===== Azure Credentials =====
+# Azure Storage Account Key
+DefaultEndpointsProtocol=https;AccountName=fakestorageaccount;AccountKey=FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA==
+
+# Azure Connection String (full format)
+azure_storage_connection = "DefaultEndpointsProtocol=https;AccountName=fakeaccount;AccountKey=FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA=="
+
+# Azure SAS Token
+?sv=2021-06-08&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2024-12-31T23:59:59Z&st=2024-01-01T00:00:00Z&spr=https&sig=FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK%3D
+
+# Azure AD Client Secret
+azure_client_secret = "FAKEFAKE~FAKEFAKEFAKEFAKEFAKEFAK"
+aad_client_secret: "FAKE~FAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# Azure Subscription Key
+ocp-apim-subscription-key = "00000000000000000000000000000000"
+azure_subscription_key: "00000000000000000000000000000000"
+
+# ===== GCP Credentials =====
+# GCP Service Account Key (JSON structure)
+{
+  "type": "service_account",
+  "project_id": "fake-test-project",
+  "private_key_id": "0000000000000000",
+  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nFAKEKEYFAKEKEYFAKEKEYFAKEKEY...\n-----END RSA PRIVATE KEY-----\n",
+  "client_email": "fake-sa@fake-test-project.iam.gserviceaccount.com"
+}
+
+# GCP API Key (same format as Google API Key)
+gcp_api_key = "AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEF"
+
+# GCP OAuth Client Secret
+{
+  "client_secret": "GOCSPX-FAKEFAKEFAKEFAKEFAKEFAKE"
+}
+
+# ===== AWS Cloud Credentials =====
+# AWS Session Token
+aws_session_token = "FwoGZXIvYXdzEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# AWS ARN
+resource_arn = "arn:aws:s3:::fake-bucket/fake-key"
+lambda_arn = "arn:aws:lambda:us-east-1:000000000000:function:fake-function"
+iam_role = "arn:aws:iam::000000000000:role/fake-role"
+
+# AWS MWS Key
+mws_auth_token = "amzn.mws.00000000-0000-0000-0000-000000000000"
+
+# ===== Firebase Credentials =====
+# Firebase Realtime Database URL
+firebase_url = "https://fake-test-project.firebaseio.com"
+database_url = "https://fake-project-00000.firebaseio.com"
+
+# Firebase API Key
+firebase_api_key = "AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEF"
+
+# Firebase Config Object
+const firebaseConfig = {
+  apiKey: "AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEF",
+  authDomain: "fake-project.firebaseapp.com",
+  databaseURL: "https://fake-project.firebaseio.com"
+};
+
+# ===== Cloudflare Credentials =====
+# Cloudflare API Key
+cloudflare_api_key = "0000000000000000000000000000000000000"
+CLOUDFLARE_KEY=0000000000000000000000000000000000000
+
+# Cloudflare API Token
+cloudflare_api_token = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# Cloudflare Origin CA Key
+cf_origin_ca = "v1.0-000000000000000000000000-FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+
+# ===== Alibaba Cloud Credentials =====
+# Alibaba Access Key ID
+alibaba_access_key = "LTAIFAKEFAKEFAKEFAKE"
+ALIYUN_ACCESS_KEY_ID=LTAIFAKEFAKEFAKEFAKE
+
+# Alibaba Secret Key
+alibaba_secret_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+aliyun_secret_access_key: "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# ===== IBM Cloud Credentials =====
+# IBM Cloud API Key
+ibm_cloud_api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE0000"
+IBM_API_KEY=FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE0000
+
+# IBM COS HMAC Key
+cos_hmac_access_key_id = "00000000000000000000000000000000"
+ibm_cos_hmac_key: "00000000000000000000000000000000"
+
+# ===== Oracle Cloud Credentials =====
+# Oracle Cloud OCID
+user_ocid = "ocid1.user.oc1..fakefakefakefakefakefakefakefakefakefakefakefakefakefakefakefake"
+tenancy = "ocid1.tenancy.oc1..fakefakefakefakefakefakefakefakefakefakefakefakefakefakefakefake"
+
+# Oracle API Key
+oracle_cloud_api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE0"
+
+# Oracle Tenancy OCID
+ORACLE_TENANCY=ocid1.tenancy.oc1..fakefakefakefakefakefakefakefakefakefakefakefakefakefakefakefake

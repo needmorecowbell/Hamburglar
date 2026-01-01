@@ -1,0 +1,141 @@
+# Network Patterns Test Fixture
+# Contains realistic network patterns for testing detection
+# Includes IP addresses, internal hostnames, cloud storage URLs, etc.
+
+# ===== IPv4 Addresses =====
+# Standard IPv4
+server_ip = "192.168.1.100"
+api_server = "10.0.0.50"
+load_balancer: "172.16.0.1"
+external_ip = "203.0.113.42"
+
+# IPv4 with Port
+db_host = "192.168.1.100:5432"
+redis_server = "10.0.0.25:6379"
+api_endpoint: "172.16.0.100:8080"
+service_addr = "203.0.113.50:443"
+
+# ===== Private IP Ranges (RFC 1918) =====
+# Class A (10.x.x.x)
+internal_server = "10.0.0.1"
+dev_machine = "10.255.255.254"
+staging_host: "10.100.50.25"
+
+# Class B (172.16-31.x.x)
+vpc_host = "172.16.0.1"
+container_ip = "172.31.255.254"
+k8s_node: "172.20.10.100"
+
+# Class C (192.168.x.x)
+home_server = "192.168.0.1"
+office_printer = "192.168.1.254"
+local_dev: "192.168.100.50"
+
+# ===== IPv6 Addresses =====
+# Full IPv6
+ipv6_server = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+ipv6_host: "fe80:0000:0000:0000:0000:0000:0000:0001"
+
+# Compressed IPv6
+ipv6_short = "2001:db8:85a3::8a2e:370:7334"
+link_local: "fe80::1"
+loopback_v6 = "::1"
+
+# ===== MAC Addresses =====
+# Standard format (colon-separated)
+mac_address = "00:1A:2B:3C:4D:5E"
+device_mac: "AA:BB:CC:DD:EE:FF"
+network_card = "a1:b2:c3:d4:e5:f6"
+
+# Hyphen-separated format
+mac_hyphen = "00-1A-2B-3C-4D-5E"
+nic_mac: "AB-CD-EF-01-23-45"
+
+# Cisco format (dot-separated)
+mac_cisco = "001a.2b3c.4d5e"
+switch_port: "aabb.ccdd.eeff"
+
+# ===== Internal Hostnames =====
+# Various internal domain suffixes
+internal_api = "api.internal"
+dev_server = "dev-server.local"
+staging_db = "staging-db.private"
+corp_ldap = "ldap.corp"
+intranet_site = "intranet.example.corp"
+home_nas = "nas.home"
+docker_host = "registry.lan"
+test_server = "test.localdomain"
+
+# Environment-prefixed internal names
+prod_api = "prod.api.internal"
+staging_web = "staging.webapp.local"
+dev_db = "dev.database.private"
+
+# ===== Cloud Storage URLs =====
+# AWS S3 - Virtual-hosted style
+s3_bucket = "https://my-bucket.s3.amazonaws.com/path/to/file"
+s3_regional = "https://data-bucket.s3.us-west-2.amazonaws.com/data.json"
+s3_url: "https://assets.s3.eu-west-1.amazonaws.com/images/"
+
+# AWS S3 - Path style
+s3_path = "https://s3.amazonaws.com/my-bucket/key"
+s3_regional_path = "https://s3.us-east-1.amazonaws.com/production-bucket/backup.tar.gz"
+
+# AWS S3 - ARN format
+s3_arn = "arn:aws:s3:::my-bucket/my-key"
+bucket_arn: "arn:aws:s3:::production-assets/data/"
+
+# Azure Blob Storage
+azure_blob = "https://mystorageaccount.blob.core.windows.net/container/blob"
+blob_url: "https://devstorage.blob.core.windows.net/uploads/file.pdf"
+
+# Azure Storage (various services)
+azure_file = "https://mystorageaccount.file.core.windows.net/share/file"
+azure_queue = "https://mystorageaccount.queue.core.windows.net/myqueue"
+azure_table = "https://mystorageaccount.table.core.windows.net/mytable"
+
+# Google Cloud Storage - Path style
+gcs_path = "https://storage.googleapis.com/my-bucket/object"
+gcs_url: "https://storage.googleapis.com/production-data/exports/data.csv"
+
+# Google Cloud Storage - Virtual-hosted style
+gcs_virtual = "https://my-bucket.storage.googleapis.com/path/to/object"
+
+# Google Cloud Storage - gsutil format
+gcs_gsutil = "gs://my-bucket/path/to/file"
+gsutil_path: "gs://data-lake/raw/2024/01/data.parquet"
+
+# ===== Localhost References =====
+# localhost with ports
+local_api = "http://localhost:3000/api"
+local_db = "http://localhost:5432"
+dev_server: "https://localhost:8443/admin"
+
+# 127.0.0.1 references
+loopback = "http://127.0.0.1:8080"
+local_redis = "127.0.0.1:6379"
+debug_server: "http://127.0.0.1/debug"
+
+# IPv6 localhost
+ipv6_local = "http://[::1]:8080"
+v6_loopback: "http://[::1]/api"
+
+# ===== URLs with Credentials =====
+# HTTP URLs with embedded credentials
+api_with_creds = "https://admin:password123@api.example.com/v1"
+service_url = "http://user:secret@internal-service.local:8080/api"
+
+# FTP URLs with credentials
+ftp_server = "ftp://ftpuser:ftppass@files.example.com/uploads"
+backup_ftp: "ftp://backup:s3cr3t@ftp.internal.corp/backups/"
+
+# ===== Kubernetes and Docker Patterns =====
+# Kubernetes service URLs
+k8s_svc = "redis.default.svc.cluster.local"
+api_svc = "api-server.production.svc.cluster.local"
+db_service: "postgres.database.svc"
+kube_dns = "kube-dns.kube-system.svc.cluster.local"
+
+# Docker internal host
+docker_host = "host.docker.internal"
+DOCKER_HOST=host.docker.internal

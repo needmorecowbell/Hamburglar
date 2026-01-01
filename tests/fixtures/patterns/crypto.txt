@@ -1,0 +1,126 @@
+# Cryptocurrency Test Fixture
+# Contains FAKE placeholder cryptocurrency patterns for testing detection
+# All addresses/keys use FAKEFAKE patterns or known invalid checksums
+# DO NOT ATTEMPT TO USE THESE - THEY ARE ALL INTENTIONALLY INVALID
+
+# ===== Bitcoin Addresses =====
+# P2PKH (Legacy, starts with 1) - invalid checksum addresses
+btc_address_legacy = "1FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+payment_address = "1XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# P2SH (Multisig, starts with 3) - invalid checksum addresses
+btc_multisig = "3FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+segwit_p2sh = "3XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Bech32 (Native SegWit, starts with bc1) - invalid format
+btc_segwit = "bc1qfakefakefakefakefakefakefakefakefakefake"
+native_segwit = "bc1q00000000000000000000000000000000000000"
+
+# Bech32m (Taproot, starts with bc1p) - invalid format
+taproot_address = "bc1pfakefakefakefakefakefakefakefakefakefakefakefakefakefakefak"
+
+# ===== Bitcoin Private Keys =====
+# WIF Uncompressed (starts with 5) - obviously fake
+btc_privkey_uncompressed = "5FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+
+# WIF Compressed (starts with K or L) - obviously fake
+btc_privkey_compressed = "KFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+private_key_btc = "LFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# ===== Ethereum Addresses and Keys =====
+# Ethereum Address (0x + 40 hex) - using 0s and FAKEs
+eth_address = "0x0000000000000000000000000000000000000000"
+wallet_address = "0xFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+ETH_RECIPIENT=0x1111111111111111111111111111111111111111
+
+# Ethereum Private Key (with context)
+ethereum_private_key = "0x0000000000000000000000000000000000000000000000000000000000000000"
+eth_key: "0xFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# Raw Ethereum Private Key (0x + 64 hex, lower confidence)
+raw_key = "0x1111111111111111111111111111111111111111111111111111111111111111"
+
+# ===== Monero Addresses =====
+# Standard Monero Address (starts with 4) - fake pattern
+xmr_address = "4FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# Integrated Monero Address (106 chars) - fake pattern
+xmr_integrated = "4BFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# Monero Subaddress (starts with 8) - fake pattern
+xmr_subaddress = "8FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# ===== Litecoin Addresses =====
+# Legacy (starts with L) - fake pattern
+ltc_legacy = "LFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+
+# P2SH (starts with M) - fake pattern
+ltc_p2sh = "MFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+
+# Bech32 (starts with ltc1) - fake pattern
+ltc_segwit = "ltc1qfakefakefakefakefakefakefakefakefakefake"
+
+# ===== Dogecoin Addresses =====
+# Standard (starts with D) - fake pattern
+doge_address = "DFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# P2SH (starts with 9) - fake pattern
+doge_multisig = "9FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# ===== Ripple (XRP) Addresses =====
+# Classic (starts with r) - fake pattern
+xrp_address = "rFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+
+# X-Address format (starts with X) - fake pattern
+xrp_x_address = "XFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# ===== Cardano Addresses =====
+# Shelley era (starts with addr1) - fake pattern
+ada_address = "addr1qfakefakefakefakefakefakefakefakefakefakefakefakefakefa"
+
+# ===== Solana Addresses =====
+# Base58 encoded (32-44 chars) - fake pattern
+sol_address = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEfake"
+
+# ===== Seed Phrases =====
+# 12-word seed phrase - using "fake" repeated
+seed_phrase = "fake fake fake fake fake fake fake fake fake fake fake fake"
+mnemonic = "test test test test test test test test test test test test"
+recovery_phrase: "word word word word word word word word word word word word"
+
+# 24-word seed phrase - using "fake" repeated
+seed_phrase_24 = "fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake fake"
+backup_words: "test test test test test test test test test test test test test test test test test test test test test test test test"
+
+# ===== Hardware Wallet Patterns =====
+# Trezor passphrase
+trezor_passphrase = "FakeTrezorSecretPass123!"
+
+# Ledger recovery
+ledger_recovery_phrase = "FakeLedgerBackupData"
+ledger_seed: "FakeRecoveryPhrase"
+
+# ===== Crypto Exchange API Keys =====
+# Binance - fake patterns
+binance_api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+binance_api_secret: "0000000000000000000000000000000000000000000000000000000000000000"
+
+# Coinbase - fake patterns
+coinbase_api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+coinbase_api_secret: "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK=="
+
+# Kraken - fake patterns
+kraken_api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+kraken_api_secret: "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK=="
+
+# ===== Blockchain Explorer API Keys =====
+# Etherscan - fake pattern
+ETHERSCAN_API_KEY = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+
+# Infura - fake pattern
+infura_project_id = "00000000000000000000000000000000"
+INFURA_KEY=00000000000000000000000000000000
+
+# Alchemy - fake pattern
+alchemy_api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+ALCHEMY_KEY=FAKE-FAKE-FAKE-FAKE-FAKE-FAKE-FA

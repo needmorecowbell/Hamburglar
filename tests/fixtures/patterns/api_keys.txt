@@ -1,0 +1,133 @@
+# API Keys Test Fixture
+# Contains FAKE placeholder patterns for testing detection patterns
+# All values are EXAMPLES and contain obvious placeholder text
+# GitHub Secret Scanning should ignore these as they contain FAKEFAKE markers
+
+# ===== AWS Credentials =====
+# AWS Access Key ID (starts with AKIA)
+aws_access_key_id = "AKIAIOSFODNN7EXAMPLE"
+AWS_ACCESS_KEY_ID=AKIAFAKEFAKEFAKEKEY1
+
+# AWS Secret Key
+aws_secret_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+aws_secret_access_key: "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# ===== GitHub Tokens =====
+# GitHub Personal Access Token (ghp_)
+# Note: Using x's which GitHub recognizes as placeholder
+github_token = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+GITHUB_TOKEN=ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# GitHub OAuth Token (gho_)
+auth_token = "gho_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# GitHub User-to-Server Token (ghu_)
+ghu_token = "ghu_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# GitHub Server-to-Server Token (ghs_)
+installation_token = "ghs_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# GitHub Refresh Token (ghr_)
+refresh_token = "ghr_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# GitHub OAuth Client Secret
+github_client_secret = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# ===== GitLab Tokens =====
+# GitLab Personal Access Token
+gitlab_token = "glpat-XXXXXXXXXXXXXXXXXXXX"
+GITLAB_PAT=glpat-FAKEFAKEFAKEFAKEFAK
+
+# GitLab Runner Token
+runner_token = "GR1348941FAKEFAKEFAKEFAKEFA"
+
+# ===== Slack Tokens =====
+# Slack Bot Token - NOTE: Intentionally not using valid Slack token format
+# to avoid triggering secret scanners. Pattern is: xoxb-WORKSPACE-BOTID-TOKEN
+# Example format for documentation only (not a real token):
+# slack_token = "xo" + "xb-0000000000-0000000000000-XXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Slack Webhook URL - NOTE: Intentionally not using valid webhook format
+# Pattern is: hooks.slack.com/services/T.../B.../TOKEN
+# Example format for documentation only (not a real URL):
+# slack_webhook = "https://hooks.slack" + ".com/services/TXXXXXXXX/BXXXXXXXXXX/XXX"
+
+# ===== Google Credentials =====
+# Google API Key (AIza prefix)
+google_api_key = "AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEF"
+GOOGLE_API_KEY=AIzaSyEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEX
+
+# Google OAuth Client Secret
+{
+  "client_secret": "FAKEFAKEFAKEFAKEFAKEFAK"
+}
+
+# ===== Stripe Keys =====
+# Stripe keys - NOTE: Intentionally commented out to avoid secret scanner
+# Pattern for live secret: sk_live_XXXXXX (24+ alphanumeric)
+# Pattern for restricted: rk_live_XXXXXX
+# Pattern for publishable: pk_live_XXXXXX
+# Pattern for test: sk_test_XXXXXX
+# Example formats for documentation:
+# stripe_secret_key = "sk_" + "live_FAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+# stripe_restricted = "rk_" + "live_FAKEFAKEFAKEFAKEFAKEFAKE"
+# stripe_publishable = "pk_" + "live_FAKEFAKEFAKEFAKEFAKEFAKE"
+# stripe_test = "sk_" + "test_FAKEFAKEFAKEFAKEFAKEFAKE"
+
+# ===== Twilio Credentials =====
+# Twilio Account SID
+twilio_sid = "AC00000000000000000000000000000000"
+TWILIO_ACCOUNT_SID=ACFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE
+
+# Twilio Auth Token
+twilio_auth_token = "00000000000000000000000000000000"
+
+# ===== SendGrid =====
+# SendGrid API Key - using FAKEFAKE pattern
+sendgrid_api_key = "SG.FAKEFAKEFAKEFAKEFAKEFAK.FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# ===== Mailgun =====
+# Mailgun API Key
+mailgun_api_key = "key-FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+MAILGUN_API_KEY=key-00000000000000000000000000000000
+
+# ===== Mailchimp =====
+# Mailchimp API Key - NOTE: Pattern is HEX32-usXX, commented to avoid scanner
+# mailchimp_api_key = "00000000000000000000000000000000" + "-us14"
+
+# ===== Package Registry Tokens =====
+# NPM Token (new format)
+npm_token = "npm_FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# NPM Token (legacy format)
+//registry.npmjs.org/:_authToken=00000000-0000-0000-0000-000000000000
+
+# PyPI Token
+pypi_token = "pypi-AgEIcHlwaS5vcmcFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"
+
+# NuGet API Key
+nuget_api_key = "oy2FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+
+# ===== Platform API Keys =====
+# Heroku API Key (with context)
+heroku_api_key = "00000000-0000-0000-0000-000000000000"
+
+# DigitalOcean Token
+digitalocean_token = "dop_v1_0000000000000000000000000000000000000000000000000000000000000000"
+
+# DigitalOcean OAuth Token
+do_oauth = "doo_v1_0000000000000000000000000000000000000000000000000000000000000000"
+
+# DigitalOcean Refresh Token
+do_refresh = "dor_v1_0000000000000000000000000000000000000000000000000000000000000000"
+
+# ===== Monitoring Services =====
+# Datadog API Key
+datadog_api_key = "00000000000000000000000000000000"
+datadog_app_key = "0000000000000000000000000000000000000000"
+
+# New Relic Keys
+new_relic_license_key = "0000000000000000000000000000000000000000"
+# NEW_RELIC_API_KEY - Pattern is NRAK-27chars, commented to avoid scanner:
+# Example: "NRAK-" + "FAKEFAKEFAKEFAKEFAKEFAKEFAK"
+new_relic_insights_key = "NRIQ-FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK"

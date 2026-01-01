@@ -1,0 +1,143 @@
+# Generic Patterns Test Fixture
+# Contains FAKE placeholder patterns for testing detection
+# All values use FAKEFAKE/00000 patterns to avoid triggering secret scanners
+
+# ===== Generic API Keys =====
+api_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+API_KEY=FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE
+apiKey: "ThisIsFakeApiKeyForTestingPurposes"
+
+# JSON/Config format
+{
+  "api_key": "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+}
+config = {"api_key": "FakeApiKeyInlineFormat0000000000"}
+
+# ===== Generic Secrets =====
+secret_key = "FakeSecretKey0000000000000000"
+SECRET_KEY=FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE
+secretKey: "FakeSecretKeyValueForTesting00000000"
+
+app_secret = "FakeApplicationSecretValue0000"
+application_secret: "FakeAppSecretKeyHere00000000000"
+
+# ===== Generic Tokens =====
+token = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE_token"
+auth_token = "auth_FAKEFAKEFAKEFAKEFAKEFAKEFAKEFA"
+access_token: "access.FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+api_token = "api-token-FAKEFAKEFAKEFAKEFAKEFAKE"
+
+bearer_token = "bearer_FAKEFAKEFAKEFAKEFAKEFAKEFAK"
+BEARER_TOKEN=FakeBearerTokenValue0000000000000
+
+# ===== Hardcoded Passwords =====
+# With common prefixes
+admin_password = "FakeAdminSecretPassword123!"
+root_password: "FakeRootP@ssw0rd2024!!"
+user_password = "FakeUserSecretPass456"
+db_password = "FakeDatabasePassword789"
+database_password: "FakeDbP@ssword2024"
+mysql_password = "FakeMysqlRootPass123"
+postgres_password: "FakePostgresSecure456"
+redis_password = "FakeRedisAuthToken789"
+
+# Quoted passwords
+password = "FakeQuotedPassword123!"
+passwd: "FakeAnotherQuotedP@ss456"
+pwd = "FakeShortPassword1"
+
+# Default/temporary passwords
+default_password = "FakeTempPass123"
+initial_password: "FakeInitialSetupPassword"
+temp_password = "FakeTemporaryP@ss456"
+temporary_pwd: "FakeTempP@ssw0rd"
+
+# ===== Base64 Encoded Secrets =====
+secret_base64 = "RkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtF"
+key_encoded: "RkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRQ=="
+password_base64 = "RkFLRVBBU1NXT1JERTA="
+credential_encoded: "ZmFrZXVzZXI6ZmFrZXBhc3N3b3JkMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+
+# Long base64 data
+data_payload = "RkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRQ=="
+content: "RkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtF"
+
+# ===== Hex Encoded Secrets =====
+secret_hex = "00000000000000000000000000000000"
+key_hex: "ffffffffffffffffffffffffffffffff"
+token_hex = "0a0b0c0d0e0f0a0b0c0d0e0f0a0b0c0d"
+
+# 64-char hex (256-bit keys)
+private_key = "0000000000000000000000000000000000000000000000000000000000000000"
+signing_key: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+encryption_key = "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+
+# ===== UUIDs =====
+# UUID v4
+uuid_v4 = "00000000-0000-4000-a000-000000000000"
+request_id = "11111111-1111-4111-8111-111111111111"
+session_id: "22222222-2222-4222-9222-222222222222"
+
+# Generic UUIDs
+correlation_id = "00000000-0000-0000-0000-000000000000"
+trace_id: "ffffffff-ffff-ffff-ffff-ffffffffffff"
+
+# UUID in secret context
+api_key = "00000000-0000-0000-0000-000000000000"
+secret = "11111111-1111-1111-1111-111111111111"
+token: "22222222-2222-2222-2222-222222222222"
+
+# ===== Hash Patterns =====
+# MD5 (32 chars)
+md5_hash = "00000000000000000000000000000000"
+file_checksum = "d41d8cd98f00b204e9800998ecf84200"
+
+# SHA1 (40 chars)
+sha1_hash = "0000000000000000000000000000000000000000"
+commit_sha = "da39a3ee5e6b4b0d3255bfef95601890afd80000"
+
+# SHA256 (64 chars)
+sha256_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+file_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b78520000"
+
+# SHA512 (128 chars)
+sha512_hash = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+# Bcrypt hash
+bcrypt_hash = "$2a$12$000000000000000000000000000000000000000000000000000000"
+password_hash: "$2b$10$000000000000000000000000000000000000000000000000000000"
+
+# Argon2 hash
+argon2_hash = "$argon2id$v=19$m=65536,t=3,p=4$FAKEFAKEFAKE$FAKEFAKEFAKEFAKEFAKEFAKE"
+
+# ===== Key Patterns =====
+# Private key inline
+private_key = "RkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRUZBS0VGQUtFRkFLRQ=="
+priv_key: "RkFLRVBSSVZBVEVLRVlEQVRBRkFLRUZBS0VGQUtFRkFLRQ=="
+
+# Encryption keys
+encryption_key = "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+aes_key: "00000000000000000000000000000000"
+symmetric_key = "FakeSymmetricEncryptionKey00000"
+
+# Signing keys
+signing_key = "FakeSigningKeyForJWT000000000000"
+signature_secret: "FakeSignatureSecretValue00000000"
+
+# Master/Root keys
+master_key = "FakeMasterSecretKey12345!"
+master_secret: "FakeSuperMasterPassword2024"
+root_key = "FakeRootAccessKeyValue0000"
+root_secret: "FakeRootLevelSecret00000000"
+root_password = "FakeRootP@ssw0rdValue!!"
+
+# ===== SSH Patterns =====
+ssh_passphrase = "FakeSshKeyPassphrase123"
+key_passphrase: "FakeSecretKeyPassphrase456"
+ssh_password = "FakeSshAccessPassword789"
+
+# ===== High Entropy Strings =====
+secret = "FAKEFAKEFAKEFAKEFAKEFAK"
+key: "FAKEFAKEFAKEFAKEFAKEFAK"
+credential = "FAKEFAKEFAKEFAKEFAKEFAKEFAKE"
+auth = "FAKEFAKEFAKEFAKEFAKEFAKEFAKE"

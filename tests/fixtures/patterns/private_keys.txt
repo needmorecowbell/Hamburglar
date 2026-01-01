@@ -1,0 +1,118 @@
+# Private Keys Test Fixture
+# Contains realistic-looking but INTENTIONALLY INVALID private keys for testing detection patterns
+# All keys are fake, truncated, or malformed to prevent any actual cryptographic use
+# DO NOT USE THESE KEYS - THEY ARE FOR TESTING PATTERN DETECTION ONLY
+
+# ===== RSA Private Key =====
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy5Jcs3n3v8yNqQzZxLqVKP
+EXAMPLEKEYNOTREAL0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
+THISKEYISFAKEANDWILLNOTWORKFORANYREALPURPOSEATALL123456789012
+DONOTATTEMPTOUSETHISKEY0123456789abcdefghijklmnopqrstuvwxyzABC
+TESTINGONLYEXAMPLEKEY0123456789abcdefghijklmnopqrstuvwxyzABCDEF
+-----END RSA PRIVATE KEY-----
+
+# ===== OpenSSH Private Key =====
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABDxPh
+EXAMPLEOPENSSHKEYTHATISNOTREAL0123456789abcdefghijklmnopqrstuvwx
+TESTPURPOSESONLY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKL
+-----END OPENSSH PRIVATE KEY-----
+
+# ===== EC Private Key =====
+-----BEGIN EC PRIVATE KEY-----
+MHQCAQEEIFakeECKeyThatWillNotWorkForAnyRealPurposeAtAll0123456789ab
+EXAMPLEECPRIVATEKEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
+-----END EC PRIVATE KEY-----
+
+# ===== DSA Private Key =====
+-----BEGIN DSA PRIVATE KEY-----
+MIIBuwIBAAKBgQDFakeKeyThatWillNotWorkForAnyRealPurposeAtAll0123456
+EXAMPLEDSAKEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP
+TESTINGPURPOSESONLY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJ
+-----END DSA PRIVATE KEY-----
+
+# ===== PGP Private Key Block =====
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+Version: OpenPGP v1
+
+lQOYBFakeKeyBCADFakeKeyThatWillNotWorkForAnyRealPurposeAtAll01234
+EXAMPLEPGPKEYTESTINGONLY0123456789abcdefghijklmnopqrstuvwxyzABCD
+THISKEYISINTENTIONALLYINVALID0123456789abcdefghijklmnopqrstuvwx
+-----END PGP PRIVATE KEY BLOCK-----
+
+# ===== PKCS#8 Private Key =====
+-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDFakeKeyThatWill
+NOTWORKFORREALUSE0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
+EXAMPLEPKCS8KEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN
+-----END PRIVATE KEY-----
+
+# ===== Encrypted Private Key =====
+-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIFHzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIFakeKeyEncrypted
+EXAMPLEENCRYPTEDKEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJ
+PASSWORDPROTECTEDBUTFAKE0123456789abcdefghijklmnopqrstuvwxyzABCDE
+-----END ENCRYPTED PRIVATE KEY-----
+
+# ===== SSH2 Private Key (ssh.com format) =====
+---- BEGIN SSH2 ENCRYPTED PRIVATE KEY ----
+Comment: "Example SSH2 Key for Testing"
+P2/56wAAAi4AAAA3aWYtbW9kbntzaWdufXtzaGEyNTYsfHNoYTUxMn19LGVjZHNhLX
+EXAMPLESSH2KEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP
+TESTINGPURPOSESONLY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
+---- END SSH2 ENCRYPTED PRIVATE KEY ----
+
+# ===== PuTTY Private Key =====
+PuTTY-User-Key-File-2: ssh-rsa
+Encryption: aes256-cbc
+Comment: example-key@test.local
+Public-Lines: 4
+EXAMPLEPUTTYKEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP
+TESTINGPURPOSESONLY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
+Private-Lines: 8
+FAKEPUTTYKEY0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR
+
+# Also test PuTTY v3 format
+PuTTY-User-Key-File-3: ssh-ed25519
+Encryption: none
+Comment: test-ed25519@example.com
+
+# ===== X.509 Certificate =====
+-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAFakeExampleCertificateThatIsNotReal01234567890
+EXAMPLECERTIFICATEFORPATTERNDETECTIONTESTINGONLY0123456789abcdefgh
+THISCERTIFICATEISINVALID0123456789abcdefghijklmnopqrstuvwxyzABCDEF
+-----END CERTIFICATE-----
+
+# ===== Certificate Signing Request =====
+-----BEGIN CERTIFICATE REQUEST-----
+MIICijCCAXICAQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUx
+EXAMPLECSRFORTESTING0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJ
+-----END CERTIFICATE REQUEST-----
+
+# ===== SSL/TLS Private Key with context =====
+ssl_private_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpQIBAAKCAQEA0FakeSSLKey...\n-----END RSA PRIVATE KEY-----"
+tls_key: "-----BEGIN EC PRIVATE KEY-----\nMHQCAQEEIFakeECKey...\n-----END EC PRIVATE KEY-----"
+
+# ===== Private Key Variable Assignments =====
+private_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIE...FAKE...\n-----END RSA PRIVATE KEY-----"
+priv_key: "-----BEGIN PRIVATE KEY-----\nMIIE...EXAMPLE...\n-----END PRIVATE KEY-----"
+key_private = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl...TEST...\n-----END OPENSSH PRIVATE KEY-----"
+
+# ===== Private Key File Paths =====
+private_key_path = "/home/user/.ssh/id_rsa"
+ssh_key = "~/.ssh/id_ecdsa"
+key_file = "/etc/ssl/private/server.key"
+priv_key: "/opt/app/config/id_ed25519"
+
+# SSH key paths without explicit variable names
+id_rsa = "/home/deploy/.ssh/id_rsa"
+id_dsa = "~/.ssh/id_dsa"
+id_ecdsa = "/root/.ssh/id_ecdsa"
+id_ed25519: "/var/lib/jenkins/.ssh/id_ed25519"
+
+# ===== AWS EC2 Key Pair Names =====
+key_pair_name = "production-web-servers"
+ec2_key: "my-development-key"
+keypair_name = "staging-cluster-key"

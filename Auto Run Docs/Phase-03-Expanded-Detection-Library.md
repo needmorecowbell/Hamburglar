@@ -132,7 +132,17 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Configurable min/max string length bounds (default 16-256 chars)
   - Max file size limit with warning for large files
 
-- [ ] Create `tests/fixtures/patterns/` directory with test files containing real-world-like examples for each pattern category
+- [x] Create `tests/fixtures/patterns/` directory with test files containing real-world-like examples for each pattern category
+  - Created `tests/fixtures/patterns/` directory with 7 fixture files plus README
+  - `api_keys.txt`: 100+ lines with AWS, GitHub, GitLab, Slack, Google, Stripe, Twilio, SendGrid, Mailgun, Mailchimp, NPM, PyPI, NuGet, Heroku, DigitalOcean, Datadog, New Relic examples
+  - `cloud.txt`: Azure (Storage Key, Connection String, SAS Token, AD Secret), GCP (Service Account, API Key, OAuth), AWS (Session Token, ARN, MWS), Firebase, Cloudflare, Alibaba, IBM, Oracle examples
+  - `private_keys.txt`: RSA, OpenSSH, EC, DSA, PGP, PKCS#8, SSH2, PuTTY, X.509 cert/CSR, SSL/TLS, key path patterns (all intentionally fake/invalid)
+  - `credentials.txt`: Password assignments, DB connection strings (Postgres, MySQL, MongoDB, Redis, MSSQL, JDBC), HTTP Basic/Bearer auth, JWT tokens, OAuth, API tokens, URL credentials, .env patterns, Docker auth, LDAP
+  - `crypto.txt`: Bitcoin (P2PKH, P2SH, Bech32, Taproot, WIF keys), Ethereum, Monero, Litecoin, Dogecoin, Ripple, Cardano, Solana addresses; seed phrases; Binance/Coinbase/Kraken API keys; Etherscan/Infura/Alchemy keys
+  - `network.txt`: IPv4/IPv6 addresses, private IP ranges (10.x, 172.16-31.x, 192.168.x), MAC addresses, internal hostnames, S3/Azure/GCS URLs, localhost patterns, Kubernetes/Docker networking
+  - `generic.txt`: Generic API keys, secrets, tokens, hardcoded passwords, Base64/hex encoded secrets, UUIDs, hash patterns (MD5, SHA1, SHA256, SHA512, bcrypt, argon2), encryption/signing keys
+  - `README.md`: Documentation explaining fixture purpose, file descriptions, security notice (all values fake/invalid), usage guidelines
+  - All 1707 tests pass after adding fixtures
 
 - [x] Create `tests/test_patterns_api_keys.py` with at least 2 positive and 2 negative test cases for each API key pattern (use fake but realistic-looking patterns)
   - Created as part of the api_keys.py implementation above

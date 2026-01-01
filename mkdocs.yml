@@ -1,0 +1,173 @@
+# MkDocs configuration for Hamburglar documentation
+# https://www.mkdocs.org/user-guide/configuration/
+
+site_name: Hamburglar
+site_description: A blazing-fast secret scanner for files, directories, git repositories, and URLs
+site_author: needmorecowbell
+site_url: https://needmorecowbell.github.io/Hamburglar/
+
+# Repository information
+repo_name: needmorecowbell/Hamburglar
+repo_url: https://github.com/needmorecowbell/Hamburglar
+edit_uri: edit/master/docs/
+
+# Copyright
+copyright: Copyright &copy; 2024 needmorecowbell - MIT License
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+
+  # Color palette with light/dark toggle
+  palette:
+    - scheme: default
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Icons and logo
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/hamburger
+
+  # Features
+  features:
+    # Navigation features
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+
+    # Search features
+    - search.suggest
+    - search.highlight
+    - search.share
+
+    # Table of contents
+    - toc.follow
+
+    # Content features
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - content.action.view
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quickstart: quickstart.md
+  - User Guide:
+    - CLI Reference: cli-reference.md
+    - Configuration: configuration.md
+    - Detectors: detectors.md
+    - Output Formats: outputs.md
+  - Advanced:
+    - Plugins: plugins.md
+  - Development:
+    - Contributing: contributing.md
+    - Changelog: changelog.md
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)'
+      lang: en
+  - minify:
+      minify_html: true
+
+# Markdown extensions for enhanced features
+markdown_extensions:
+  # Python Markdown extensions
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+
+  # PyMdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      auto_title: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: needmorecowbell
+      repo: Hamburglar
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Extra CSS and JavaScript
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
+
+# Social links and extra configuration
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/needmorecowbell/Hamburglar
+      name: GitHub Repository
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/hamburglar/
+      name: PyPI Package
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/hamburglar/hamburglar
+      name: Docker Hub
+  generator: false
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+
+# Watch these paths for changes during development
+watch:
+  - docs
+  - mkdocs.yml

@@ -1,0 +1,76 @@
+/* Hamburglar custom styles for MkDocs Material theme */
+
+/* Custom color variables */
+:root {
+  --md-primary-fg-color: #FF5722;
+  --md-primary-fg-color--light: #FF8A65;
+  --md-primary-fg-color--dark: #E64A19;
+  --md-accent-fg-color: #FF9800;
+}
+
+/* Dark mode color adjustments */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #FF7043;
+  --md-accent-fg-color: #FFB74D;
+}
+
+/* Code block styling */
+.md-typeset code {
+  border-radius: 4px;
+}
+
+/* Admonition custom styling for security warnings */
+.md-typeset .admonition.security,
+.md-typeset details.security {
+  border-color: #E91E63;
+}
+
+.md-typeset .security > .admonition-title,
+.md-typeset .security > summary {
+  background-color: rgba(233, 30, 99, 0.1);
+}
+
+.md-typeset .security > .admonition-title::before,
+.md-typeset .security > summary::before {
+  background-color: #E91E63;
+  -webkit-mask-image: var(--md-admonition-icon--warning);
+  mask-image: var(--md-admonition-icon--warning);
+}
+
+/* Table of contents width adjustment */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--secondary {
+    width: 14rem;
+  }
+}
+
+/* Header link styling */
+.md-typeset h1 a,
+.md-typeset h2 a,
+.md-typeset h3 a,
+.md-typeset h4 a {
+  color: inherit;
+}
+
+/* Navigation tab hover effect */
+.md-tabs__link:hover {
+  opacity: 1;
+}
+
+/* Footer link styling */
+.md-footer-meta__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+/* Command line output styling */
+.md-typeset .language-console .highlight,
+.md-typeset .language-shell .highlight {
+  background-color: #263238;
+}
+
+/* Version badge styling */
+.md-version {
+  font-weight: 600;
+}

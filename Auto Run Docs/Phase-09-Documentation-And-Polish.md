@@ -78,9 +78,24 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
   - Added 49 tests in tests/test_cli_error_suggestions.py covering all error handling scenarios
   - All 4079 existing tests continue to pass
 
-- [ ] Add `--dry-run` flag to scan command that: shows what would be scanned without scanning, useful for testing patterns and configs
+- [x] Add `--dry-run` flag to scan command that: shows what would be scanned without scanning, useful for testing patterns and configs
+  - Added --dry-run option to scan, scan-git, and scan-web commands
+  - For scan: displays config table, detectors table, discovers files and shows file list summary with sizes
+  - For scan-git: shows repository type (local/remote), history settings, branch/depth config
+  - For scan-web: shows URL parsing info, depth, script settings, timeout, robots.txt settings, auth config
+  - Created 35 tests in tests/test_cli_dry_run.py covering all dry-run scenarios
+  - Updated docs/cli-reference.md with --dry-run option documentation and examples for all commands
 
-- [ ] Create `mkdocs.yml` configuration for MkDocs documentation site with: material theme, navigation structure, search enabled, code highlighting
+- [x] Create `mkdocs.yml` configuration for MkDocs documentation site with: material theme, navigation structure, search enabled, code highlighting
+  - Created comprehensive mkdocs.yml with Material theme featuring light/dark mode toggle with deep orange primary color
+  - Configured navigation structure with 4 main sections: Home, Getting Started (installation/quickstart), User Guide (cli-reference/configuration/detectors/outputs), Advanced (plugins), Development (contributing/changelog)
+  - Enabled search with customized separator patterns and English language support
+  - Configured code highlighting with pymdownx.highlight extension including anchor line numbers, line spans, copy button, and auto-titles
+  - Added 20+ Material theme features including instant navigation, sticky tabs, search suggestions, code copy buttons, and table of contents following
+  - Configured comprehensive markdown extensions: admonitions, tables, task lists, tabbed content, Mermaid diagrams, emojis, and superfences
+  - Created docs/stylesheets/extra.css with custom color variables and security admonition styling
+  - Created docs/javascripts/extra.js with smooth scrolling and version selector enhancements
+  - Configured social links for GitHub, PyPI, and Docker Hub
 
 - [ ] Add `mkdocs` and `mkdocs-material` to dev dependencies
 

@@ -73,7 +73,24 @@ This phase replaces the legacy threading model with modern async/await patterns 
       - Integration with AsyncScanner
     - All 1949 tests pass with 94% overall coverage (streaming.py at 99%)
 
-- [ ] Update `src/hamburglar/cli/main.py` to: use `asyncio.run()` for the scan command, add `--concurrency/-j` option for parallel file limit (default 50), add `--stream` flag for streaming output mode, add rich progress bar using `rich.progress.Progress`, display real-time stats (files/sec, findings count)
+- [x] Update `src/hamburglar/cli/main.py` to: use `asyncio.run()` for the scan command, add `--concurrency/-j` option for parallel file limit (default 50), add `--stream` flag for streaming output mode, add rich progress bar using `rich.progress.Progress`, display real-time stats (files/sec, findings count)
+  - **Completed:** Updated CLI with comprehensive async scanning support:
+    - Replaced `Scanner` with `AsyncScanner` for all scanning operations
+    - Added `--concurrency/-j` option (default 50, range 1-1000) for configurable parallelism
+    - Added `--stream` flag for NDJSON streaming output mode with real-time findings
+    - Implemented rich progress bar with `rich.progress.Progress` showing:
+      - Spinner during file discovery phase
+      - Progress bar with file count during scanning
+      - Real-time stats: files/second throughput and findings count
+    - Verbose mode shows detailed scan statistics including throughput
+    - Streaming mode outputs NDJSON to stdout or file with immediate flushing
+    - Created 27 comprehensive tests in `tests/test_cli_async.py` covering:
+      - Concurrency option (valid values, invalid values, verbose display)
+      - Streaming mode (NDJSON format, output to file, exit codes)
+      - Progress bar functionality (quiet mode, verbose mode)
+      - AsyncScanner integration (stats, duration, filters)
+      - Combined options testing
+    - All 1976 tests pass with 94% overall coverage
 
 - [ ] Create `src/hamburglar/core/file_filter.py` with a `FileFilter` class that: implements efficient glob pattern matching, supports gitignore-style patterns, caches compiled patterns for reuse, provides both sync and async interfaces
 

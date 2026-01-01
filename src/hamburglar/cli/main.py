@@ -5,14 +5,25 @@ with various options for output format, YARA rules, and verbosity.
 """
 
 import asyncio
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Optional
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from hamburglar import __version__
+from hamburglar.core.async_scanner import AsyncScanner
 from hamburglar.core.exceptions import (
     ConfigError,
     DetectorError,
@@ -23,10 +34,11 @@ from hamburglar.core.exceptions import (
 )
 from hamburglar.core.logging import setup_logging
 from hamburglar.core.models import OutputFormat, ScanConfig
-from hamburglar.core.scanner import Scanner
+from hamburglar.core.progress import ScanProgress
 from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.yara_detector import YaraDetector
+from hamburglar.outputs.streaming import StreamingOutput
 
 # Valid category names for CLI parsing
 VALID_CATEGORIES = {cat.value: cat for cat in PatternCategory}
@@ -36,6 +48,9 @@ VALID_CONFIDENCE_LEVELS = {conf.value: conf for conf in Confidence}
 
 from hamburglar.outputs.json_output import JsonOutput
 from hamburglar.outputs.table_output import TableOutput
+
+# Default concurrency limit for async scanning
+DEFAULT_CONCURRENCY = 50
 
 
 def parse_categories(value: str) -> list[PatternCategory]:
@@ -271,6 +286,25 @@ def scan(
             "Example: --min-confidence high",
         ),
     ] = None,
+    concurrency: Annotated[
+        int,
+        typer.Option(
+            "--concurrency",
+            "-j",
+            help="Maximum number of files to scan concurrently. "
+            f"Default: {DEFAULT_CONCURRENCY}",
+            min=1,
+            max=1000,
+        ),
+    ] = DEFAULT_CONCURRENCY,
+    stream: Annotated[
+        bool,
+        typer.Option(
+            "--stream",
+            help="Stream findings as NDJSON (newline-delimited JSON) in real-time. "
+            "Findings are output immediately as they're discovered.",
+        ),
+    ] = False,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -343,6 +377,9 @@ def scan(
         console.print(f"[dim]Scanning:[/dim] {path}")
         console.print(f"[dim]Recursive:[/dim] {recursive}")
         console.print(f"[dim]Format:[/dim] {output_format.value}")
+        console.print(f"[dim]Concurrency:[/dim] {concurrency}")
+        if stream:
+            console.print("[dim]Mode:[/dim] Streaming (NDJSON)")
         if enabled_categories:
             console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
         if disabled_categories:
@@ -395,14 +432,18 @@ def scan(
             _display_error(e, title="Failed to load YARA rules")
             raise typer.Exit(code=EXIT_ERROR) from None
 
-    # Run the scan
-    scanner = Scanner(config, detectors)
+    # Handle streaming mode
+    if stream:
+        asyncio.run(_run_streaming_scan(
+            config, detectors, concurrency, output, quiet, verbose
+        ))
+        return
 
-    if verbose and not quiet:
-        console.print("[dim]Starting scan...[/dim]")
-
+    # Run the scan with progress bar (non-streaming mode)
     try:
-        result = asyncio.run(scanner.scan())
+        result = asyncio.run(_run_scan_with_progress(
+            config, detectors, concurrency, quiet, verbose
+        ))
     except ScanError as e:
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
@@ -467,6 +508,195 @@ def scan(
         console.print(
             f"[yellow]Warning:[/yellow] Found {high_severity_count} high/critical severity finding(s)"
         )
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+async def _run_scan_with_progress(
+    config: ScanConfig,
+    detectors: list["BaseDetector"],
+    concurrency: int,
+    quiet: bool,
+    verbose: bool,
+) -> "ScanResult":
+    """Run a scan with rich progress bar display.
+
+    Args:
+        config: Scan configuration.
+        detectors: List of detectors to use.
+        concurrency: Maximum concurrent file operations.
+        quiet: If True, suppress progress output.
+        verbose: If True, show detailed progress.
+
+    Returns:
+        ScanResult with all findings.
+    """
+    from hamburglar.core.models import ScanResult
+
+    # Progress tracking state
+    progress_state = {
+        "task_id": None,
+        "last_progress": None,
+    }
+
+    def progress_callback(progress: ScanProgress) -> None:
+        """Update the rich progress bar."""
+        progress_state["last_progress"] = progress
+
+    scanner = AsyncScanner(
+        config,
+        detectors,
+        progress_callback=progress_callback,
+        concurrency_limit=concurrency,
+    )
+
+    if quiet:
+        # Run without progress display
+        return await scanner.scan()
+
+    # Create rich progress bar with real-time stats
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        TextColumn("[dim]{task.fields[stats]}[/dim]"),
+        console=console,
+        transient=not verbose,  # Keep progress visible in verbose mode
+    ) as progress:
+        # Start with discovering task
+        discover_task = progress.add_task(
+            "[cyan]Discovering files...", total=None, stats=""
+        )
+
+        # Start the scan
+        scan_task = asyncio.create_task(scanner.scan())
+
+        # Update progress while scanning
+        scan_started = False
+        while not scan_task.done():
+            await asyncio.sleep(0.1)
+
+            last_progress = progress_state["last_progress"]
+            if last_progress is not None:
+                if not scan_started and last_progress.total_files > 0:
+                    # File discovery complete, switch to scanning progress
+                    progress.remove_task(discover_task)
+                    progress_state["task_id"] = progress.add_task(
+                        "[cyan]Scanning files",
+                        total=last_progress.total_files,
+                        stats="",
+                    )
+                    scan_started = True
+
+                if scan_started and progress_state["task_id"] is not None:
+                    # Build stats string
+                    fps = last_progress.files_per_second
+                    stats_parts = []
+                    if fps > 0:
+                        stats_parts.append(f"{fps:.1f} files/s")
+                    if last_progress.findings_count > 0:
+                        stats_parts.append(
+                            f"[yellow]{last_progress.findings_count} findings[/yellow]"
+                        )
+                    stats_str = " | ".join(stats_parts) if stats_parts else ""
+
+                    progress.update(
+                        progress_state["task_id"],
+                        completed=last_progress.scanned_files,
+                        stats=stats_str,
+                    )
+
+        result = await scan_task
+
+        # Final update
+        if progress_state["task_id"] is not None:
+            progress.update(
+                progress_state["task_id"],
+                completed=result.stats.get("files_scanned", 0),
+            )
+
+    # Show summary
+    if verbose:
+        console.print(
+            f"[dim]Scanned {result.stats.get('files_scanned', 0)} files "
+            f"in {result.scan_duration:.2f}s "
+            f"({result.stats.get('files_scanned', 0) / max(result.scan_duration, 0.001):.1f} files/s)[/dim]"
+        )
+
+    return result
+
+
+async def _run_streaming_scan(
+    config: ScanConfig,
+    detectors: list["BaseDetector"],
+    concurrency: int,
+    output_path: Optional[Path],
+    quiet: bool,
+    verbose: bool,
+) -> None:
+    """Run a scan in streaming mode, outputting NDJSON as findings are discovered.
+
+    Args:
+        config: Scan configuration.
+        detectors: List of detectors to use.
+        concurrency: Maximum concurrent file operations.
+        output_path: Optional path to write output to.
+        quiet: If True, suppress progress output.
+        verbose: If True, show detailed progress.
+    """
+    scanner = AsyncScanner(
+        config,
+        detectors,
+        concurrency_limit=concurrency,
+    )
+
+    formatter = StreamingOutput()
+    findings_count = 0
+
+    try:
+        if output_path:
+            # Write to file
+            with open(output_path, "w") as f:
+                async for finding in scanner.scan_stream():
+                    f.write(formatter.format_finding(finding) + "\n")
+                    f.flush()
+                    findings_count += 1
+
+            if not quiet:
+                console.print(f"[green]Streamed {findings_count} findings to:[/green] {output_path}")
+        else:
+            # Write to stdout
+            async for finding in scanner.scan_stream():
+                print(formatter.format_finding(finding), flush=True)
+                findings_count += 1
+
+        # Show summary in verbose mode (to stderr so it doesn't mix with NDJSON)
+        if verbose and not quiet:
+            stats = scanner.get_stats()
+            error_console.print(
+                f"[dim]Streamed {findings_count} findings from "
+                f"{stats.get('files_scanned', 0)} files[/dim]"
+            )
+
+    except KeyboardInterrupt:
+        if not quiet:
+            error_console.print("\n[yellow]Scan interrupted by user[/yellow]")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    except ScanError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR)
+
+    except Exception as e:
+        _display_error(e, title="Error during streaming scan")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Determine exit code
+    if findings_count == 0:
+        raise typer.Exit(code=EXIT_NO_FINDINGS)
 
     raise typer.Exit(code=EXIT_SUCCESS)
 

@@ -88,7 +88,21 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Created comprehensive test suite `tests/test_patterns_network.py` with 120 tests
   - Each pattern has 2+ positive and 2+ negative test cases
 
-- [ ] Create `src/hamburglar/detectors/patterns/generic.py` with patterns for: Generic API Key (api[_-]?key), Generic Secret (secret[_-]?key), Generic Token (token =), Hardcoded Password patterns, Base64 encoded secrets (high entropy detection), Hex encoded secrets (32+ chars), UUID patterns, Hash patterns (MD5, SHA1, SHA256 formats)
+- [x] Create `src/hamburglar/detectors/patterns/generic.py` with patterns for: Generic API Key (api[_-]?key), Generic Secret (secret[_-]?key), Generic Token (token =), Hardcoded Password patterns, Base64 encoded secrets (high entropy detection), Hex encoded secrets (32+ chars), UUID patterns, Hash patterns (MD5, SHA1, SHA256 formats)
+  - Implemented 29 generic detection patterns covering all specified types plus additional patterns
+  - API Keys: generic_api_key, generic_api_key_inline
+  - Secrets: generic_secret_key, generic_secret
+  - Tokens: generic_token, generic_token_bearer
+  - Passwords: hardcoded_password (with common prefixes), hardcoded_password_quoted, default_password
+  - Base64: base64_encoded_secret, base64_long_string (64+ chars)
+  - Hex: hex_encoded_secret (32+ chars), hex_string_64 (256-bit keys)
+  - UUIDs: uuid_v4, uuid_generic, uuid_with_context
+  - Hashes: MD5, SHA1, SHA256, SHA512, bcrypt, argon2
+  - Keys: private_key_inline, encryption_key, signing_key, master_key, root_key, ssh_key_passphrase
+  - Entropy: high_entropy_string pattern for alphanumeric secrets
+  - Created comprehensive test suite `tests/test_patterns_generic.py` with 130 tests
+  - Each pattern has 2+ positive and 2+ negative test cases
+  - All patterns validated with severity, confidence, and category metadata
 
 - [ ] Update `src/hamburglar/detectors/regex_detector.py` to: import all pattern modules, register patterns by category, support enabling/disabling categories, support custom pattern files (JSON/YAML), add confidence scoring based on pattern specificity
 

@@ -92,7 +92,32 @@ This phase replaces the legacy threading model with modern async/await patterns 
       - Combined options testing
     - All 1976 tests pass with 94% overall coverage
 
-- [ ] Create `src/hamburglar/core/file_filter.py` with a `FileFilter` class that: implements efficient glob pattern matching, supports gitignore-style patterns, caches compiled patterns for reuse, provides both sync and async interfaces
+- [x] Create `src/hamburglar/core/file_filter.py` with a `FileFilter` class that: implements efficient glob pattern matching, supports gitignore-style patterns, caches compiled patterns for reuse, provides both sync and async interfaces
+  - **Completed:** Created `FileFilter` class with comprehensive file filtering capabilities:
+    - Efficient glob pattern matching using compiled regex (*, **, ?, [] patterns)
+    - Full gitignore-style pattern support:
+      - `!` prefix for negation patterns (re-include excluded files)
+      - Trailing `/` for directory-only matching
+      - Leading `/` for root-anchored patterns
+      - `**` for matching any number of directory levels
+    - `CompiledPattern` dataclass caching compiled regex patterns for reuse
+    - Class-level pattern cache shared across instances
+    - Both sync and async interfaces:
+      - `should_include(path)` / `should_include_async(path)`
+      - `filter_path(path)` / `filter_path_async(path)` with detailed `FilterResult`
+      - `filter_paths(paths)` / `filter_paths_async(paths, concurrency_limit)`
+    - Dynamic pattern management: `add_exclude()`, `add_include()`, `remove_exclude()`, `remove_include()`
+    - `from_gitignore(path)` class method to load patterns from .gitignore files
+    - Case-sensitive/insensitive matching support
+    - Exported `FileFilter`, `FilterResult`, `CompiledPattern` from `hamburglar.core` package
+    - Created 49 comprehensive tests in `tests/test_file_filter.py` covering:
+      - Basic glob patterns (*, **, ?, [])
+      - Gitignore-style features (negation, directory-only, anchored)
+      - Include/exclude pattern interactions
+      - Pattern caching and cache management
+      - Async interface functionality
+      - Real-world pattern scenarios (node_modules, .git, __pycache__, .env)
+    - All 2025 tests pass with 93% coverage (file_filter.py at 93%)
 
 - [ ] Update `src/hamburglar/detectors/regex_detector.py` to: support async detect method, implement pattern caching (compile once), add timeout per-pattern to prevent catastrophic backtracking, batch pattern matching for efficiency
 

@@ -124,6 +124,7 @@ default_registry = OutputRegistry()
 # These imports are placed after BaseOutput and OutputRegistry are defined
 # so that submodules can import from this package
 from hamburglar.outputs.csv_output import CsvOutput
+from hamburglar.outputs.html_output import HtmlOutput
 from hamburglar.outputs.sarif import SarifOutput
 from hamburglar.outputs.streaming import (
     NDJSONStreamWriter,
@@ -134,6 +135,7 @@ from hamburglar.outputs.streaming import (
 __all__ = [
     "BaseOutput",
     "CsvOutput",
+    "HtmlOutput",
     "NDJSONStreamWriter",
     "OutputRegistry",
     "SarifOutput",

@@ -5,39 +5,105 @@
 </p>
 
 <p align="center">
-    <strong>A static analysis tool for extracting sensitive information from files, git repositories, and URLs using regex patterns and YARA rules</strong>
+    <strong>Stop secrets from escaping. Scan files, git repos, and URLs for API keys, credentials, and sensitive data.</strong>
 </p>
 
 <p align="center">
     <a href="https://pypi.org/project/hamburglar/"><img src="https://img.shields.io/pypi/v/hamburglar" alt="PyPI"></a>
     <a href="https://pypi.org/project/hamburglar/"><img src="https://img.shields.io/pypi/pyversions/hamburglar" alt="Python Versions"></a>
+    <a href="https://hub.docker.com/r/hamburglar/hamburglar"><img src="https://img.shields.io/docker/v/hamburglar/hamburglar?label=docker" alt="Docker"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
 </p>
 
 ---
 
+## Demo
+
+<!-- TODO: Replace with actual asciicast recording -->
+<p align="center">
+    <img src="https://via.placeholder.com/800x400?text=Demo+Coming+Soon" alt="Hamburglar Demo">
+</p>
+
+<p align="center"><em>See Hamburglar in action: scanning a codebase for secrets in seconds</em></p>
+
+---
+
+## Why Hamburglar?
+
+Secrets in source code are a leading cause of security breaches. Hamburglar helps you find them before attackers do:
+
+- **Catch secrets early** - Scan during development, in CI/CD, or before commits
+- **Comprehensive detection** - 160+ patterns for API keys, credentials, private keys, tokens, and more
+- **Multiple sources** - Local files, git repositories (including history), and web URLs
+- **Fast** - Async architecture scans large codebases in seconds
+- **Extensible** - Add custom patterns, YARA rules, or build plugins
+
+---
+
 ## Features
 
-- **Multi-source scanning**: Scan local files/directories, git repositories (with history), and web URLs
-- **Secret detection**: Find API keys, credentials, private keys, tokens, and other sensitive data
-- **YARA rules**: Use YARA rules for advanced pattern matching and file signature detection
-- **Multiple output formats**: JSON, SARIF, CSV, HTML, Markdown, and table formats
-- **Async architecture**: Fast, concurrent scanning with configurable concurrency limits
-- **Library API**: Use as a Python library or command-line tool
-- **Docker support**: Run in containers with Docker and Docker Compose
+| Feature | Description |
+|---------|-------------|
+| **Multi-Source Scanning** | Scan local files/directories, git repositories (with full commit history), and web URLs |
+| **160+ Detection Patterns** | API keys, credentials, private keys, tokens, connection strings, crypto wallets, and more |
+| **YARA Rules** | Use 19 built-in YARA rules or add your own for advanced pattern matching |
+| **Entropy Detection** | Find high-entropy strings that may be secrets |
+| **7 Output Formats** | Table, JSON, CSV, HTML, Markdown, SARIF, and NDJSON |
+| **Plugin System** | Extend with custom detectors and output formats |
+| **CI/CD Ready** | SARIF output for GitHub/GitLab security integration |
+| **Docker Support** | Run in containers with Docker and Docker Compose |
+| **Python Library** | Use programmatically with async/await support |
 
-## What Hamburglar Can Find
+---
 
-- API keys (AWS, GCP, Azure, GitHub, Stripe, etc.)
-- Credentials and passwords
-- Private keys (RSA, DSA, EC, SSH)
+## What Hamburglar Finds
+
+<table>
+<tr>
+<td width="50%">
+
+**API Keys & Tokens**
+- AWS Access Keys
+- Google Cloud credentials
+- Azure credentials
+- GitHub/GitLab tokens
+- Stripe, Twilio, Slack tokens
+- 30+ more services
+
+</td>
+<td width="50%">
+
+**Credentials & Secrets**
+- Passwords in config files
 - Database connection strings
-- OAuth tokens and JWTs
+- OAuth tokens & JWTs
+- Basic auth headers
+- SMTP/email credentials
+
+</td>
+</tr>
+<tr>
+<td>
+
+**Private Keys**
+- RSA/DSA/EC private keys
+- SSH private keys
+- PGP private keys
+- SSL/TLS certificates
+
+</td>
+<td>
+
+**Other Sensitive Data**
 - IPv4/IPv6 addresses
-- Email addresses
 - URLs and endpoints
+- Email addresses
 - Cryptocurrency addresses
-- Custom patterns via regex or YARA rules
+- Custom patterns you define
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -49,22 +115,18 @@
 pip install hamburglar
 ```
 
+### Using Docker
+
+```bash
+docker pull ghcr.io/needmorecowbell/hamburglar:latest
+```
+
 ### From Source
 
 ```bash
 git clone https://github.com/needmorecowbell/Hamburglar.git
 cd Hamburglar
 pip install -e .
-```
-
-### Using Docker
-
-```bash
-# Pull from GitHub Container Registry
-docker pull ghcr.io/needmorecowbell/hamburglar:latest
-
-# Or build locally
-docker build -t hamburglar .
 ```
 
 ### Development Installation
@@ -79,29 +141,51 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
-### Command Line
+### Scan a Directory
 
 ```bash
-# Scan a directory for secrets
 hamburglar scan /path/to/code
+```
 
-# Scan with JSON output
+### Scan with JSON Output
+
+```bash
 hamburglar scan /path/to/code --format json --output results.json
+```
 
-# Scan a git repository (includes commit history)
+### Scan a Git Repository (Including History)
+
+```bash
 hamburglar scan-git https://github.com/user/repo
+```
 
-# Scan a website
+### Scan a Website
+
+```bash
 hamburglar scan-web https://example.com
+```
 
-# Use YARA rules for detection
+### Use YARA Rules
+
+```bash
 hamburglar scan /path/to/code --yara
+```
 
-# Only scan for specific categories
+### Filter by Category
+
+```bash
 hamburglar scan /path/to/code --categories api_keys,credentials
 ```
 
-### Python Library
+### CI/CD Integration (Fail on Findings)
+
+```bash
+hamburglar scan . --fail-on-findings --format sarif --output results.sarif
+```
+
+---
+
+## Python Library
 
 ```python
 import asyncio
@@ -109,291 +193,27 @@ from hamburglar import scan_directory, scan_git, scan_url
 
 # Scan a directory
 result = asyncio.run(scan_directory("/path/to/code"))
-for finding in result.findings:
-    print(f"{finding.file_path}: {finding.detector_name} - {finding.match}")
 
-# Scan a git repository
-result = asyncio.run(scan_git("https://github.com/user/repo"))
+for finding in result.findings:
+    print(f"[{finding.severity}] {finding.file_path}:{finding.line_number}")
+    print(f"  {finding.detector_name}: {finding.match}")
+
+# Scan a git repository (including commit history)
+result = asyncio.run(scan_git("https://github.com/user/repo", include_history=True))
 
 # Scan a URL
-result = asyncio.run(scan_url("https://example.com"))
-```
-
----
-
-## CLI Usage
-
-### Main Commands
-
-```
-hamburglar --help
-
-Commands:
-  scan       Scan a file or directory for secrets
-  scan-git   Scan a git repository (local or remote) for secrets
-  scan-web   Scan a URL for secrets
-  history    View and manage scan history
-  report     Generate reports from stored scan results
-```
-
-### Scanning Files and Directories
-
-```bash
-# Basic directory scan
-hamburglar scan /path/to/code
-
-# Recursive scan (default)
-hamburglar scan /path/to/code --recursive
-
-# Non-recursive scan
-hamburglar scan /path/to/code --no-recursive
-
-# Specify output format
-hamburglar scan /path/to/code --format json
-hamburglar scan /path/to/code --format sarif
-hamburglar scan /path/to/code --format csv
-hamburglar scan /path/to/code --format html
-hamburglar scan /path/to/code --format markdown
-
-# Save output to file
-hamburglar scan /path/to/code --output results.json --format json
-
-# Use expanded patterns (more comprehensive)
-hamburglar scan /path/to/code --expanded
-
-# Filter by minimum severity
-hamburglar scan /path/to/code --severity high
-
-# Only specific pattern categories
-hamburglar scan /path/to/code --categories api_keys,credentials,private_keys
-
-# Exclude certain categories
-hamburglar scan /path/to/code --exclude-categories urls,emails
-
-# Use YARA rules
-hamburglar scan /path/to/code --yara
-hamburglar scan /path/to/code --yara --yara-rules /path/to/rules
-
-# Blacklist/whitelist patterns
-hamburglar scan /path/to/code --blacklist "*.log,node_modules/*"
-hamburglar scan /path/to/code --whitelist "*.py,*.js"
-
-# Verbose output
-hamburglar scan /path/to/code --verbose
-
-# Quiet mode (minimal output)
-hamburglar scan /path/to/code --quiet
-
-# Fail with exit code 1 if findings detected (useful for CI/CD)
-hamburglar scan /path/to/code --fail-on-findings
-```
-
-### Scanning Git Repositories
-
-```bash
-# Scan a remote repository
-hamburglar scan-git https://github.com/user/repo
-
-# Scan a local git directory
-hamburglar scan-git /path/to/local/repo
-
-# Include commit history (default)
-hamburglar scan-git https://github.com/user/repo --history
-
-# Skip commit history
-hamburglar scan-git https://github.com/user/repo --no-history
-
-# Limit history depth
-hamburglar scan-git https://github.com/user/repo --depth 100
-
-# Scan specific branch
-hamburglar scan-git https://github.com/user/repo --branch develop
-
-# Specify clone directory
-hamburglar scan-git https://github.com/user/repo --clone-dir /tmp/repo-clone
-
-# Output format
-hamburglar scan-git https://github.com/user/repo --format json --output results.json
-```
-
-### Scanning Web URLs
-
-```bash
-# Scan a single page
-hamburglar scan-web https://example.com
-
-# Follow links to specified depth
-hamburglar scan-web https://example.com --depth 2
-
-# Include JavaScript files (default)
-hamburglar scan-web https://example.com --scripts
-
-# Skip JavaScript scanning
-hamburglar scan-web https://example.com --no-scripts
-
-# Ignore robots.txt
-hamburglar scan-web https://example.com --no-robots
-
-# Custom timeout
-hamburglar scan-web https://example.com --timeout 60
-
-# Output format
-hamburglar scan-web https://example.com --format json --output results.json
-```
-
-### Scan History and Reports
-
-```bash
-# View recent scans
-hamburglar history
-
-# View last N scans
-hamburglar history --limit 20
-
-# Generate report from a previous scan
-hamburglar report --scan-id <scan-id> --format html --output report.html
-```
-
----
-
-## Library Usage
-
-### High-Level API
-
-The high-level API provides simple functions for common scanning tasks:
-
-```python
-import asyncio
-from hamburglar import scan_directory, scan_git, scan_url
-
-# Basic directory scan
-async def scan_my_code():
-    result = await scan_directory("/path/to/code")
-
-    print(f"Scanned {result.files_scanned} files")
-    print(f"Found {len(result.findings)} potential secrets")
-
-    for finding in result.findings:
-        print(f"  [{finding.severity}] {finding.file_path}:{finding.line_number}")
-        print(f"    {finding.detector_name}: {finding.match}")
-
-asyncio.run(scan_my_code())
-```
-
-### Configuring Pattern Detection
-
-```python
-import asyncio
-from hamburglar import scan_directory
-from hamburglar.detectors.patterns import PatternCategory, Confidence
-
-# Only scan for API keys and credentials
-result = asyncio.run(scan_directory(
-    "/path/to/code",
-    use_expanded_patterns=True,
-    enabled_categories=[PatternCategory.API_KEYS, PatternCategory.CREDENTIALS]
-))
-
-# Exclude URLs and emails
-result = asyncio.run(scan_directory(
-    "/path/to/code",
-    disabled_categories=[PatternCategory.URLS, PatternCategory.EMAILS]
-))
-
-# Only high-confidence matches
-result = asyncio.run(scan_directory(
-    "/path/to/code",
-    min_confidence=Confidence.HIGH
-))
-```
-
-### Git Repository Scanning
-
-```python
-import asyncio
-from hamburglar import scan_git
-
-# Scan a remote repository with history
-result = asyncio.run(scan_git(
-    "https://github.com/user/repo",
-    include_history=True,
-    depth=100  # Last 100 commits
-))
-
-# Scan a local git directory
-result = asyncio.run(scan_git(
-    "/path/to/local/repo",
-    include_history=False  # Only current files
-))
-```
-
-### URL Scanning
-
-```python
-import asyncio
-from hamburglar import scan_url
-
-# Scan with link following
-result = asyncio.run(scan_url(
-    "https://example.com",
-    depth=2,              # Follow links 2 levels deep
-    include_scripts=True  # Scan JavaScript files
-))
-```
-
-### Low-Level API
-
-For more control, use the Scanner classes directly:
-
-```python
-import asyncio
-from pathlib import Path
-from hamburglar import Scanner, ScanConfig, Finding
-
-async def advanced_scan():
-    config = ScanConfig(
-        target_path=Path("/path/to/scan"),
-        recursive=True,
-        blacklist=["node_modules", ".git", "*.log"],
-    )
-
-    scanner = Scanner(config)
-    result = await scanner.scan()
-
-    return result
-
-result = asyncio.run(advanced_scan())
-```
-
-### Custom Detectors
-
-```python
-from hamburglar import BaseDetector, Finding, Severity
-from hamburglar.detectors import RegexDetector
-
-# Create a custom regex detector
-custom_patterns = {
-    "internal_api_key": {
-        "pattern": r"INTERNAL_KEY_[A-Z0-9]{32}",
-        "severity": "high",
-        "description": "Internal API key detected"
-    }
-}
-
-detector = RegexDetector(patterns=custom_patterns)
+result = asyncio.run(scan_url("https://example.com", depth=2))
 ```
 
 ---
 
 ## Docker Usage
 
-### Basic Docker Commands
-
 ```bash
 # Scan a local directory
 docker run --rm -v /path/to/code:/data hamburglar scan /data
 
-# Scan with JSON output saved to host
+# Scan with JSON output
 docker run --rm \
     -v /path/to/code:/data:ro \
     -v /path/to/output:/output \
@@ -401,93 +221,6 @@ docker run --rm \
 
 # Scan a git repository
 docker run --rm hamburglar scan-git https://github.com/user/repo
-
-# Use YARA rules
-docker run --rm -v /path/to/code:/data hamburglar scan /data --yara
-
-# Interactive shell for debugging
-docker run --rm -it --entrypoint /bin/bash hamburglar
-```
-
-### Docker Compose
-
-The project includes a `docker-compose.yml` for easy container management:
-
-```yaml
-# docker-compose.yml is included in the repository
-# Mount your target directory and run scans
-
-# Build the image
-docker compose build
-
-# Scan a directory (mount to ./target)
-docker compose run --rm hamburglar scan /data
-
-# Scan with output saved
-docker compose run --rm hamburglar scan /data --format json --output /output/results.json
-
-# Scan a git repository
-docker compose run --rm hamburglar scan-git https://github.com/user/repo
-```
-
-#### Docker Compose Configuration
-
-```yaml
-services:
-  hamburglar:
-    build: .
-    image: hamburglar:latest
-    volumes:
-      # Mount your target directory here
-      - ./target:/data:ro
-      # Mount output directory for results
-      - ./output:/output
-    environment:
-      - PYTHONUNBUFFERED=1
-      # - HAMBURGLAR_LOG_LEVEL=DEBUG
-```
-
-#### Volume Mounts
-
-| Mount Point | Purpose |
-|-------------|---------|
-| `/data` | Target directory to scan (read-only recommended) |
-| `/output` | Output directory for scan results |
-
----
-
-## Output Formats
-
-Hamburglar supports multiple output formats:
-
-| Format | Extension | Description |
-|--------|-----------|-------------|
-| `table` | `.txt` | Human-readable table (default) |
-| `json` | `.json` | Machine-readable JSON |
-| `sarif` | `.sarif.json` | SARIF format for IDE/CI integration |
-| `csv` | `.csv` | CSV for spreadsheet analysis |
-| `html` | `.html` | HTML report with styling |
-| `markdown` | `.md` | Markdown for documentation |
-
-### Example JSON Output
-
-```json
-{
-  "scan_id": "abc123",
-  "target": "/path/to/code",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "files_scanned": 150,
-  "findings": [
-    {
-      "file_path": "/path/to/code/config.py",
-      "line_number": 42,
-      "detector_name": "aws_access_key",
-      "match": "AKIA...",
-      "severity": "critical",
-      "confidence": "high"
-    }
-  ]
-}
 ```
 
 ---
@@ -525,9 +258,8 @@ jobs:
 
 ### Pre-commit Hook
 
-Add to `.pre-commit-config.yaml`:
-
 ```yaml
+# .pre-commit-config.yaml
 repos:
   - repo: local
     hooks:
@@ -540,88 +272,76 @@ repos:
 
 ---
 
-## Configuration
+## Output Formats
 
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `HAMBURGLAR_LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) |
-
-### Pattern Categories
-
-Available pattern categories for filtering:
-
-- `api_keys` - API keys and tokens
-- `credentials` - Passwords and authentication credentials
-- `private_keys` - RSA, DSA, EC, and SSH private keys
-- `cloud` - Cloud provider credentials (AWS, GCP, Azure)
-- `database` - Database connection strings
-- `urls` - URLs and endpoints
-- `emails` - Email addresses
-- `crypto` - Cryptocurrency addresses and keys
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| `table` | Human-readable table (default) | Interactive use |
+| `json` | Structured JSON | Programmatic processing |
+| `sarif` | SARIF 2.1.0 format | GitHub/GitLab/Azure DevOps integration |
+| `csv` | Comma-separated values | Spreadsheet analysis |
+| `html` | Styled HTML report | Sharing with stakeholders |
+| `markdown` | Markdown table | Documentation |
+| `ndjson` | Newline-delimited JSON | Streaming/log processing |
 
 ---
 
-## Development
+## Documentation
 
-### Running Tests
-
-```bash
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=hamburglar --cov-report=html
-
-# Run integration tests (requires Docker)
-pytest -m integration
-```
-
-### Code Quality
-
-```bash
-# Lint with ruff
-ruff check src/ tests/
-
-# Type check with mypy
-mypy src/hamburglar
-
-# Format code
-ruff format src/ tests/
-```
+| Document | Description |
+|----------|-------------|
+| [Installation](docs/installation.md) | Detailed installation instructions and requirements |
+| [Quickstart](docs/quickstart.md) | Get started with common use cases |
+| [CLI Reference](docs/cli-reference.md) | Complete command-line documentation |
+| [Configuration](docs/configuration.md) | Configuration files and environment variables |
+| [Detectors](docs/detectors.md) | Detection patterns, categories, and YARA rules |
+| [Outputs](docs/outputs.md) | Output format details and integrations |
+| [Plugins](docs/plugins.md) | Creating custom detector and output plugins |
+| [Contributing](docs/contributing.md) | Development setup and contribution guidelines |
+| [Changelog](CHANGELOG.md) | Version history and release notes |
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please:
+We welcome contributions! Here's how to get started:
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+4. Run tests and linting (`pytest && ruff check src/`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-Thank you to all contributors:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines, code style, and development setup.
+
+### Contributors
+
+Thank you to everyone who has contributed to Hamburglar:
+
 - [adi928](https://github.com/adi928)
 - [jaeger-2601](https://github.com/jaeger-2601)
 - [tijko](https://github.com/tijko)
-- [joanbono](https://github.com/joanbono) and [Xumeiquer](https://github.com/Xumeiquer) for the rules from [yara-forensics](https://github.com/Xumeiquer/yara-forensics)
+- [joanbono](https://github.com/joanbono) and [Xumeiquer](https://github.com/Xumeiquer) for YARA rules from [yara-forensics](https://github.com/Xumeiquer/yara-forensics)
+
+---
+
+## Security
+
+For information about reporting security vulnerabilities, see [SECURITY.md](SECURITY.md).
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Hamburglar is released under the [MIT License](LICENSE).
 
 ---
 
 ## Links
 
-- [GitHub Repository](https://github.com/needmorecowbell/Hamburglar)
-- [Issue Tracker](https://github.com/needmorecowbell/Hamburglar/issues)
-- [Changelog](https://github.com/needmorecowbell/Hamburglar/releases)
+- **GitHub Repository**: [github.com/needmorecowbell/Hamburglar](https://github.com/needmorecowbell/Hamburglar)
+- **Issue Tracker**: [github.com/needmorecowbell/Hamburglar/issues](https://github.com/needmorecowbell/Hamburglar/issues)
+- **PyPI Package**: [pypi.org/project/hamburglar](https://pypi.org/project/hamburglar/)
+- **Docker Hub**: [hub.docker.com/r/hamburglar/hamburglar](https://hub.docker.com/r/hamburglar/hamburglar)

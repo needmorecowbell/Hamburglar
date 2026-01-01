@@ -27,7 +27,22 @@ This phase completes the modernization by ensuring all functionality from the or
   - Updated pattern collection counts in tests (crypto: 33→38, generic: 29→33, api_keys: 38→43)
   - All 4216 tests pass with no regressions
 
-- [ ] Create `src/hamburglar/utils/hexdump.py` with modernized hexdump functionality from original: `hexdump(file_path) -> str` function, same output format as original for compatibility, add optional color output using rich
+- [x] Create `src/hamburglar/utils/hexdump.py` with modernized hexdump functionality from original: `hexdump(file_path) -> str` function, same output format as original for compatibility, add optional color output using rich
+  - Created `src/hamburglar/utils/` directory with `__init__.py` exporting hexdump function
+  - Created `src/hamburglar/utils/hexdump.py` with:
+    - `hexdump(file_path) -> str`: Main function matching original format (8-char hex offset, 16 bytes/line, ASCII column)
+    - `hexdump_iter(file_path)`: Generator for memory-efficient streaming of large files
+    - `hexdump_file(file_path, output)`: Direct file/stream output for efficiency
+    - `hexdump_rich(file_path, console, highlight_patterns)`: Colorized output using Rich with:
+      - Blue offset addresses, green printable bytes, yellow non-printable bytes
+      - Optional pattern highlighting with custom colors
+  - Created comprehensive test suite `tests/test_hexdump.py` with 28 tests covering:
+    - Empty files, single bytes, full lines, partial lines
+    - Binary/non-printable character handling
+    - File errors (not found, permission denied, is directory)
+    - Iterator and file output variants
+    - Rich colorized output
+    - Compatibility with original hamburglar.py format
 
 - [ ] Add `hexdump` command to CLI that: takes file path argument, outputs hex dump to stdout, supports `--output` to save to file, matches original `hamburglar.py -x` behavior
 

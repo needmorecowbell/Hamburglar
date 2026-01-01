@@ -10,7 +10,14 @@ This phase completes the modernization by ensuring all functionality from the or
   - Created `src/hamburglar/compat/` directory with `__init__.py` and `.gitkeep`
   - Module includes docstring describing purpose (legacy patterns, IOC extraction, migration helpers)
 
-- [ ] Create `src/hamburglar/compat/legacy_patterns.py` that imports ALL regex patterns from original hamburglar.py not yet included in the new pattern library, ensuring zero detection regression
+- [x] Create `src/hamburglar/compat/legacy_patterns.py` that imports ALL regex patterns from original hamburglar.py not yet included in the new pattern library, ensuring zero detection regression
+  - Created comprehensive module with all 27 original regex patterns from `regexList` dictionary
+  - Identified and added 13 legacy-only patterns not covered by new library (email, phone, site/URL, bitcoin URI, bitcoin xpub, bitcoin cash, dash, neo, facebook oauth, twitter oauth, generic secret legacy style, github legacy, heroku legacy)
+  - Provides `LEGACY_REGEX_LIST` dictionary for drop-in replacement compatibility
+  - Provides `LEGACY_ONLY_PATTERNS` list of Pattern objects for new detector system
+  - Utility functions: `get_legacy_pattern_names()`, `get_legacy_pattern()`, `legacy_patterns_to_detector_format()`
+  - Updated `src/hamburglar/compat/__init__.py` to export all legacy pattern utilities
+  - Created comprehensive test suite in `tests/test_legacy_compat.py` with 73 tests covering all patterns
 
 - [ ] Audit original hamburglar.py `regexList` dictionary against new patterns, create list of any missing patterns, and add them to appropriate pattern modules
 

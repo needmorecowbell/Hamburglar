@@ -1,0 +1,22 @@
+# Basic valid TOML configuration for testing
+# This config uses minimal settings with sensible defaults
+
+# Root-level settings must come before sections
+log_level = "info"
+
+[scan]
+recursive = true
+concurrency = 25
+max_file_size = "5MB"
+timeout = 15
+
+[detector]
+min_confidence = "medium"
+enabled_categories = ["api_keys", "credentials"]
+
+[output]
+format = "json"
+quiet = false
+
+[yara]
+enabled = false

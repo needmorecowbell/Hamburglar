@@ -1,0 +1,39 @@
+{
+  "scan": {
+    "recursive": false,
+    "max_file_size": "50MB",
+    "concurrency": 100,
+    "timeout": 60.5,
+    "blacklist": [
+      ".git",
+      "node_modules",
+      "__pycache__",
+      "*.pyc",
+      "*.log",
+      "build",
+      "dist"
+    ],
+    "whitelist": ["*.py", "*.js", "*.ts"]
+  },
+  "detector": {
+    "enabled_categories": ["api_keys", "credentials", "crypto", "private_keys"],
+    "disabled_patterns": ["generic_high_entropy", "base64_encoded"],
+    "min_confidence": "high",
+    "custom_patterns_path": "./custom_patterns.yaml"
+  },
+  "output": {
+    "format": "sarif",
+    "output_path": "./reports/scan-results",
+    "save_to_db": true,
+    "db_path": "./data/findings.db",
+    "quiet": true,
+    "verbose": false
+  },
+  "yara": {
+    "enabled": true,
+    "rules_path": "./yara_rules",
+    "timeout": 45.0,
+    "compiled_rules_path": "./compiled_rules.yarc"
+  },
+  "log_level": "debug"
+}

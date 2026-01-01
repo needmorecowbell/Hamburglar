@@ -1,0 +1,20 @@
+{
+  "scan": {
+    "recursive": true,
+    "concurrency": 25,
+    "max_file_size": "5MB",
+    "timeout": 15
+  },
+  "detector": {
+    "min_confidence": "medium",
+    "enabled_categories": ["api_keys", "credentials"]
+  },
+  "output": {
+    "format": "json",
+    "quiet": false
+  },
+  "yara": {
+    "enabled": false
+  },
+  "log_level": "info"
+}

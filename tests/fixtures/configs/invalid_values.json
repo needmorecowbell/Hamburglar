@@ -1,0 +1,15 @@
+{
+  "scan": {
+    "recursive": "not a boolean",
+    "concurrency": -5,
+    "max_file_size": "10MB",
+    "timeout": "invalid"
+  },
+  "detector": {
+    "min_confidence": "invalid_level"
+  },
+  "output": {
+    "format": "unsupported_format"
+  },
+  "log_level": "not_a_level"
+}

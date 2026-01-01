@@ -1,0 +1,5 @@
+# Invalid TOML - bad syntax
+[scan]
+recursive = true
+concurrency = 50
+this is not valid toml syntax =

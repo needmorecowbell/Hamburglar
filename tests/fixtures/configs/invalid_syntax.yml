@@ -1,0 +1,5 @@
+# Invalid YAML - bad syntax
+scan:
+  recursive: true
+  concurrency: 50
+  invalid: syntax: here: broken

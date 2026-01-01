@@ -1,0 +1,7 @@
+{
+  "scan": {
+    "recursive": true,
+    "concurrency": 50,
+  }
+  missing comma and invalid trailing comma
+}

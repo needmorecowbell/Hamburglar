@@ -1,0 +1,4 @@
+# Minimal configuration - only override one setting
+# All other settings should use defaults
+[scan]
+concurrency = 10

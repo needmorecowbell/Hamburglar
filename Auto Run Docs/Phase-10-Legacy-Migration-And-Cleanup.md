@@ -171,7 +171,26 @@ This phase completes the modernization by ensuring all functionality from the or
     - Installation changes (requirements.txt → pyproject.toml)
     - Common migration scenarios for CI/CD, regular scans, git audits, web scans
 
-- [ ] Create `scripts/migrate-config.py` that: converts old ham.conf to new YAML format, handles MySQL credential migration, provides interactive prompts for new options
+- [x] Create `scripts/migrate-config.py` that: converts old ham.conf to new YAML format, handles MySQL credential migration, provides interactive prompts for new options
+  - Created `scripts/migrate-config.py` with:
+    - INI-style ham.conf parsing with MySQL section detection
+    - TOML output generation (the primary v2 config format)
+    - Interactive mode with prompts for: scan settings, blacklist/whitelist, detector categories, confidence levels, output format, YARA options, logging
+    - Non-interactive mode (`--no-interactive`) for CI/CD and scripted use
+    - `--dry-run` flag to preview generated config without writing
+    - `--output` flag for custom output path
+    - `--force` flag to overwrite existing files
+    - Auto-discovery of ham.conf in common locations (cwd, home, /etc/hamburglar/)
+    - MySQL credential migration notes (credentials hidden, YARA suggested as alternative)
+    - Colored terminal output with success/warning/error indicators
+  - Created comprehensive test suite `tests/test_migrate_config.py` with 27 tests covering:
+    - Parsing ham.conf with MySQL sections (7 tests)
+    - TOML config generation with various options (4 tests)
+    - Non-interactive migration defaults (2 tests)
+    - Config file auto-discovery (3 tests)
+    - CLI interface (8 tests)
+    - TOML validity validation (3 tests)
+  - All 4325 tests pass (64 skipped)
 
 - [ ] Archive original files: move hamburglar.py to `archive/hamburglar_v1.py`, move ham.conf to `archive/ham_v1.conf`, move utils/magic_sig_scraper.py to `archive/`, add README in archive explaining these are preserved for reference
 

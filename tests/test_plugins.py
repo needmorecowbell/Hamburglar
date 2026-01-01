@@ -1003,3 +1003,147 @@ class TestPluginManagerClear:
         manager.clear()
         count = manager.discover()
         assert count >= 0
+
+
+class TestUnregisterWithRegistry:
+    """Tests for unregistering plugins with registry interactions."""
+
+    def test_unregister_detector_removes_from_registry(self) -> None:
+        """Test that unregistering a detector removes it from the registry."""
+        manager = PluginManager()
+        detector = MockDetectorPlugin(name="to_unregister")
+        manager.register_detector(detector)
+
+        # Verify it's registered
+        assert "to_unregister" in manager
+
+        # Unregister it
+        manager.unregister_detector("to_unregister")
+
+        # Verify it's gone
+        assert "to_unregister" not in manager
+
+    def test_unregister_output_removes_from_registry(self) -> None:
+        """Test that unregistering an output removes it from the registry."""
+        manager = PluginManager()
+        output = MockOutputPlugin(name="to_unregister_output")
+        manager.register_output(output)
+
+        # Verify it's registered
+        assert "to_unregister_output" in manager
+
+        # Unregister it
+        manager.unregister_output("to_unregister_output")
+
+        # Verify it's gone
+        assert "to_unregister_output" not in manager
+
+    def test_unregister_detector_not_in_registry_succeeds(self) -> None:
+        """Test unregistering detector that's not in underlying registry."""
+        manager = PluginManager()
+        # Directly add to _detector_plugins without using registry
+        manager._detector_plugins["direct_add"] = PluginInfo(
+            name="direct_add",
+            plugin_type="detector",
+            instance=MockDetectorPlugin,
+        )
+
+        # This should succeed even though it's not in the registry
+        manager.unregister_detector("direct_add")
+        assert "direct_add" not in manager._detector_plugins
+
+    def test_unregister_output_not_in_registry_succeeds(self) -> None:
+        """Test unregistering output that's not in underlying registry."""
+        manager = PluginManager()
+        # Directly add to _output_plugins without using registry
+        manager._output_plugins["direct_add_output"] = PluginInfo(
+            name="direct_add_output",
+            plugin_type="output",
+            instance=MockOutputPlugin,
+        )
+
+        # This should succeed even though it's not in the registry
+        manager.unregister_output("direct_add_output")
+        assert "direct_add_output" not in manager._output_plugins
+
+
+class TestPluginFileLoadingErrors:
+    """Tests for plugin file loading error handling."""
+
+    def test_discover_handles_malformed_plugin_file(self, tmp_path: Path) -> None:
+        """Test that discover handles files with syntax errors gracefully."""
+        bad_plugin = tmp_path / "bad_syntax.py"
+        bad_plugin.write_text("def broken(:\n  pass")  # Syntax error
+
+        manager = PluginManager(plugin_directories=[tmp_path])
+        # Should not raise, just log warning
+        count = manager.discover()
+        assert count >= 0
+
+    def test_discover_handles_import_error_in_plugin(self, tmp_path: Path) -> None:
+        """Test that discover handles import errors in plugins."""
+        bad_import = tmp_path / "bad_import.py"
+        bad_import.write_text("import nonexistent_module_xyz")
+
+        manager = PluginManager(plugin_directories=[tmp_path])
+        # Should not raise, just log warning
+        count = manager.discover()
+        assert count >= 0
+
+    def test_discover_handles_exception_in_plugin_init(self, tmp_path: Path) -> None:
+        """Test that discover handles exceptions during plugin execution."""
+        error_plugin = tmp_path / "error_plugin.py"
+        error_plugin.write_text("raise RuntimeError('Plugin load error')")
+
+        manager = PluginManager(plugin_directories=[tmp_path])
+        # Should not raise, just log warning
+        count = manager.discover()
+        assert count >= 0
+
+
+class TestEntryPointDiscoveryErrors:
+    """Tests for entry point discovery error handling."""
+
+    def test_discover_entry_points_handles_load_error(self) -> None:
+        """Test that entry point loading errors are handled gracefully."""
+        from unittest.mock import MagicMock, patch
+
+        manager = PluginManager()
+
+        # Mock entry_points to return an entry point that fails to load
+        mock_ep = MagicMock()
+        mock_ep.name = "failing_plugin"
+        mock_ep.load.side_effect = ImportError("Cannot load plugin")
+
+        mock_eps = MagicMock()
+        mock_eps.select.return_value = [mock_ep]
+
+        with patch("importlib.metadata.entry_points", return_value=mock_eps):
+            # Should not raise, just log warning
+            count = manager._discover_entry_points()
+            assert count == 0  # No plugins loaded due to error
+
+    def test_discover_entry_points_handles_no_select_method(self) -> None:
+        """Test fallback when entry_points doesn't have select method (Python 3.9)."""
+        from unittest.mock import patch
+
+        manager = PluginManager()
+
+        # Mock entry_points to return dict-like object (Python 3.9 style)
+        # Python 3.9 returns a dict-like object, not an object with select()
+        mock_eps = {"hamburglar.plugins.detectors": [], "hamburglar.plugins.outputs": []}
+
+        with patch("importlib.metadata.entry_points", return_value=mock_eps):
+            count = manager._discover_entry_points()
+            assert count == 0
+
+    def test_discover_entry_points_exception_during_discovery(self) -> None:
+        """Test handling of exception during entry point discovery."""
+        from unittest.mock import patch
+
+        manager = PluginManager()
+
+        with patch("importlib.metadata.entry_points", side_effect=Exception("Discovery error")):
+            # Should not raise, just log debug message
+            count = manager._discover_entry_points()
+            assert count == 0

@@ -340,3 +340,188 @@ class TestMainCommandConstants:
         """Test that all aliases map to valid main commands."""
         for alias, target in COMMAND_ALIASES.items():
             assert target in MAIN_COMMANDS, f"Alias '{alias}' maps to unknown command '{target}'"
+
+
+class TestAliasPartialMatch:
+    """Test partial matching against aliases."""
+
+    def test_partial_alias_match_returns_correct_command(self) -> None:
+        """Test that a partial match against an alias returns the right command."""
+        # Testing when the fuzzy match hits an alias (e.g., "chek" matches "check" alias)
+        suggestion = get_command_suggestion("chek")  # Similar to "check" which is an alias for "scan"
+        assert suggestion == "scan"
+
+    def test_fuzzy_alias_diagnostics(self) -> None:
+        """Test fuzzy matching against alias 'diagnose' (for doctor)."""
+        suggestion = get_command_suggestion("diagno")
+        assert suggestion == "doctor"
+
+    def test_fuzzy_alias_extensions(self) -> None:
+        """Test fuzzy matching against alias 'extensions' (for plugins)."""
+        suggestion = get_command_suggestion("extension")
+        assert suggestion == "plugins"
+
+
+class TestFormatCommandSuggestion:
+    """Test format_command_suggestion function."""
+
+    def test_format_command_suggestion_output(self) -> None:
+        """Test that format_command_suggestion returns a formatted message."""
+        from hamburglar.cli.errors import format_command_suggestion
+
+        result = format_command_suggestion("scna", "scan")
+        assert "scna" in result
+        assert "scan" in result
+        assert "Did you mean" in result
+
+    def test_format_command_suggestion_with_hyphen(self) -> None:
+        """Test with hyphenated command."""
+        from hamburglar.cli.errors import format_command_suggestion
+
+        result = format_command_suggestion("scan-gti", "scan-git")
+        assert "scan-gti" in result
+        assert "scan-git" in result
+
+
+class TestFormatAvailableCommands:
+    """Test format_available_commands function."""
+
+    def test_format_available_commands_output(self) -> None:
+        """Test that format_available_commands returns a formatted list."""
+        from hamburglar.cli.errors import format_available_commands
+
+        result = format_available_commands()
+        assert "Available commands" in result
+        assert "scan" in result
+        assert "scan-git" in result
+        assert "doctor" in result
+        assert "plugins" in result
+
+
+class TestGetDocLink:
+    """Test get_doc_link function."""
+
+    def test_get_doc_link_returns_url(self) -> None:
+        """Test that get_doc_link returns URL for known topics."""
+        from hamburglar.cli.errors import get_doc_link
+
+        link = get_doc_link("cli")
+        assert link is not None
+        assert "cli-reference" in link
+
+    def test_get_doc_link_case_insensitive(self) -> None:
+        """Test that get_doc_link is case-insensitive."""
+        from hamburglar.cli.errors import get_doc_link
+
+        link = get_doc_link("CLI")
+        assert link is not None
+        assert "cli-reference" in link
+
+    def test_get_doc_link_unknown_topic(self) -> None:
+        """Test that get_doc_link returns None for unknown topics."""
+        from hamburglar.cli.errors import get_doc_link
+
+        link = get_doc_link("unknown_topic_xyz")
+        assert link is None
+
+
+class TestFormatDocReference:
+    """Test format_doc_reference function."""
+
+    def test_format_doc_reference_known_topic(self) -> None:
+        """Test that format_doc_reference returns formatted string for known topics."""
+        from hamburglar.cli.errors import format_doc_reference
+
+        result = format_doc_reference("cli")
+        assert "See:" in result
+        assert "cli-reference" in result
+
+    def test_format_doc_reference_unknown_topic(self) -> None:
+        """Test that format_doc_reference returns empty string for unknown topics."""
+        from hamburglar.cli.errors import format_doc_reference
+
+        result = format_doc_reference("unknown_xyz")
+        assert result == ""
+
+
+class TestFormatErrorWithContext:
+    """Test format_error_with_context function."""
+
+    def test_format_error_with_no_context(self) -> None:
+        """Test that format_error_with_context works with no context."""
+        from hamburglar.cli.errors import format_error_with_context
+
+        result = format_error_with_context("Test error message")
+        assert result == "Test error message"
+
+    def test_format_error_with_suggestion(self) -> None:
+        """Test that format_error_with_context includes suggestion."""
+        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+
+        context = ErrorContext(suggestion="Use 'scan' instead")
+        result = format_error_with_context("Test error", context)
+        assert "Test error" in result
+        assert "Suggestion:" in result
+        assert "Use 'scan' instead" in result
+
+    def test_format_error_with_hint(self) -> None:
+        """Test that format_error_with_context includes hint."""
+        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+
+        context = ErrorContext(hint="Check your configuration")
+        result = format_error_with_context("Test error", context)
+        assert "Test error" in result
+        assert "Hint:" in result
+        assert "Check your configuration" in result
+
+    def test_format_error_with_doc_link(self) -> None:
+        """Test that format_error_with_context includes doc link."""
+        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+
+        context = ErrorContext(doc_link="https://example.com/docs")
+        result = format_error_with_context("Test error", context)
+        assert "Test error" in result
+        assert "Docs:" in result
+        assert "https://example.com/docs" in result
+
+    def test_format_error_with_all_context(self) -> None:
+        """Test that format_error_with_context includes all fields."""
+        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+
+        context = ErrorContext(
+            suggestion="Try X",
+            hint="Remember Y",
+            doc_link="https://docs.example.com"
+        )
+        result = format_error_with_context("Main error", context)
+        assert "Main error" in result
+        assert "Try X" in result
+        assert "Remember Y" in result
+        assert "https://docs.example.com" in result
+
+
+class TestFormatHelpFooter:
+    """Test format_help_footer function."""
+
+    def test_format_help_footer_with_command(self) -> None:
+        """Test that format_help_footer works with a command."""
+        from hamburglar.cli.errors import format_help_footer
+
+        result = format_help_footer("scan")
+        assert "hamburglar scan --help" in result
+        assert "Docs:" in result
+
+    def test_format_help_footer_without_command(self) -> None:
+        """Test that format_help_footer works without a command."""
+        from hamburglar.cli.errors import format_help_footer
+
+        result = format_help_footer()
+        assert "hamburglar --help" in result
+        assert "Docs:" in result
+
+    def test_format_help_footer_none_command(self) -> None:
+        """Test that format_help_footer works with None command."""
+        from hamburglar.cli.errors import format_help_footer
+
+        result = format_help_footer(None)
+        assert "hamburglar --help" in result

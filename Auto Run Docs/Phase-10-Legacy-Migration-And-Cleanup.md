@@ -86,7 +86,20 @@ This phase completes the modernization by ensuring all functionality from the or
     - Mocked unavailability behavior (5 tests)
   - All 4286 tests pass (51 ioc_extract tests: 20 passed, 31 skipped due to iocextract not installed)
 
-- [ ] Add `--use-iocextract` flag to scan command that enables iocextract-based detection in addition to regex patterns (matching original `-i` flag behavior)
+- [x] Add `--use-iocextract` flag to scan command that enables iocextract-based detection in addition to regex patterns (matching original `-i` flag behavior)
+  - Added `--use-iocextract` / `-i` flag to `scan`, `scan-git`, and `scan-web` commands
+  - When enabled, adds `IOCExtractDetector` to the list of detectors alongside regex patterns
+  - Graceful error handling when iocextract is not installed (shows helpful install message)
+  - Verbose mode shows "Loaded iocextract detector (URLs, IPs, emails, hashes, YARA rules)" message
+  - Created comprehensive test suite `tests/test_cli_iocextract.py` with 21 tests covering:
+    - Help output shows flag for all commands (3 tests)
+    - Error handling when iocextract not installed (4 tests)
+    - Scan works normally without flag (2 tests)
+    - Integration with real library when available (5 tests, skipped when unavailable)
+    - Mocked availability behavior (2 tests)
+    - Dry-run compatibility (2 tests)
+    - Compatibility with other flags (quiet, categories, min-confidence, stream) (4 tests)
+  - All 4298 tests pass (64 skipped)
 
 - [ ] Review original hamburglar.py for any features not yet implemented, document any intentionally removed features with rationale
 

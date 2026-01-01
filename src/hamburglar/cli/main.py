@@ -64,6 +64,11 @@ from hamburglar.outputs.table_output import TableOutput
 from hamburglar.scanners import GitScanner, WebScanner
 from hamburglar.storage import ScanStatistics, StorageError
 from hamburglar.storage.sqlite import SqliteStorage
+from hamburglar.compat.ioc_extract import (
+    get_detector as get_iocextract_detector,
+    is_available as iocextract_is_available,
+    IOCExtractNotAvailable,
+)
 
 # Valid category names for CLI parsing
 VALID_CATEGORIES = {cat.value: cat for cat in PatternCategory}
@@ -664,6 +669,17 @@ def scan(
             "Displays configuration, detectors, and file list.",
         ),
     ] = False,
+    use_iocextract: Annotated[
+        bool,
+        typer.Option(
+            "--use-iocextract",
+            "-i",
+            help="Enable iocextract-based IOC detection in addition to regex patterns. "
+            "Extracts URLs, IPs, emails, hashes, and YARA rules. "
+            "Requires 'iocextract' package to be installed (pip install iocextract). "
+            "Matches original hamburglar.py -i flag behavior.",
+        ),
+    ] = False,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -891,6 +907,33 @@ def scan(
         except Exception as e:
             _display_error(e, title="Failed to load YARA rules")
             raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Add iocextract detector if requested
+    if use_iocextract:
+        if iocextract_is_available():
+            try:
+                ioc_detector = get_iocextract_detector(fallback=False)
+                detectors.append(ioc_detector)
+                if eff_verbose and not eff_quiet:
+                    console.print("[dim]Loaded iocextract detector (URLs, IPs, emails, hashes, YARA rules)[/dim]")
+            except IOCExtractNotAvailable as e:
+                _display_error(
+                    DetectorError(
+                        str(e),
+                        detector_name="iocextract",
+                    ),
+                    hint="Install iocextract with: pip install iocextract",
+                )
+                raise typer.Exit(code=EXIT_ERROR) from None
+        else:
+            _display_error(
+                DetectorError(
+                    "iocextract is not installed. Install it with: pip install iocextract",
+                    detector_name="iocextract",
+                ),
+                hint="Install iocextract with: pip install iocextract",
+            )
+            raise typer.Exit(code=EXIT_ERROR)
 
     # Handle dry-run mode
     if dry_run:
@@ -1851,6 +1894,16 @@ def scan_git(
             "Displays configuration, detectors, and repository information.",
         ),
     ] = False,
+    use_iocextract: Annotated[
+        bool,
+        typer.Option(
+            "--use-iocextract",
+            "-i",
+            help="Enable iocextract-based IOC detection in addition to regex patterns. "
+            "Extracts URLs, IPs, emails, hashes, and YARA rules. "
+            "Requires 'iocextract' package to be installed (pip install iocextract).",
+        ),
+    ] = False,
 ) -> None:
     """Scan a git repository for sensitive information.
 
@@ -2018,6 +2071,33 @@ def scan_git(
 
     if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
+
+    # Add iocextract detector if requested
+    if use_iocextract:
+        if iocextract_is_available():
+            try:
+                ioc_detector = get_iocextract_detector(fallback=False)
+                detectors.append(ioc_detector)
+                if eff_verbose and not eff_quiet:
+                    console.print("[dim]Loaded iocextract detector (URLs, IPs, emails, hashes, YARA rules)[/dim]")
+            except IOCExtractNotAvailable as e:
+                _display_error(
+                    DetectorError(
+                        str(e),
+                        detector_name="iocextract",
+                    ),
+                    hint="Install iocextract with: pip install iocextract",
+                )
+                raise typer.Exit(code=EXIT_ERROR) from None
+        else:
+            _display_error(
+                DetectorError(
+                    "iocextract is not installed. Install it with: pip install iocextract",
+                    detector_name="iocextract",
+                ),
+                hint="Install iocextract with: pip install iocextract",
+            )
+            raise typer.Exit(code=EXIT_ERROR)
 
     # Handle dry-run mode
     if dry_run:
@@ -2485,6 +2565,16 @@ def scan_web(
             "Displays configuration, detectors, and URL information.",
         ),
     ] = False,
+    use_iocextract: Annotated[
+        bool,
+        typer.Option(
+            "--use-iocextract",
+            "-i",
+            help="Enable iocextract-based IOC detection in addition to regex patterns. "
+            "Extracts URLs, IPs, emails, hashes, and YARA rules. "
+            "Requires 'iocextract' package to be installed (pip install iocextract).",
+        ),
+    ] = False,
 ) -> None:
     """Scan a web URL for sensitive information.
 
@@ -2667,6 +2757,33 @@ def scan_web(
 
     if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
+
+    # Add iocextract detector if requested
+    if use_iocextract:
+        if iocextract_is_available():
+            try:
+                ioc_detector = get_iocextract_detector(fallback=False)
+                detectors.append(ioc_detector)
+                if eff_verbose and not eff_quiet:
+                    console.print("[dim]Loaded iocextract detector (URLs, IPs, emails, hashes, YARA rules)[/dim]")
+            except IOCExtractNotAvailable as e:
+                _display_error(
+                    DetectorError(
+                        str(e),
+                        detector_name="iocextract",
+                    ),
+                    hint="Install iocextract with: pip install iocextract",
+                )
+                raise typer.Exit(code=EXIT_ERROR) from None
+        else:
+            _display_error(
+                DetectorError(
+                    "iocextract is not installed. Install it with: pip install iocextract",
+                    detector_name="iocextract",
+                ),
+                hint="Install iocextract with: pip install iocextract",
+            )
+            raise typer.Exit(code=EXIT_ERROR)
 
     # Handle dry-run mode
     if dry_run:

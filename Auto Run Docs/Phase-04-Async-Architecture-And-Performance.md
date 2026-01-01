@@ -246,7 +246,18 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Tests skip gracefully when `psutil` is not available for memory tracking
     - All 2248 tests pass with 3 skipped (memory tests when psutil unavailable)
 
-- [ ] Create `tests/test_streaming.py` with tests for: NDJSON output format is correct, findings stream as discovered, stream can be interrupted, backpressure is handled correctly
+- [x] Create `tests/test_streaming.py` with tests for: NDJSON output format is correct, findings stream as discovered, stream can be interrupted, backpressure is handled correctly
+  - **Completed:** Test file already exists with 37 comprehensive tests covering all required areas:
+    - `TestStreamingOutputBasic` (5 tests): basic functionality, empty results, single/multiple findings
+    - `TestNDJSONFormat` (6 tests): single-line format, no trailing commas, valid JSON, special characters, unicode
+    - `TestStreamFindings` (3 tests): async streaming, real-time yields, empty iterator handling
+    - `TestStreamInterruption` (3 tests): early interruption, collection with limit, unlimited collection
+    - `TestWriteStream` (3 tests): buffer writing, newline format, count return
+    - `TestNDJSONStreamWriter` (6 tests): context manager, buffering, buffer size flush, write count, closed state, manual flush
+    - `TestStreamToNdjson` (3 tests): convenience function for NDJSON output
+    - `TestStreamingIntegration` (3 tests): integration with AsyncScanner, write stream, interrupt scanner
+    - `TestStreamingEdgeCases` (5 tests): empty matches/metadata, complex metadata, large batch, severity levels
+    - All 37 tests pass in 0.16s execution time
 
 - [ ] Update all existing tests to work with async scanner (use pytest-asyncio fixtures)
 

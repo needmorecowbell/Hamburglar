@@ -204,7 +204,16 @@ This phase completes the modernization by ensuring all functionality from the or
     - Warning that archived files are not functional in v2
     - Quick reference for v2 command equivalents
 
-- [ ] Update `.gitignore` to remove outdated entries, add new entries for modern tooling (.ruff_cache, .mypy_cache, etc.)
+- [x] Update `.gitignore` to remove outdated entries, add new entries for modern tooling (.ruff_cache, .mypy_cache, etc.)
+  - Removed outdated entries: global `*.txt` ignore (too broad), `__pychache__/` typo
+  - Added modern Python tooling: `.ruff_cache/`, `.mypy_cache/`, `.pytest_cache/`, `.dmypy.json`
+  - Added packaging entries: `dist/`, `build/`, `*.egg-info/`, `.eggs/`, `wheels/`, etc.
+  - Added coverage entries: `.coverage`, `.coverage.*`, `htmlcov/`, `coverage.xml`
+  - Added editor entries: `.idea/`, `.vscode/`, `*.sublime-project`, `*.sublime-workspace`
+  - Added OS entries: `.DS_Store`, `Thumbs.db`
+  - Added environment entries: `.env`, `.venv`, `env/`, `venv/`
+  - Preserved test fixture exclusions for `tests/fixtures/**/*.txt` and `tests/fixtures/**/*.json`
+  - All 4325 tests pass
 
 - [ ] Remove old requirements.txt (dependencies now in pyproject.toml)
 

@@ -48,7 +48,16 @@ This phase implements a robust configuration system and plugin architecture, all
   - Created `PluginListEntry` dataclass for CLI listing display
   - Added `tests/test_plugin_discovery.py` with 30 comprehensive tests
 
-- [ ] Create `src/hamburglar/plugins/detector_plugin.py` with `DetectorPlugin` base class that: defines required interface (name, detect method), supports configuration via plugin config section, provides utility methods for pattern matching, integrates with the detector registry
+- [x] Create `src/hamburglar/plugins/detector_plugin.py` with `DetectorPlugin` base class that: defines required interface (name, detect method), supports configuration via plugin config section, provides utility methods for pattern matching, integrates with the detector registry
+  - Implemented `DetectorPlugin` abstract base class extending `BaseDetector`
+  - Supports configuration via constructor kwargs with `config` property and `get_config()` method
+  - Added utility methods: `match_pattern()`, `match_patterns()`, `match_literal()` for pattern matching
+  - Added `compile_pattern()` with caching for efficient regex compilation
+  - Added `create_finding()` helper for creating Finding objects
+  - Added `should_scan_file()` for file extension filtering via `supported_extensions` property
+  - Added `register()` and `unregister()` for detector registry integration
+  - Includes metadata properties: `description`, `version`, `author`
+  - Created `tests/test_detector_plugin.py` with 52 comprehensive tests at 98% coverage
 
 - [ ] Create `src/hamburglar/plugins/output_plugin.py` with `OutputPlugin` base class that: defines required interface (name, format method), supports configuration via plugin config section, integrates with the output registry
 

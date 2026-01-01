@@ -665,6 +665,14 @@ def scan(
             resolve_path=True,
         ),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Show what would be scanned without performing the scan. "
+            "Displays configuration, detectors, and file list.",
+        ),
+    ] = False,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -886,6 +894,14 @@ def scan(
         except Exception as e:
             _display_error(e, title="Failed to load YARA rules")
             raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Handle dry-run mode
+    if dry_run:
+        asyncio.run(_run_dry_run(
+            scan_config, detectors, eff_concurrency, eff_quiet, eff_verbose,
+            enabled_categories, disabled_categories, confidence_filter
+        ))
+        return
 
     # Handle streaming mode
     if stream:
@@ -1168,6 +1184,425 @@ async def _run_streaming_scan(
     raise typer.Exit(code=EXIT_SUCCESS)
 
 
+async def _run_dry_run(
+    config: ScanConfig,
+    detectors: list["BaseDetector"],
+    concurrency: int,
+    quiet: bool,
+    verbose: bool,
+    enabled_categories: list["PatternCategory"] | None,
+    disabled_categories: list["PatternCategory"] | None,
+    confidence_filter: "Confidence | None",
+) -> None:
+    """Run a dry-run scan that shows what would be scanned without scanning.
+
+    This discovers files, shows configuration, and lists what would be scanned,
+    but does not actually perform pattern matching or output findings.
+
+    Args:
+        config: Scan configuration.
+        detectors: List of detectors to use.
+        concurrency: Maximum concurrent file operations.
+        quiet: If True, suppress non-essential output.
+        verbose: If True, show detailed information.
+        enabled_categories: Categories to enable, if specified.
+        disabled_categories: Categories to disable, if specified.
+        confidence_filter: Minimum confidence level, if specified.
+    """
+    from rich.table import Table
+    from rich.tree import Tree
+
+    if not quiet:
+        console.print()
+        console.print(
+            Panel(
+                "[bold yellow]DRY RUN MODE[/bold yellow]\n\n"
+                "This shows what would be scanned without performing the actual scan.\n"
+                "No files will be read for pattern matching, and no findings will be generated.",
+                title="[bold]Dry Run[/bold]",
+                border_style="yellow",
+            )
+        )
+        console.print()
+
+    # Build configuration table
+    config_table = Table(title="Scan Configuration", show_header=True, header_style="bold cyan")
+    config_table.add_column("Setting", style="dim")
+    config_table.add_column("Value")
+
+    config_table.add_row("Target", str(config.target_path))
+    config_table.add_row("Recursive", "Yes" if config.recursive else "No")
+    config_table.add_row("Output Format", config.output_format.value)
+    config_table.add_row("Concurrency", str(concurrency))
+    config_table.add_row("YARA Enabled", "Yes" if config.use_yara else "No")
+    if config.use_yara and config.yara_rules_path:
+        config_table.add_row("YARA Rules Path", str(config.yara_rules_path))
+
+    if enabled_categories:
+        config_table.add_row("Enabled Categories", ", ".join(c.value for c in enabled_categories))
+    if disabled_categories:
+        config_table.add_row("Disabled Categories", ", ".join(c.value for c in disabled_categories))
+    if confidence_filter:
+        config_table.add_row("Min Confidence", confidence_filter.value)
+
+    if not quiet:
+        console.print(config_table)
+        console.print()
+
+    # Build detectors table
+    detector_table = Table(title="Detectors", show_header=True, header_style="bold cyan")
+    detector_table.add_column("Detector", style="dim")
+    detector_table.add_column("Patterns/Rules")
+
+    for detector in detectors:
+        detector_name = detector.__class__.__name__
+        if hasattr(detector, "get_pattern_count"):
+            count = detector.get_pattern_count()
+            detector_table.add_row(detector_name, f"{count} patterns")
+        elif hasattr(detector, "rule_count"):
+            count = detector.rule_count
+            detector_table.add_row(detector_name, f"{count} rule file(s)")
+        else:
+            detector_table.add_row(detector_name, "N/A")
+
+    if not quiet:
+        console.print(detector_table)
+        console.print()
+
+    # Discover files
+    if not quiet:
+        console.print("[cyan]Discovering files...[/cyan]")
+
+    scanner = AsyncScanner(
+        config,
+        detectors=[],  # Empty detectors for discovery only
+        concurrency_limit=concurrency,
+    )
+
+    try:
+        files = await scanner._discover_files()
+    except ScanError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR)
+    except PermissionError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Calculate total size
+    total_size = 0
+    file_sizes: list[tuple[Path, int]] = []
+    for f in files:
+        try:
+            size = f.stat().st_size
+            file_sizes.append((f, size))
+            total_size += size
+        except (OSError, PermissionError):
+            file_sizes.append((f, 0))
+
+    # Format size helper
+    def format_bytes(num_bytes: int) -> str:
+        """Format bytes into human-readable string."""
+        for unit in ["B", "KB", "MB", "GB"]:
+            if num_bytes < 1024:
+                return f"{num_bytes:.1f} {unit}"
+            num_bytes /= 1024  # type: ignore[assignment]
+        return f"{num_bytes:.1f} TB"
+
+    # Display summary
+    summary_table = Table(title="File Discovery Summary", show_header=True, header_style="bold cyan")
+    summary_table.add_column("Metric", style="dim")
+    summary_table.add_column("Value")
+
+    summary_table.add_row("Files to Scan", f"{len(files):,}")
+    summary_table.add_row("Total Size", format_bytes(total_size))
+    if len(files) > 0:
+        avg_size = total_size // len(files)
+        summary_table.add_row("Average File Size", format_bytes(avg_size))
+
+    if not quiet:
+        console.print()
+        console.print(summary_table)
+
+    # Show file list in verbose mode or for small number of files
+    if verbose or len(files) <= 20:
+        if not quiet and files:
+            console.print()
+            file_table = Table(
+                title=f"Files to Scan ({len(files)} file{'s' if len(files) != 1 else ''})",
+                show_header=True,
+                header_style="bold cyan",
+            )
+            file_table.add_column("File", style="dim", no_wrap=True)
+            file_table.add_column("Size", justify="right")
+
+            # Sort by path for consistent output
+            file_sizes.sort(key=lambda x: str(x[0]))
+
+            for file_path, size in file_sizes:
+                # Make path relative to target for cleaner display
+                try:
+                    rel_path = file_path.relative_to(config.target_path)
+                except ValueError:
+                    rel_path = file_path
+                file_table.add_row(str(rel_path), format_bytes(size))
+
+            console.print(file_table)
+    elif not quiet and len(files) > 20:
+        console.print()
+        console.print(f"[dim]Use --verbose to see the full list of {len(files)} files[/dim]")
+
+    if not quiet:
+        console.print()
+        console.print("[green]✓ Dry run complete. No files were scanned.[/green]")
+
+
+def _run_git_dry_run(
+    target: str,
+    detectors: list["BaseDetector"],
+    output_format: OutputFormat,
+    depth: Optional[int],
+    branch: Optional[str],
+    include_history: bool,
+    clone_dir: Optional[Path],
+    quiet: bool,
+    verbose: bool,
+    enabled_categories: list["PatternCategory"] | None,
+    disabled_categories: list["PatternCategory"] | None,
+    confidence_filter: "Confidence | None",
+) -> None:
+    """Run a dry-run for git scan that shows what would be scanned without scanning.
+
+    Args:
+        target: Git repository URL or local path.
+        detectors: List of detectors to use.
+        output_format: Output format to use.
+        depth: Number of commits to scan.
+        branch: Specific branch to scan.
+        include_history: Whether to scan commit history.
+        clone_dir: Directory to clone into.
+        quiet: If True, suppress non-essential output.
+        verbose: If True, show detailed information.
+        enabled_categories: Categories to enable, if specified.
+        disabled_categories: Categories to disable, if specified.
+        confidence_filter: Minimum confidence level, if specified.
+    """
+    from rich.table import Table
+
+    if not quiet:
+        console.print()
+        console.print(
+            Panel(
+                "[bold yellow]DRY RUN MODE[/bold yellow]\n\n"
+                "This shows what would be scanned without performing the actual scan.\n"
+                "No files will be read for pattern matching, and no findings will be generated.",
+                title="[bold]Dry Run[/bold]",
+                border_style="yellow",
+            )
+        )
+        console.print()
+
+    # Determine if target is a URL or local path
+    is_remote = target.startswith(("http://", "https://", "git@", "ssh://"))
+
+    # Build configuration table
+    config_table = Table(title="Git Scan Configuration", show_header=True, header_style="bold cyan")
+    config_table.add_column("Setting", style="dim")
+    config_table.add_column("Value")
+
+    config_table.add_row("Target", target)
+    config_table.add_row("Type", "Remote Repository" if is_remote else "Local Repository")
+    config_table.add_row("Include History", "Yes" if include_history else "No")
+    if depth:
+        config_table.add_row("Commit Depth", str(depth))
+    else:
+        config_table.add_row("Commit Depth", "All commits")
+    if branch:
+        config_table.add_row("Branch", branch)
+    else:
+        config_table.add_row("Branch", "Default branch")
+    if clone_dir:
+        config_table.add_row("Clone Directory", str(clone_dir))
+    elif is_remote:
+        config_table.add_row("Clone Directory", "Temporary directory")
+    config_table.add_row("Output Format", output_format.value)
+
+    if enabled_categories:
+        config_table.add_row("Enabled Categories", ", ".join(c.value for c in enabled_categories))
+    if disabled_categories:
+        config_table.add_row("Disabled Categories", ", ".join(c.value for c in disabled_categories))
+    if confidence_filter:
+        config_table.add_row("Min Confidence", confidence_filter.value)
+
+    if not quiet:
+        console.print(config_table)
+        console.print()
+
+    # Build detectors table
+    detector_table = Table(title="Detectors", show_header=True, header_style="bold cyan")
+    detector_table.add_column("Detector", style="dim")
+    detector_table.add_column("Patterns/Rules")
+
+    for detector in detectors:
+        detector_name = detector.__class__.__name__
+        if hasattr(detector, "get_pattern_count"):
+            count = detector.get_pattern_count()
+            detector_table.add_row(detector_name, f"{count} patterns")
+        elif hasattr(detector, "rule_count"):
+            count = detector.rule_count
+            detector_table.add_row(detector_name, f"{count} rule file(s)")
+        else:
+            detector_table.add_row(detector_name, "N/A")
+
+    if not quiet:
+        console.print(detector_table)
+        console.print()
+
+    # For local repos, we can show more info
+    if not is_remote:
+        try:
+            from pathlib import Path as PathLib
+            target_path = PathLib(target).resolve()
+            if target_path.exists() and (target_path / ".git").exists():
+                if not quiet:
+                    console.print("[dim]Local repository detected. Run without --dry-run to scan.[/dim]")
+            elif target_path.exists():
+                if not quiet:
+                    console.print(f"[yellow]Warning: {target} exists but is not a git repository[/yellow]")
+            else:
+                if not quiet:
+                    console.print(f"[yellow]Warning: {target} does not exist[/yellow]")
+        except Exception:
+            pass
+
+    if not quiet:
+        console.print()
+        if is_remote:
+            console.print("[green]✓ Dry run complete. Repository would be cloned and scanned.[/green]")
+        else:
+            console.print("[green]✓ Dry run complete. Repository would be scanned.[/green]")
+
+
+def _run_web_dry_run(
+    url: str,
+    detectors: list["BaseDetector"],
+    output_format: OutputFormat,
+    depth: int,
+    include_scripts: bool,
+    user_agent: Optional[str],
+    timeout: float,
+    respect_robots: bool,
+    auth_tuple: tuple[str, str] | None,
+    quiet: bool,
+    verbose: bool,
+    enabled_categories: list["PatternCategory"] | None,
+    disabled_categories: list["PatternCategory"] | None,
+    confidence_filter: "Confidence | None",
+) -> None:
+    """Run a dry-run for web scan that shows what would be scanned without scanning.
+
+    Args:
+        url: URL to scan.
+        detectors: List of detectors to use.
+        output_format: Output format to use.
+        depth: Maximum depth for following links.
+        include_scripts: Whether to extract and scan JavaScript files.
+        user_agent: Custom user agent string.
+        timeout: Timeout for HTTP requests in seconds.
+        respect_robots: Whether to respect robots.txt rules.
+        auth_tuple: Basic auth credentials as (username, password) tuple.
+        quiet: If True, suppress non-essential output.
+        verbose: If True, show detailed information.
+        enabled_categories: Categories to enable, if specified.
+        disabled_categories: Categories to disable, if specified.
+        confidence_filter: Minimum confidence level, if specified.
+    """
+    from rich.table import Table
+    from urllib.parse import urlparse
+
+    if not quiet:
+        console.print()
+        console.print(
+            Panel(
+                "[bold yellow]DRY RUN MODE[/bold yellow]\n\n"
+                "This shows what would be scanned without performing the actual scan.\n"
+                "No HTTP requests will be made, and no findings will be generated.",
+                title="[bold]Dry Run[/bold]",
+                border_style="yellow",
+            )
+        )
+        console.print()
+
+    # Parse URL for display
+    parsed_url = urlparse(url)
+
+    # Build configuration table
+    config_table = Table(title="Web Scan Configuration", show_header=True, header_style="bold cyan")
+    config_table.add_column("Setting", style="dim")
+    config_table.add_column("Value")
+
+    config_table.add_row("URL", url)
+    config_table.add_row("Domain", parsed_url.netloc or "N/A")
+    config_table.add_row("Protocol", parsed_url.scheme.upper() if parsed_url.scheme else "N/A")
+    config_table.add_row("Link Depth", str(depth) if depth > 0 else "0 (starting URL only)")
+    config_table.add_row("Include Scripts", "Yes" if include_scripts else "No")
+    config_table.add_row("Timeout", f"{timeout}s")
+    config_table.add_row("Respect robots.txt", "Yes" if respect_robots else "No")
+    if user_agent:
+        config_table.add_row("User Agent", user_agent)
+    else:
+        config_table.add_row("User Agent", "Default")
+    if auth_tuple:
+        config_table.add_row("Authentication", f"{auth_tuple[0]}:***")
+    else:
+        config_table.add_row("Authentication", "None")
+    config_table.add_row("Output Format", output_format.value)
+
+    if enabled_categories:
+        config_table.add_row("Enabled Categories", ", ".join(c.value for c in enabled_categories))
+    if disabled_categories:
+        config_table.add_row("Disabled Categories", ", ".join(c.value for c in disabled_categories))
+    if confidence_filter:
+        config_table.add_row("Min Confidence", confidence_filter.value)
+
+    if not quiet:
+        console.print(config_table)
+        console.print()
+
+    # Build detectors table
+    detector_table = Table(title="Detectors", show_header=True, header_style="bold cyan")
+    detector_table.add_column("Detector", style="dim")
+    detector_table.add_column("Patterns/Rules")
+
+    for detector in detectors:
+        detector_name = detector.__class__.__name__
+        if hasattr(detector, "get_pattern_count"):
+            count = detector.get_pattern_count()
+            detector_table.add_row(detector_name, f"{count} patterns")
+        elif hasattr(detector, "rule_count"):
+            count = detector.rule_count
+            detector_table.add_row(detector_name, f"{count} rule file(s)")
+        else:
+            detector_table.add_row(detector_name, "N/A")
+
+    if not quiet:
+        console.print(detector_table)
+        console.print()
+
+    # Show what would be scanned
+    if not quiet:
+        console.print("[dim]Scan behavior:[/dim]")
+        if depth == 0:
+            console.print("  • Only the starting URL would be scanned")
+        else:
+            console.print(f"  • Starting URL and linked pages up to depth {depth} would be scanned")
+        if include_scripts:
+            console.print("  • JavaScript files would be extracted and scanned")
+        if respect_robots:
+            console.print("  • robots.txt rules would be respected")
+        console.print()
+        console.print("[green]✓ Dry run complete. No HTTP requests were made.[/green]")
+
+
 async def _run_benchmark_scan(
     config: ScanConfig,
     detectors: list["BaseDetector"],
@@ -1386,6 +1821,14 @@ def scan_git(
             resolve_path=True,
         ),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Show what would be scanned without performing the scan. "
+            "Displays configuration, detectors, and repository information.",
+        ),
+    ] = False,
 ) -> None:
     """Scan a git repository for sensitive information.
 
@@ -1547,6 +1990,14 @@ def scan_git(
 
     if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
+
+    # Handle dry-run mode
+    if dry_run:
+        _run_git_dry_run(
+            target, detectors, output_format, depth, branch, include_history, clone_dir,
+            eff_quiet, eff_verbose, enabled_categories, disabled_categories, confidence_filter
+        )
+        return
 
     # Handle streaming mode
     if stream:
@@ -1970,6 +2421,14 @@ def scan_web(
             resolve_path=True,
         ),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Show what would be scanned without performing the scan. "
+            "Displays configuration, detectors, and URL information.",
+        ),
+    ] = False,
 ) -> None:
     """Scan a web URL for sensitive information.
 
@@ -2146,6 +2605,15 @@ def scan_web(
 
     if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
+
+    # Handle dry-run mode
+    if dry_run:
+        _run_web_dry_run(
+            url, detectors, output_format, depth, include_scripts, user_agent, timeout,
+            respect_robots, auth_tuple, eff_quiet, eff_verbose,
+            enabled_categories, disabled_categories, confidence_filter
+        )
+        return
 
     # Handle streaming mode
     if stream:

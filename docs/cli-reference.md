@@ -99,6 +99,7 @@ hamburglar scan [OPTIONS] PATH
 | `--benchmark` | `False` | Run a quick performance test and report throughput |
 | `--save-to-db/--no-save-to-db` | from config or `False` | Save findings to SQLite database |
 | `--db-path` | `~/.hamburglar/findings.db` | Custom path for SQLite database file |
+| `--dry-run` | `False` | Show what would be scanned without performing the scan. Displays configuration, detectors, and file list |
 
 **Examples:**
 
@@ -123,6 +124,12 @@ hamburglar scan ./src --yara ./rules/
 
 # Save findings to database
 hamburglar scan ./src --save-to-db
+
+# Preview what would be scanned (dry run)
+hamburglar scan ./src --dry-run
+
+# Dry run with verbose file list
+hamburglar scan ./src --dry-run --verbose
 ```
 
 ### scan-git
@@ -159,6 +166,7 @@ hamburglar scan-git [OPTIONS] TARGET
 | `--min-confidence` | - | Minimum confidence level for findings: high, medium, low |
 | `--save-to-db/--no-save-to-db` | from config or `False` | Save findings to SQLite database |
 | `--db-path` | `~/.hamburglar/findings.db` | Custom path for SQLite database file |
+| `--dry-run` | `False` | Show what would be scanned without performing the scan. Displays configuration, detectors, and repository information |
 
 **Examples:**
 
@@ -177,6 +185,9 @@ hamburglar scan-git git@github.com:user/repo.git --depth 100
 
 # Skip commit history
 hamburglar scan-git ./my-repo --no-history --format json
+
+# Preview what would be scanned (dry run)
+hamburglar scan-git https://github.com/user/repo --dry-run
 ```
 
 ### scan-web
@@ -215,6 +226,7 @@ hamburglar scan-web [OPTIONS] URL
 | `--min-confidence` | - | Minimum confidence level for findings: high, medium, low |
 | `--save-to-db/--no-save-to-db` | from config or `False` | Save findings to SQLite database |
 | `--db-path` | `~/.hamburglar/findings.db` | Custom path for SQLite database file |
+| `--dry-run` | `False` | Show what would be scanned without performing the scan. Displays configuration, detectors, and URL information |
 
 **Examples:**
 
@@ -233,6 +245,9 @@ hamburglar scan-web https://example.com --timeout 60 --user-agent "MyBot/1.0"
 
 # With authentication
 hamburglar scan-web https://example.com --auth user:pass
+
+# Preview what would be scanned (dry run)
+hamburglar scan-web https://example.com --dry-run
 ```
 
 ### history

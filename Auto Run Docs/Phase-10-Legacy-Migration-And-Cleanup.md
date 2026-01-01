@@ -62,7 +62,29 @@ This phase completes the modernization by ensuring all functionality from the or
     - Edge cases (empty files, single byte, partial lines)
   - All 590 CLI tests pass including the new hexdump tests
 
-- [ ] Create `src/hamburglar/compat/ioc_extract.py` with optional iocextract integration: wrapper around iocextract library, detector implementation using iocextract, graceful fallback when iocextract not installed
+- [x] Create `src/hamburglar/compat/ioc_extract.py` with optional iocextract integration: wrapper around iocextract library, detector implementation using iocextract, graceful fallback when iocextract not installed
+  - Created `src/hamburglar/compat/ioc_extract.py` with:
+    - Wrapper functions: `extract_urls()`, `extract_ips()`, `extract_emails()`, `extract_hashes()`, `extract_yara_rules()`, plus specific hash type extractors (MD5, SHA1, SHA256, SHA512)
+    - `IOCExtractDetector` class implementing BaseDetector interface for use with detector registry
+    - `IOCExtractFallbackDetector` that returns empty findings when iocextract is unavailable
+    - `get_detector()` factory function with optional fallback behavior
+    - `extract_iocs_legacy()` function matching original hamburglar.py `-i` flag behavior
+    - `extract_all_iocs()` for extracting all IOC types at once
+    - `is_available()` and `get_import_error()` for availability checking
+    - `IOCExtractNotAvailable` exception for proper error handling
+  - Updated `src/hamburglar/compat/__init__.py` to export all iocextract utilities
+  - Created comprehensive test suite `tests/test_ioc_extract.py` with 51 tests covering:
+    - Availability checking functions (3 tests)
+    - Exception handling (3 tests)
+    - Fallback detector behavior (4 tests)
+    - Factory function (2 tests)
+    - Full detector functionality when iocextract available (16 tests, skipped when unavailable)
+    - Wrapper functions when available (5 tests, skipped when unavailable)
+    - Legacy compatibility functions (6 tests, skipped when unavailable)
+    - Hash extraction functions (4 tests, skipped when unavailable)
+    - Module exports validation (3 tests)
+    - Mocked unavailability behavior (5 tests)
+  - All 4286 tests pass (51 ioc_extract tests: 20 passed, 31 skipped due to iocextract not installed)
 
 - [ ] Add `--use-iocextract` flag to scan command that enables iocextract-based detection in addition to regex patterns (matching original `-i` flag behavior)
 

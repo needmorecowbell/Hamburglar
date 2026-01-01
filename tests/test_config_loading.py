@@ -389,3 +389,71 @@ class TestFileSizeParsing:
         """Numeric file sizes should work."""
         config = HamburglarConfig(scan={"max_file_size": 1000})
         assert config.scan.max_file_size == 1000
+
+
+class TestExampleConfigFile:
+    """Test that the example configuration file is valid and parseable."""
+
+    def test_example_config_file_is_valid(self) -> None:
+        """The example config file should be valid YAML and pass validation."""
+        import yaml
+
+        example_path = Path(__file__).parent.parent / "examples" / "hamburglar.example.yml"
+        if not example_path.exists():
+            pytest.skip("Example config file not found")
+
+        # Should parse as valid YAML
+        content = example_path.read_text()
+        data = yaml.safe_load(content)
+
+        assert isinstance(data, dict), "Example config should be a dictionary"
+        assert "scan" in data, "Example config should have 'scan' section"
+        assert "detector" in data, "Example config should have 'detector' section"
+        assert "output" in data, "Example config should have 'output' section"
+        assert "yara" in data, "Example config should have 'yara' section"
+
+    def test_example_config_file_validates_against_schema(self) -> None:
+        """The example config file should validate against the schema."""
+        import yaml
+
+        example_path = Path(__file__).parent.parent / "examples" / "hamburglar.example.yml"
+        if not example_path.exists():
+            pytest.skip("Example config file not found")
+
+        content = example_path.read_text()
+        data = yaml.safe_load(content)
+
+        # Remove the plugins section since it's not part of HamburglarConfig schema
+        # (plugins are handled separately by PluginManager)
+        if "plugins" in data:
+            del data["plugins"]
+
+        # Should validate without errors
+        config = HamburglarConfig.model_validate(data)
+
+        # Verify some key values from the example
+        assert config.scan.recursive is True
+        assert config.scan.max_file_size == 10 * 1024 * 1024  # 10MB
+        assert config.scan.concurrency == 50
+        assert config.output.format.value == "table"
+        assert config.yara.enabled is False
+        assert config.log_level.value == "info"
+
+    def test_example_config_has_comprehensive_blacklist(self) -> None:
+        """The example config should include common exclusion patterns."""
+        import yaml
+
+        example_path = Path(__file__).parent.parent / "examples" / "hamburglar.example.yml"
+        if not example_path.exists():
+            pytest.skip("Example config file not found")
+
+        content = example_path.read_text()
+        data = yaml.safe_load(content)
+
+        blacklist = data.get("scan", {}).get("blacklist", [])
+
+        # Check for important exclusions
+        assert ".git" in blacklist, "Should exclude .git"
+        assert "node_modules" in blacklist, "Should exclude node_modules"
+        assert "__pycache__" in blacklist, "Should exclude __pycache__"
+        assert any("*.pyc" in str(p) for p in blacklist), "Should exclude .pyc files"

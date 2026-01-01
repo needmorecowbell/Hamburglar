@@ -1,0 +1,535 @@
+# =============================================================================
+# Hamburglar Configuration File
+# =============================================================================
+#
+# This is a comprehensive example configuration file for Hamburglar.
+# Copy this file to your project root as `.hamburglar.yml` or to your home
+# directory as `~/.config/hamburglar/config.yml` for global settings.
+#
+# Configuration sources are loaded in this priority order (highest first):
+#   1. CLI arguments (e.g., --recursive, --format json)
+#   2. Environment variables (e.g., HAMBURGLAR_OUTPUT_FORMAT)
+#   3. Project-local config file (.hamburglar.yml in project directory)
+#   4. User-global config file (~/.config/hamburglar/config.yml)
+#   5. Built-in defaults
+#
+# For more information, see: https://github.com/needmorecowbell/Hamburglar
+# =============================================================================
+
+
+# =============================================================================
+# SCAN SETTINGS
+# =============================================================================
+# These settings control how Hamburglar discovers and processes files during
+# scanning operations.
+
+scan:
+  # ---------------------------------------------------------------------------
+  # Recursive Scanning
+  # ---------------------------------------------------------------------------
+  # When true, Hamburglar will scan all subdirectories of the target path.
+  # Set to false to only scan files in the immediate target directory.
+  #
+  # Environment variable: HAMBURGLAR_RECURSIVE
+  # CLI override: --recursive / --no-recursive
+  recursive: true
+
+  # ---------------------------------------------------------------------------
+  # Maximum File Size
+  # ---------------------------------------------------------------------------
+  # Files larger than this size will be skipped during scanning.
+  # Supports human-readable suffixes: B, K/KB, M/MB, G/GB
+  # Set to 0 for unlimited (not recommended for large codebases).
+  #
+  # Examples: "10MB", "1G", "524288" (bytes)
+  #
+  # Environment variable: HAMBURGLAR_MAX_FILE_SIZE
+  max_file_size: 10MB
+
+  # ---------------------------------------------------------------------------
+  # Concurrency
+  # ---------------------------------------------------------------------------
+  # Maximum number of concurrent file operations during scanning.
+  # Higher values may speed up scanning but increase memory usage.
+  # Recommended range: 10-100 depending on your system.
+  #
+  # Environment variable: HAMBURGLAR_CONCURRENCY
+  concurrency: 50
+
+  # ---------------------------------------------------------------------------
+  # Timeout
+  # ---------------------------------------------------------------------------
+  # Timeout in seconds for scanning individual files.
+  # Files that take longer than this will be skipped with a warning.
+  # Set to 0 for no timeout (not recommended).
+  #
+  # Environment variable: HAMBURGLAR_TIMEOUT
+  timeout: 30
+
+  # ---------------------------------------------------------------------------
+  # Blacklist (Exclusion Patterns)
+  # ---------------------------------------------------------------------------
+  # List of patterns to exclude from scanning. Supports:
+  #   - Directory names (e.g., "node_modules")
+  #   - File patterns with wildcards (e.g., "*.pyc", "*.min.js")
+  #   - Dot files and directories (e.g., ".git")
+  #
+  # These patterns are matched against both file and directory names.
+  blacklist:
+    # Version control
+    - .git
+    - .svn
+    - .hg
+    - .bzr
+
+    # Package managers and dependencies
+    - node_modules
+    - vendor
+    - bower_components
+    - packages
+
+    # Python
+    - __pycache__
+    - "*.pyc"
+    - "*.pyo"
+    - "*.pyd"
+    - .venv
+    - venv
+    - .tox
+    - .nox
+    - .eggs
+    - "*.egg-info"
+
+    # Build outputs
+    - dist
+    - build
+    - out
+    - target
+    - _build
+
+    # IDE and editor
+    - .idea
+    - .vscode
+    - "*.swp"
+    - "*.swo"
+    - "*~"
+
+    # Compiled and binary files
+    - "*.so"
+    - "*.dll"
+    - "*.exe"
+    - "*.o"
+    - "*.a"
+
+    # Media and large assets (unlikely to contain secrets)
+    - "*.jpg"
+    - "*.jpeg"
+    - "*.png"
+    - "*.gif"
+    - "*.ico"
+    - "*.mp3"
+    - "*.mp4"
+    - "*.mov"
+    - "*.pdf"
+
+    # Lock files (often contain checksums that trigger false positives)
+    - package-lock.json
+    - yarn.lock
+    - poetry.lock
+    - Pipfile.lock
+    - Gemfile.lock
+
+  # ---------------------------------------------------------------------------
+  # Whitelist (Inclusion Patterns)
+  # ---------------------------------------------------------------------------
+  # If specified, ONLY files matching these patterns will be scanned.
+  # Leave empty to scan all files (except those in blacklist).
+  # Useful for focusing on specific file types.
+  #
+  # Examples:
+  #   whitelist:
+  #     - "*.py"
+  #     - "*.js"
+  #     - "*.env*"
+  #     - "config/*"
+  whitelist: []
+
+
+# =============================================================================
+# DETECTOR SETTINGS
+# =============================================================================
+# These settings control which secrets and patterns Hamburglar looks for.
+
+detector:
+  # ---------------------------------------------------------------------------
+  # Enabled Categories
+  # ---------------------------------------------------------------------------
+  # List of detector categories to enable. Leave empty to enable all categories.
+  #
+  # Available categories:
+  #   - api_keys: API keys and access tokens (AWS, GCP, GitHub, etc.)
+  #   - credentials: Passwords, usernames, and login credentials
+  #   - crypto: Cryptographic keys and certificates (RSA, SSH, PGP)
+  #   - network: URLs with credentials, database connection strings
+  #   - private_keys: Private key files and embedded keys
+  #   - cloud: Cloud provider-specific secrets (AWS, Azure, GCP)
+  #   - generic: Generic secret patterns (base64, high-entropy strings)
+  #
+  # Environment variable: HAMBURGLAR_CATEGORIES (comma-separated)
+  #
+  # Example - scan only for API keys and credentials:
+  #   enabled_categories:
+  #     - api_keys
+  #     - credentials
+  enabled_categories: []
+
+  # ---------------------------------------------------------------------------
+  # Disabled Patterns
+  # ---------------------------------------------------------------------------
+  # Specific pattern names to disable, even if their category is enabled.
+  # Useful for suppressing noisy patterns that generate false positives.
+  #
+  # To see available pattern names, run: hamburglar patterns list
+  #
+  # Example:
+  #   disabled_patterns:
+  #     - generic_high_entropy
+  #     - base64_encoded
+  disabled_patterns: []
+
+  # ---------------------------------------------------------------------------
+  # Minimum Confidence Level
+  # ---------------------------------------------------------------------------
+  # Only report findings with this confidence level or higher.
+  #
+  # Options:
+  #   - low: Report all findings (may include more false positives)
+  #   - medium: Report medium and high confidence findings
+  #   - high: Only report high confidence findings (fewer false positives)
+  #
+  # Environment variable: HAMBURGLAR_MIN_CONFIDENCE
+  min_confidence: low
+
+  # ---------------------------------------------------------------------------
+  # Custom Patterns Path
+  # ---------------------------------------------------------------------------
+  # Path to a file containing custom pattern definitions.
+  # This allows you to add organization-specific patterns without modifying
+  # Hamburglar's core patterns.
+  #
+  # The file should be in YAML format with the following structure:
+  #
+  # patterns:
+  #   - name: my_org_api_key
+  #     pattern: 'MYORG_[A-Za-z0-9]{32}'
+  #     description: "MyOrg API Key"
+  #     severity: high
+  #     category: api_keys
+  #
+  # custom_patterns_path: ./custom_patterns.yaml
+
+
+# =============================================================================
+# OUTPUT SETTINGS
+# =============================================================================
+# These settings control how scan results are formatted and saved.
+
+output:
+  # ---------------------------------------------------------------------------
+  # Output Format
+  # ---------------------------------------------------------------------------
+  # Format for displaying scan results.
+  #
+  # Options:
+  #   - table: Human-readable table format (default)
+  #   - json: JSON format for programmatic processing
+  #   - sarif: SARIF format for integration with security tools
+  #   - csv: CSV format for spreadsheet import
+  #   - html: HTML report format
+  #   - markdown: Markdown format for documentation
+  #
+  # Environment variable: HAMBURGLAR_OUTPUT_FORMAT
+  # CLI override: --format
+  format: table
+
+  # ---------------------------------------------------------------------------
+  # Output Path
+  # ---------------------------------------------------------------------------
+  # Path to save the output file. If not specified, output goes to stdout.
+  # The file extension is automatically added based on the format.
+  #
+  # CLI override: --output
+  #
+  # Example:
+  #   output_path: ./reports/security-scan
+  output_path: null
+
+  # ---------------------------------------------------------------------------
+  # Database Storage
+  # ---------------------------------------------------------------------------
+  # When true, findings are saved to a SQLite database for historical tracking.
+  # This allows you to compare scan results over time and track remediation.
+  #
+  # Environment variable: HAMBURGLAR_SAVE_TO_DB
+  save_to_db: false
+
+  # ---------------------------------------------------------------------------
+  # Database Path
+  # ---------------------------------------------------------------------------
+  # Path to the SQLite database file for storing findings.
+  # Only used when save_to_db is true.
+  #
+  # Environment variable: HAMBURGLAR_DB_PATH
+  #
+  # Default: ~/.hamburglar/findings.db
+  # db_path: ~/.hamburglar/findings.db
+
+  # ---------------------------------------------------------------------------
+  # Quiet Mode
+  # ---------------------------------------------------------------------------
+  # When true, suppresses non-essential output (progress bars, info messages).
+  # Only findings and errors are displayed.
+  #
+  # Environment variable: HAMBURGLAR_QUIET
+  # CLI override: --quiet / -q
+  quiet: false
+
+  # ---------------------------------------------------------------------------
+  # Verbose Mode
+  # ---------------------------------------------------------------------------
+  # When true, enables detailed output including debug information.
+  # Useful for troubleshooting configuration issues.
+  #
+  # Environment variable: HAMBURGLAR_VERBOSE
+  # CLI override: --verbose / -v
+  verbose: false
+
+
+# =============================================================================
+# YARA SETTINGS
+# =============================================================================
+# These settings control YARA rule-based scanning for advanced pattern matching.
+# YARA is optional and requires the yara-python package to be installed.
+
+yara:
+  # ---------------------------------------------------------------------------
+  # Enable YARA
+  # ---------------------------------------------------------------------------
+  # When true, YARA rules are used in addition to built-in detectors.
+  # YARA allows for more complex pattern matching and file classification.
+  #
+  # Environment variable: HAMBURGLAR_YARA_ENABLED
+  # CLI override: --yara / --no-yara
+  enabled: false
+
+  # ---------------------------------------------------------------------------
+  # Rules Path
+  # ---------------------------------------------------------------------------
+  # Path to directory containing YARA rule files (.yar, .yara).
+  # Hamburglar includes built-in rules in the 'rules/' directory.
+  #
+  # Environment variable: HAMBURGLAR_YARA_RULES
+  # CLI override: --yara-rules
+  #
+  # Example:
+  #   rules_path: ./custom_rules
+  rules_path: null
+
+  # ---------------------------------------------------------------------------
+  # YARA Timeout
+  # ---------------------------------------------------------------------------
+  # Timeout in seconds for YARA rule matching per file.
+  # Complex rules or large files may require longer timeouts.
+  timeout: 30
+
+  # ---------------------------------------------------------------------------
+  # Compiled Rules Path
+  # ---------------------------------------------------------------------------
+  # Path to pre-compiled YARA rules for faster loading.
+  # Compile rules with: hamburglar yara compile --output compiled.yarc
+  #
+  # compiled_rules_path: ./compiled.yarc
+
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Log Level
+# ---------------------------------------------------------------------------
+# Controls the verbosity of log output.
+#
+# Options:
+#   - debug: Detailed debugging information
+#   - info: General operational information (default)
+#   - warning: Only warnings and errors
+#   - error: Only errors
+#   - critical: Only critical errors
+#
+# Environment variable: HAMBURGLAR_LOG_LEVEL
+log_level: info
+
+
+# =============================================================================
+# PLUGIN CONFIGURATION
+# =============================================================================
+# Hamburglar supports plugins for custom detectors and output formatters.
+# Plugins can be discovered from Python packages or directories.
+
+plugins:
+  # ---------------------------------------------------------------------------
+  # Plugin Directories
+  # ---------------------------------------------------------------------------
+  # List of directories to scan for plugin files.
+  # Each .py file in these directories is loaded as a potential plugin.
+  #
+  # Example:
+  #   directories:
+  #     - ./plugins
+  #     - ~/.hamburglar/plugins
+  directories: []
+
+  # ---------------------------------------------------------------------------
+  # Plugin Configuration
+  # ---------------------------------------------------------------------------
+  # Configuration options for individual plugins.
+  # The keys should match the plugin names.
+  #
+  # Example configuration for the custom_api_keys plugin:
+  config:
+    # Example: Configure the custom API key detector
+    custom_api_keys:
+      # Minimum length for detected keys (shorter = more false positives)
+      min_key_length: 16
+
+      # Validate key entropy (randomness) to reduce false positives
+      check_entropy: true
+
+      # Minimum Shannon entropy threshold (higher = fewer false positives)
+      min_entropy: 3.0
+
+      # Custom prefixes to search for (organization-specific)
+      key_prefixes:
+        - "MYORG_"
+        - "INTERNAL_"
+        - "PROD_"
+        - "STAGING_"
+        - "DEV_"
+
+      # Case sensitivity for prefix matching
+      case_sensitive: false
+
+
+# =============================================================================
+# COMMON USE CASE CONFIGURATIONS
+# =============================================================================
+#
+# Below are example configurations for common use cases. Copy the relevant
+# sections above and modify as needed.
+#
+# -----------------------------------------------------------------------------
+# USE CASE 1: Quick Security Scan (High Confidence Only)
+# -----------------------------------------------------------------------------
+# For fast scans with minimal false positives:
+#
+# detector:
+#   min_confidence: high
+#   enabled_categories:
+#     - api_keys
+#     - credentials
+#     - private_keys
+# scan:
+#   timeout: 10
+# output:
+#   quiet: true
+#
+# -----------------------------------------------------------------------------
+# USE CASE 2: CI/CD Pipeline Integration
+# -----------------------------------------------------------------------------
+# For automated security scanning in CI/CD:
+#
+# output:
+#   format: sarif
+#   output_path: ./security-report
+#   quiet: true
+# detector:
+#   min_confidence: medium
+# scan:
+#   timeout: 60
+#   concurrency: 20
+#
+# -----------------------------------------------------------------------------
+# USE CASE 3: Comprehensive Security Audit
+# -----------------------------------------------------------------------------
+# For thorough security audits with full coverage:
+#
+# detector:
+#   min_confidence: low
+#   enabled_categories: []  # All categories
+# yara:
+#   enabled: true
+#   rules_path: ./rules
+# output:
+#   format: html
+#   output_path: ./security-audit-report
+#   save_to_db: true
+# scan:
+#   max_file_size: 50MB
+#   timeout: 120
+#
+# -----------------------------------------------------------------------------
+# USE CASE 4: Python Project Only
+# -----------------------------------------------------------------------------
+# For scanning only Python files:
+#
+# scan:
+#   whitelist:
+#     - "*.py"
+#     - "*.pyw"
+#     - "*.pyx"
+#   blacklist:
+#     - __pycache__
+#     - "*.pyc"
+#     - .venv
+#     - venv
+#     - .tox
+#
+# -----------------------------------------------------------------------------
+# USE CASE 5: JavaScript/Node.js Project
+# -----------------------------------------------------------------------------
+# For scanning JavaScript/TypeScript projects:
+#
+# scan:
+#   whitelist:
+#     - "*.js"
+#     - "*.jsx"
+#     - "*.ts"
+#     - "*.tsx"
+#     - "*.json"
+#     - ".env*"
+#   blacklist:
+#     - node_modules
+#     - dist
+#     - build
+#     - "*.min.js"
+#     - package-lock.json
+#
+# -----------------------------------------------------------------------------
+# USE CASE 6: Pre-commit Hook
+# -----------------------------------------------------------------------------
+# Fast configuration for pre-commit hooks:
+#
+# scan:
+#   timeout: 5
+#   concurrency: 10
+# detector:
+#   min_confidence: high
+#   enabled_categories:
+#     - api_keys
+#     - private_keys
+# output:
+#   format: table
+#   quiet: false
+#
+# =============================================================================

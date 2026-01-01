@@ -78,6 +78,9 @@ This includes:
 - **pytest-asyncio**: Async test support
 - **ruff**: Linting and formatting
 - **mypy**: Type checking
+- **mkdocs**: Documentation site generator
+- **mkdocs-material**: Material theme for MkDocs
+- **mkdocs-minify-plugin**: HTML minification for production builds
 
 Run tests to verify the installation:
 

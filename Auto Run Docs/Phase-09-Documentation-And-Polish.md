@@ -97,7 +97,10 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
   - Created docs/javascripts/extra.js with smooth scrolling and version selector enhancements
   - Configured social links for GitHub, PyPI, and Docker Hub
 
-- [ ] Add `mkdocs` and `mkdocs-material` to dev dependencies
+- [x] Add `mkdocs` and `mkdocs-material` to dev dependencies
+  - Added `mkdocs>=1.5.0`, `mkdocs-material>=9.4.0`, and `mkdocs-minify-plugin>=0.7.0` to dev dependencies in pyproject.toml
+  - Updated docs/installation.md to document the new dev dependencies
+  - Verified installation: mkdocs 1.6.1, mkdocs-material 9.7.1 installed successfully
 
 - [ ] Run `mkdocs build` to verify documentation builds correctly
 

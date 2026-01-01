@@ -236,6 +236,9 @@ def generate_toml_config(
         "# Migrated from ham.conf",
         "# See https://github.com/needmorecowbell/Hamburglar for documentation",
         "",
+        "# Logging level (debug, info, warning, error, critical)",
+        f'log_level = "{options.get("log_level", "info")}"',
+        "",
     ]
 
     # Scan section
@@ -326,11 +329,6 @@ def generate_toml_config(
     lines.append("")
     lines.append("# Timeout for YARA matching (seconds)")
     lines.append(f"timeout = {options.get('yara_timeout', 30)}")
-    lines.append("")
-
-    # Log level
-    lines.append("# Logging level (debug, info, warning, error, critical)")
-    lines.append(f'log_level = "{options.get("log_level", "info")}"')
     lines.append("")
 
     # Add migration notes about MySQL credentials

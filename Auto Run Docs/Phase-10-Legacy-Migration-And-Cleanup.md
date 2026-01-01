@@ -238,7 +238,17 @@ This phase completes the modernization by ensuring all functionality from the or
     - TestLegacyPatternDetection: AWS API Key, RSA Private Key, Slack Token, IPv4, Google OAuth, Ethereum Address, PGP Private Key detection via RegexDetector
   - All 4362 tests pass (68 skipped for optional dependencies)
 
-- [ ] Create `tests/test_migration.py` with tests for: old config files can be migrated, migration script handles edge cases, migrated config produces same behavior
+- [x] Create `tests/test_migration.py` with tests for: old config files can be migrated, migration script handles edge cases, migrated config produces same behavior
+  - Created comprehensive `tests/test_migration.py` with 43 tests covering:
+  - **TestMigrationFromLegacyConfig (7 tests):** Standard, complex, minimal, empty ham.conf migration; MySQL username preservation; password hiding; CLI migration
+  - **TestMigrationEdgeCases (14 tests):** Special characters, unicode, quotes, empty values, whitespace, case-insensitive sections, comments, extra sections, multiline values, percent sign handling, output file exists/force, parent directory creation
+  - **TestMigratedConfigBehavior (6 tests):** Default scan settings, MySQL enables YARA, detector defaults, output defaults, ScanConfig conversion, custom options propagation
+  - **TestMigratedTomlValidity (3 tests):** Valid TOML output, special glob patterns, MySQL migration comments
+  - **TestConfigFileDiscovery (5 tests):** ham.conf discovery in cwd, hidden files, priority, not found, v2 config loader finds toml
+  - **TestMigrationScriptCLI (5 tests):** Help output, dry-run, nonexistent input error, custom output path, success message
+  - **TestArchivedLegacyConfig (2 tests):** Archived ham_v1.conf parseable and migratable
+  - Fixed bug in `scripts/migrate-config.py` where `log_level` was incorrectly placed inside `[yara]` section instead of root level
+  - All 4405 tests pass (68 skipped for optional dependencies)
 
 - [ ] Run comprehensive test suite: all unit tests pass, all integration tests pass, coverage remains at or above 95%, no regressions in detection capability
 

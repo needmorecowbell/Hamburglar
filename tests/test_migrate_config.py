@@ -16,10 +16,15 @@ import pytest
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from importlib import import_module
+from importlib import import_module, reload
 
 # Import the module without running main()
-migrate_config = import_module("migrate-config")
+# Force reload to ensure we get the latest version (in case earlier tests cached it)
+_module_name = "migrate-config"
+if _module_name in sys.modules:
+    migrate_config = reload(sys.modules[_module_name])
+else:
+    migrate_config = import_module(_module_name)
 
 parse_ham_conf = migrate_config.parse_ham_conf
 generate_toml_config = migrate_config.generate_toml_config

@@ -78,7 +78,14 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Comprehensive test suite with 24 tests in `tests/test_cli_git.py`
   - All 2636 tests pass (94%+ coverage maintained)
 
-- [ ] Update CLI with `scan-web` command: positional URL argument, `--depth` for link follow depth (default 1), `--include-scripts` to scan JS files, `--user-agent` for custom user agent, `--timeout` for request timeout, `--auth` for basic auth credentials
+- [x] Update CLI with `scan-web` command: positional URL argument, `--depth` for link follow depth (default 1), `--include-scripts` to scan JS files, `--user-agent` for custom user agent, `--timeout` for request timeout, `--auth` for basic auth credentials
+  - Added `scan-web` command to CLI in `src/hamburglar/cli/main.py`
+  - Options: `--depth/-d` for link following depth (default 1), `--include-scripts/--no-scripts` for JavaScript scanning (default enabled), `--user-agent/-u` for custom user agent, `--timeout/-t` for HTTP timeout (default 30s), `--auth/-a` for basic auth credentials (username:password format), `--respect-robots/--ignore-robots` for robots.txt compliance
+  - Supports all standard options: `--format`, `--output`, `--verbose`, `--quiet`, `--stream`, `--categories`, `--no-categories`, `--min-confidence`
+  - Rich progress bar showing current URL being scanned and findings count
+  - Streaming mode outputs NDJSON for real-time finding processing
+  - Comprehensive test suite with 27 tests in `tests/test_cli_web.py`
+  - All 2665 tests pass (coverage at 91% for CLI additions)
 
 - [ ] Create `src/hamburglar/core/models.py` updates: add `GitFinding` subclass with commit_hash, author, date, file_path_at_commit, add `WebFinding` subclass with url, element_type (script/text/attribute), add `SecretTimeline` model for tracking secret history
 

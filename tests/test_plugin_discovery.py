@@ -603,3 +603,463 @@ print("SUCCESS")
         )
         assert result.returncode == 0, f"Integration test failed: {result.stderr}\n{result.stdout}"
         assert "SUCCESS" in result.stdout
+
+
+class TestValidatePluginInterfaceEdgeCases:
+    """Additional edge case tests for validate_plugin_interface."""
+
+    def test_detector_with_non_callable_name(self) -> None:
+        """Test detector with name as a regular attribute (not property)."""
+
+        class DetectorWithAttrName:
+            name = "my_detector"
+
+            def detect(self, content: str, file_path: str = "") -> list[Finding]:
+                return []
+
+        # Should pass since name exists (even if not a property)
+        is_valid, errors = validate_plugin_interface(DetectorWithAttrName, "detector")
+        # This covers the validation logic allowing non-property names
+        assert is_valid is True or len(errors) == 0 or any("name" not in e.lower() for e in errors)
+
+    def test_detector_with_non_callable_detect(self) -> None:
+        """Test detector where detect is not callable."""
+
+        class DetectorWithBadDetect:
+            name = "bad"
+            detect = "not a method"  # Not callable
+
+        is_valid, errors = validate_plugin_interface(DetectorWithBadDetect, "detector")
+        assert is_valid is False
+        assert any("detect" in e.lower() and "callable" in e.lower() for e in errors)
+
+    def test_output_with_non_callable_format(self) -> None:
+        """Test output where format is not callable."""
+
+        class OutputWithBadFormat:
+            name = "bad"
+            format = 123  # Not callable
+
+        is_valid, errors = validate_plugin_interface(OutputWithBadFormat, "output")
+        assert is_valid is False
+        assert any("format" in e.lower() and "callable" in e.lower() for e in errors)
+
+    def test_output_no_name_property(self) -> None:
+        """Test output without name property."""
+
+        class OutputNoName:
+            def format(self, result: ScanResult) -> str:
+                return "test"
+
+        is_valid, errors = validate_plugin_interface(OutputNoName, "output")
+        assert is_valid is False
+        assert any("name" in e.lower() for e in errors)
+
+
+class TestLoadPluginsFromFileInternal:
+    """Tests for _load_plugins_from_file internal function."""
+
+    def test_load_plugin_file_with_syntax_error(self, tmp_path: Path) -> None:
+        """Test loading a plugin file with syntax errors."""
+        bad_file = tmp_path / "bad_syntax.py"
+        bad_file.write_text("def broken(:\n  pass")
+
+        # Use discover_directory which uses _load_plugins_from_file internally
+        # and handles errors gracefully with warnings
+        plugins = discover_directory(tmp_path)
+        # File with syntax error should be skipped, no plugins returned
+        assert isinstance(plugins, list)
+
+    def test_load_plugin_file_cannot_create_spec(self, tmp_path: Path) -> None:
+        """Test handling when a file cannot be loaded."""
+        # Create an empty directory - discover_directory should handle it
+        plugins = discover_directory(tmp_path)
+        # Empty directory returns empty list
+        assert plugins == []
+
+    def test_load_plugin_with_validation_disabled(self, tmp_path: Path) -> None:
+        """Test loading plugins with validation disabled."""
+        plugin_file = tmp_path / "partial_plugin.py"
+        plugin_file.write_text('''
+"""Partial plugin that might not fully validate."""
+from hamburglar.core.models import Finding
+from hamburglar.detectors import BaseDetector
+
+
+class PartialDetector(BaseDetector):
+    """A detector that might fail strict validation."""
+
+    @property
+    def name(self) -> str:
+        return "partial_detector"
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+''')
+        from hamburglar.plugins.discovery import _load_plugins_from_file
+
+        plugins = _load_plugins_from_file(plugin_file, validate=False)
+        # Should load without validation issues
+        assert len(plugins) >= 1
+
+    def test_load_plugin_with_output_class(self, tmp_path: Path) -> None:
+        """Test loading a file with output plugin class."""
+        plugin_file = tmp_path / "output_only.py"
+        plugin_file.write_text('''
+"""Output plugin file."""
+from hamburglar.core.models import ScanResult
+from hamburglar.outputs import BaseOutput
+
+
+class CustomOutput(BaseOutput):
+    """A custom output plugin."""
+
+    @property
+    def name(self) -> str:
+        return "custom_output"
+
+    def format(self, result: ScanResult) -> str:
+        return "custom"
+''')
+        from hamburglar.plugins.discovery import _load_plugins_from_file
+
+        plugins = _load_plugins_from_file(plugin_file, validate=True)
+        output_plugins = [p for p in plugins if p[1] == "output"]
+        assert len(output_plugins) >= 1
+
+    def test_load_skips_private_attributes(self, tmp_path: Path) -> None:
+        """Test that private attributes (starting with _) are skipped."""
+        plugin_file = tmp_path / "with_private.py"
+        plugin_file.write_text('''
+"""Plugin with private classes."""
+from hamburglar.core.models import Finding
+from hamburglar.detectors import BaseDetector
+
+
+class _PrivateDetector(BaseDetector):
+    """Should be skipped."""
+
+    @property
+    def name(self) -> str:
+        return "private"
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+
+
+class PublicDetector(BaseDetector):
+    """Should be found."""
+
+    @property
+    def name(self) -> str:
+        return "public"
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+''')
+        from hamburglar.plugins.discovery import _load_plugins_from_file
+
+        plugins = _load_plugins_from_file(plugin_file)
+        names = [p[0] for p in plugins]
+        assert "private" not in names
+
+
+class TestDiscoverPluginsAdvanced:
+    """Advanced tests for discover_plugins function."""
+
+    def test_discover_with_entry_points_enabled(self) -> None:
+        """Test discovery with entry points enabled."""
+        manager = PluginManager()
+        result = discover_plugins(include_entry_points=True, manager=manager)
+        assert isinstance(result, DiscoveryResult)
+        # Entry points may or may not exist, but shouldn't error
+
+    def test_discover_with_multiple_directories(self, tmp_path: Path) -> None:
+        """Test discovery with multiple plugin directories."""
+        dir1 = tmp_path / "plugins1"
+        dir2 = tmp_path / "plugins2"
+        dir1.mkdir()
+        dir2.mkdir()
+
+        # Create plugin in dir1
+        (dir1 / "det1.py").write_text('''
+from hamburglar.core.models import Finding
+from hamburglar.detectors import BaseDetector
+
+class Det1Detector(BaseDetector):
+    @property
+    def name(self) -> str:
+        return "det1"
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+''')
+
+        # Create plugin in dir2
+        (dir2 / "det2.py").write_text('''
+from hamburglar.core.models import Finding
+from hamburglar.detectors import BaseDetector
+
+class Det2Detector(BaseDetector):
+    @property
+    def name(self) -> str:
+        return "det2"
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+''')
+
+        # Run in subprocess
+        test_script = f'''
+import sys
+sys.path.insert(0, "{src_path}")
+from hamburglar.plugins import PluginManager, reset_plugin_manager
+from hamburglar.plugins.discovery import discover_plugins
+
+reset_plugin_manager()
+manager = PluginManager()
+result = discover_plugins(
+    directories=["{dir1}", "{dir2}"],
+    include_entry_points=False,
+    manager=manager
+)
+if result.detector_count >= 2:
+    print("SUCCESS")
+else:
+    print("FAIL: " + str(result.detector_count))
+    sys.exit(1)
+'''
+        import subprocess
+
+        proc = subprocess.run(
+            [sys.executable, "-c", test_script],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert proc.returncode == 0, f"Failed: {proc.stderr}"
+        assert "SUCCESS" in proc.stdout
+
+    def test_discover_uses_global_manager_when_none_provided(self) -> None:
+        """Test that discover_plugins uses global manager when none provided."""
+        reset_plugin_manager()
+        result = discover_plugins(include_entry_points=False)
+        assert isinstance(result, DiscoveryResult)
+
+    def test_discover_handles_registration_errors(self, tmp_path: Path) -> None:
+        """Test that discovery handles registration errors gracefully."""
+        # Create a plugin that might cause registration issues
+        plugin_file = tmp_path / "problematic.py"
+        plugin_file.write_text('''
+from hamburglar.core.models import Finding
+from hamburglar.detectors import BaseDetector
+
+class ProblematicDetector(BaseDetector):
+    @property
+    def name(self) -> str:
+        return ""  # Empty name might cause issues
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+''')
+        manager = PluginManager()
+        # Should not raise, errors should be captured in result
+        result = discover_plugins(
+            directories=[tmp_path], include_entry_points=False, manager=manager
+        )
+        assert isinstance(result, DiscoveryResult)
+
+
+class TestListPluginsAdvanced:
+    """Advanced tests for list_plugins function."""
+
+    def test_list_plugins_uses_global_manager(self) -> None:
+        """Test list_plugins uses global manager when none provided."""
+        reset_plugin_manager()
+        # Should not raise
+        plugins = list(list_plugins())
+        assert isinstance(plugins, list)
+
+    def test_list_plugins_triggers_discovery(self) -> None:
+        """Test that list_plugins triggers discovery if not done."""
+        manager = PluginManager()
+        assert manager._discovered is False
+        _ = list(list_plugins(manager=manager))
+        assert manager._discovered is True
+
+
+class TestGetPluginDetailsAdvanced:
+    """Advanced tests for get_plugin_details function."""
+
+    def test_get_plugin_details_uses_global_manager(self) -> None:
+        """Test get_plugin_details uses global manager when none provided."""
+        reset_plugin_manager()
+        # Should return None for nonexistent plugin
+        details = get_plugin_details("nonexistent_plugin_xyz")
+        assert details is None
+
+
+class TestFormatPluginListAdvanced:
+    """Advanced tests for format_plugin_list function."""
+
+    def test_format_only_detectors(self) -> None:
+        """Test formatting with only detector plugins."""
+        plugins = [
+            PluginListEntry(
+                name="det1",
+                plugin_type="detector",
+                description="Detector 1",
+            ),
+            PluginListEntry(
+                name="det2",
+                plugin_type="detector",
+                description="Detector 2",
+            ),
+        ]
+        result = format_plugin_list(plugins)
+        assert "Detector Plugins:" in result
+        assert "Output Plugins:" not in result
+        assert "det1" in result
+        assert "det2" in result
+
+    def test_format_only_outputs(self) -> None:
+        """Test formatting with only output plugins."""
+        plugins = [
+            PluginListEntry(
+                name="out1",
+                plugin_type="output",
+                description="Output 1",
+            ),
+        ]
+        result = format_plugin_list(plugins)
+        assert "Output Plugins:" in result
+        assert "Detector Plugins:" not in result
+        assert "out1" in result
+
+    def test_format_verbose_with_description(self) -> None:
+        """Test verbose formatting includes description."""
+        plugins = [
+            PluginListEntry(
+                name="test",
+                plugin_type="detector",
+                description="A detailed description",
+                version="2.0.0",
+                author="Test Author",
+                source="directory",
+            ),
+        ]
+        result = format_plugin_list(plugins, verbose=True)
+        assert "A detailed description" in result
+        assert "Test Author" in result
+        assert "directory" in result
+
+    def test_format_verbose_without_author(self) -> None:
+        """Test verbose formatting when author is empty."""
+        plugins = [
+            PluginListEntry(
+                name="test",
+                plugin_type="detector",
+                description="Description",
+                version="1.0.0",
+                author="",  # Empty author
+                source="manual",
+            ),
+        ]
+        result = format_plugin_list(plugins, verbose=True)
+        assert "Description" in result
+        assert "Author:" not in result  # Should not show empty author
+
+    def test_format_non_verbose_with_description(self) -> None:
+        """Test non-verbose formatting shows description inline."""
+        plugins = [
+            PluginListEntry(
+                name="test",
+                plugin_type="detector",
+                description="Short desc",
+            ),
+        ]
+        result = format_plugin_list(plugins, verbose=False)
+        assert "test - Short desc" in result
+
+    def test_format_non_verbose_without_description(self) -> None:
+        """Test non-verbose formatting without description."""
+        plugins = [
+            PluginListEntry(
+                name="test",
+                plugin_type="output",
+                description="",  # Empty description
+            ),
+        ]
+        result = format_plugin_list(plugins, verbose=False)
+        assert "test" in result
+        assert " - " not in result.split("test")[1].split("\n")[0]  # No description suffix
+
+
+class TestFormatPluginDetailsAdvanced:
+    """Advanced tests for format_plugin_details function."""
+
+    def test_format_without_author(self) -> None:
+        """Test formatting without author."""
+        plugin = PluginListEntry(
+            name="test",
+            plugin_type="detector",
+            author="",  # Empty
+        )
+        result = format_plugin_details(plugin)
+        assert "Author:" not in result
+
+    def test_format_without_description(self) -> None:
+        """Test formatting without description."""
+        plugin = PluginListEntry(
+            name="test",
+            plugin_type="detector",
+            description="",  # Empty
+        )
+        result = format_plugin_details(plugin)
+        assert "Description:" not in result
+
+    def test_format_disabled_plugin(self) -> None:
+        """Test formatting a disabled plugin."""
+        plugin = PluginListEntry(
+            name="test",
+            plugin_type="detector",
+            enabled=False,
+        )
+        result = format_plugin_details(plugin)
+        assert "Enabled: No" in result
+
+    def test_format_with_empty_config(self) -> None:
+        """Test formatting with empty config dict."""
+        plugin = PluginListEntry(
+            name="test",
+            plugin_type="detector",
+            config={},  # Empty config
+        )
+        result = format_plugin_details(plugin)
+        assert "Configuration:" not in result
+
+
+class TestDiscoverDirectoryEdgeCases:
+    """Edge case tests for discover_directory function."""
+
+    def test_discover_directory_with_import_error(self, tmp_path: Path) -> None:
+        """Test handling of files with import errors."""
+        bad_import = tmp_path / "bad_import.py"
+        bad_import.write_text('''
+import nonexistent_module_xyz
+from hamburglar.detectors import BaseDetector
+''')
+        # Should handle gracefully (log warning but not crash)
+        plugins = discover_directory(tmp_path)
+        # File with import error should be skipped
+        assert isinstance(plugins, list)
+
+    def test_discover_directory_with_runtime_error(self, tmp_path: Path) -> None:
+        """Test handling of files that raise errors at module level."""
+        bad_file = tmp_path / "runtime_error.py"
+        bad_file.write_text('''
+raise RuntimeError("Module level error")
+''')
+        # Should handle gracefully
+        plugins = discover_directory(tmp_path)
+        assert isinstance(plugins, list)

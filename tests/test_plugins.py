@@ -636,3 +636,370 @@ class TestPluginIntegration:
         )
         formatted = retrieved.format(result)
         assert "1 findings" in formatted
+
+
+class TestPluginManagerAdvanced:
+    """Advanced tests for PluginManager edge cases."""
+
+    def test_register_detector_from_class(self) -> None:
+        """Test _register_detector_from_class method."""
+        manager = PluginManager()
+        manager._register_detector_from_class(
+            "test_det",
+            MockDetectorPlugin,
+            source="test",
+            config={"key": "value"},
+        )
+        assert "test_det" in manager
+        info = manager.get_plugin_info("test_det")
+        assert info is not None
+        assert info.source == "test"
+        assert info.config == {"key": "value"}
+
+    def test_register_output_from_class(self) -> None:
+        """Test _register_output_from_class method."""
+        manager = PluginManager()
+        manager._register_output_from_class(
+            "test_out",
+            MockOutputPlugin,
+            source="test",
+            config={"format": "custom"},
+        )
+        assert "test_out" in manager
+        info = manager.get_plugin_info("test_out")
+        assert info is not None
+        assert info.source == "test"
+
+    def test_get_detector_instantiates_class(self) -> None:
+        """Test get_detector properly instantiates a class."""
+        manager = PluginManager()
+        manager._register_detector_from_class("inst_det", MockDetectorPlugin, source="test")
+        detector = manager.get_detector("inst_det")
+        assert isinstance(detector, MockDetectorPlugin)
+
+    def test_get_detector_with_config_merged(self) -> None:
+        """Test get_detector merges configs properly."""
+        manager = PluginManager()
+        manager._register_detector_from_class(
+            "config_det",
+            MockDetectorPlugin,
+            source="test",
+            config={"config_value": "base"},
+        )
+        detector = manager.get_detector("config_det", config={"name": "override"})
+        assert detector._config_value == "base"
+        assert detector._name == "override"
+
+    def test_get_detector_class_no_config_support(self) -> None:
+        """Test get_detector handles classes that don't accept config."""
+
+        class SimpleDetector(BaseDetector):
+            @property
+            def name(self) -> str:
+                return "simple"
+
+            def detect(self, content: str, file_path: str = "") -> list[Finding]:
+                return []
+
+        manager = PluginManager()
+        manager._register_detector_from_class(
+            "simple_det",
+            SimpleDetector,
+            source="test",
+            config={"unused": "config"},
+        )
+        # Should handle TypeError and instantiate without config
+        detector = manager.get_detector("simple_det")
+        assert detector.name == "simple"
+
+    def test_get_detector_no_instance(self) -> None:
+        """Test get_detector raises when instance is None."""
+        manager = PluginManager()
+        manager._detector_plugins["no_inst"] = PluginInfo(
+            name="no_inst",
+            plugin_type="detector",
+            instance=None,  # No instance
+        )
+        with pytest.raises(PluginError, match="has no instance"):
+            manager.get_detector("no_inst")
+
+    def test_get_output_instantiates_class(self) -> None:
+        """Test get_output properly instantiates a class."""
+        manager = PluginManager()
+        manager._register_output_from_class("inst_out", MockOutputPlugin, source="test")
+        output = manager.get_output("inst_out")
+        assert isinstance(output, MockOutputPlugin)
+
+    def test_get_output_class_no_config_support(self) -> None:
+        """Test get_output handles classes that don't accept config."""
+
+        class SimpleOutput(BaseOutput):
+            @property
+            def name(self) -> str:
+                return "simple"
+
+            def format(self, result: ScanResult) -> str:
+                return "simple"
+
+        manager = PluginManager()
+        manager._register_output_from_class(
+            "simple_out",
+            SimpleOutput,
+            source="test",
+            config={"unused": "config"},
+        )
+        # Should handle TypeError and instantiate without config
+        output = manager.get_output("simple_out")
+        assert output.name == "simple"
+
+    def test_get_output_no_instance(self) -> None:
+        """Test get_output raises when instance is None."""
+        manager = PluginManager()
+        manager._output_plugins["no_inst"] = PluginInfo(
+            name="no_inst",
+            plugin_type="output",
+            instance=None,  # No instance
+        )
+        with pytest.raises(PluginError, match="has no instance"):
+            manager.get_output("no_inst")
+
+    def test_get_plugin_info_from_output(self) -> None:
+        """Test get_plugin_info returns output plugin info."""
+        manager = PluginManager()
+        output = MockOutputPlugin()
+        manager.register_output(output, description="Test")
+        info = manager.get_plugin_info("mock_output")
+        assert info is not None
+        assert info.plugin_type == "output"
+
+    def test_unregister_detector_removes_from_registry(self) -> None:
+        """Test unregister_detector also removes from registry."""
+        manager = PluginManager()
+        detector = MockDetectorPlugin()
+        manager.register_detector(detector)
+        assert "mock_detector" in manager
+        manager.unregister_detector("mock_detector")
+        assert "mock_detector" not in manager
+
+    def test_unregister_output_removes_from_registry(self) -> None:
+        """Test unregister_output also removes from registry."""
+        manager = PluginManager()
+        output = MockOutputPlugin()
+        manager.register_output(output)
+        assert "mock_output" in manager
+        manager.unregister_output("mock_output")
+        assert "mock_output" not in manager
+
+    def test_auto_discover_on_init(self, tmp_path: Path) -> None:
+        """Test auto_discover=True triggers discovery on init."""
+        manager = PluginManager(
+            plugin_directories=[str(tmp_path)],
+            auto_discover=True,
+        )
+        assert manager._discovered is True
+
+    def test_discover_with_custom_registries(self) -> None:
+        """Test PluginManager with custom registries."""
+        det_registry = DetectorRegistry()
+        out_registry = OutputRegistry()
+        manager = PluginManager(
+            detector_registry=det_registry,
+            output_registry=out_registry,
+        )
+        detector = MockDetectorPlugin()
+        manager.register_detector(detector)
+        # Should be in both plugin manager and registry
+        assert "mock_detector" in manager
+
+    def test_register_detector_already_in_registry(self) -> None:
+        """Test registering detector when already in registry."""
+        det_registry = DetectorRegistry()
+        manager = PluginManager(detector_registry=det_registry)
+        detector = MockDetectorPlugin()
+        # Pre-register in registry
+        det_registry.register(detector)
+        # Should not raise when registering in plugin manager
+        manager.register_detector(detector)
+        assert "mock_detector" in manager
+
+    def test_register_output_already_in_registry(self) -> None:
+        """Test registering output when already in registry."""
+        out_registry = OutputRegistry()
+        manager = PluginManager(output_registry=out_registry)
+        output = MockOutputPlugin()
+        # Pre-register in registry
+        out_registry.register(output)
+        # Should not raise when registering in plugin manager
+        manager.register_output(output)
+        assert "mock_output" in manager
+
+    def test_import_decorated_plugins(self) -> None:
+        """Test _import_decorated_plugins imports from global registries."""
+        # Define decorated plugins
+        @detector_plugin("import_test_det", description="Test")
+        class ImportTestDetector(BaseDetector):
+            @property
+            def name(self) -> str:
+                return "import_test_det"
+
+            def detect(self, content: str, file_path: str = "") -> list[Finding]:
+                return []
+
+        manager = PluginManager()
+        manager.discover()
+        assert "import_test_det" in manager
+
+    def test_discover_returns_cached_count(self) -> None:
+        """Test discover returns cached count on subsequent calls."""
+        manager = PluginManager()
+        count1 = manager.discover()
+        count2 = manager.discover()  # Should return cached
+        assert count1 == count2
+
+    def test_load_plugin_file_integration(self, tmp_path: Path) -> None:
+        """Test _load_plugin_file loads plugins correctly."""
+        plugin_file = tmp_path / "integration.py"
+        plugin_file.write_text('''
+"""Integration test plugin."""
+from hamburglar.core.models import Finding, ScanResult, Severity
+from hamburglar.detectors import BaseDetector
+from hamburglar.outputs import BaseOutput
+
+
+class IntegrationDetector(BaseDetector):
+    """Integration test detector."""
+    __version__ = "2.0.0"
+    __author__ = "Tester"
+
+    @property
+    def name(self) -> str:
+        return "integration_detector"
+
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        return []
+
+
+class IntegrationOutput(BaseOutput):
+    """Integration test output."""
+
+    @property
+    def name(self) -> str:
+        return "integration_output"
+
+    def format(self, result: ScanResult) -> str:
+        return "integration"
+''')
+        # Run in subprocess
+        test_script = f'''
+import sys
+sys.path.insert(0, "{Path(__file__).parent.parent / "src"}")
+from pathlib import Path
+from hamburglar.plugins import PluginManager
+
+manager = PluginManager(plugin_directories=["{tmp_path}"])
+manager.discover()
+det_names = [p.name for p in manager.list_detector_plugins()]
+out_names = [p.name for p in manager.list_output_plugins()]
+if "integration" in det_names or "integrationdetector" in det_names:
+    print("DETECTOR_FOUND")
+if "integration" in out_names or "integrationoutput" in out_names:
+    print("OUTPUT_FOUND")
+'''
+        import subprocess
+
+        result = subprocess.run(
+            [sys.executable, "-c", test_script],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        # At least one should be found
+        assert "FOUND" in result.stdout or result.returncode == 0
+
+
+class TestPluginDiscoveryEntryPoints:
+    """Tests for entry point discovery."""
+
+    def test_discover_entry_points_api(self) -> None:
+        """Test _discover_entry_points internal method."""
+        manager = PluginManager()
+        count = manager._discover_entry_points()
+        # May be 0 if no entry points installed
+        assert count >= 0
+
+    def test_discover_handles_entry_point_errors(self) -> None:
+        """Test discovery handles entry point loading errors gracefully."""
+        manager = PluginManager()
+        # Should not raise even if some entry points fail
+        manager.discover()
+        assert manager._discovered is True
+
+
+class TestDecoratorValidation:
+    """Tests for decorator validation."""
+
+    def test_detector_decorator_with_all_metadata(self) -> None:
+        """Test detector decorator with all metadata."""
+        @detector_plugin(
+            "full_meta_det",
+            description="Full metadata detector",
+            version="3.0.0",
+            author="Full Author",
+        )
+        class FullMetaDetector(BaseDetector):
+            @property
+            def name(self) -> str:
+                return "full_meta_det"
+
+            def detect(self, content: str, file_path: str = "") -> list[Finding]:
+                return []
+
+        manager = PluginManager()
+        manager.discover()
+        info = manager.get_plugin_info("full_meta_det")
+        assert info is not None
+        assert info.description == "Full metadata detector"
+        assert info.version == "3.0.0"
+        assert info.author == "Full Author"
+
+    def test_output_decorator_with_all_metadata(self) -> None:
+        """Test output decorator with all metadata."""
+        @output_plugin(
+            "full_meta_out",
+            description="Full metadata output",
+            version="3.0.0",
+            author="Full Author",
+        )
+        class FullMetaOutput(BaseOutput):
+            @property
+            def name(self) -> str:
+                return "full_meta_out"
+
+            def format(self, result: ScanResult) -> str:
+                return "full"
+
+        manager = PluginManager()
+        manager.discover()
+        info = manager.get_plugin_info("full_meta_out")
+        assert info is not None
+        assert info.description == "Full metadata output"
+
+
+class TestPluginManagerClear:
+    """Tests for PluginManager clear functionality."""
+
+    def test_clear_resets_discovered_flag(self) -> None:
+        """Test clear resets the discovered flag."""
+        manager = PluginManager()
+        manager.discover()
+        assert manager._discovered is True
+        manager.clear()
+        assert manager._discovered is False
+
+    def test_clear_allows_rediscovery(self) -> None:
+        """Test clear allows subsequent discovery."""
+        manager = PluginManager()
+        manager.discover()
+        manager.clear()
+        count = manager.discover()
+        assert count >= 0

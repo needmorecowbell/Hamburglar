@@ -44,9 +44,35 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - AWS EC2 key pair name detection
   - Each pattern includes severity level, confidence rating, and description
 
-- [ ] Create `src/hamburglar/detectors/patterns/credentials.py` with patterns for: Generic Password Assignment (password = , passwd:, pwd:), Database Connection Strings (postgres://, mysql://, mongodb://), HTTP Basic Auth Header, JWT Token (eyJ prefix), Bearer Token, OAuth Token, API Token generic patterns, Credentials in URLs (user:pass@host), .env file patterns (KEY=value), Docker registry auth
+- [x] Create `src/hamburglar/detectors/patterns/credentials.py` with patterns for: Generic Password Assignment (password = , passwd:, pwd:), Database Connection Strings (postgres://, mysql://, mongodb://), HTTP Basic Auth Header, JWT Token (eyJ prefix), Bearer Token, OAuth Token, API Token generic patterns, Credentials in URLs (user:pass@host), .env file patterns (KEY=value), Docker registry auth
+  - Implemented 30 credential detection patterns covering all specified types plus additional patterns
+  - Password patterns: password, passwd, pwd, secret assignment detection
+  - Database connection strings: PostgreSQL, MySQL, MongoDB, Redis, MSSQL, JDBC, generic DB connections
+  - HTTP authentication: Basic Auth header, Bearer Token header
+  - JWT tokens: standalone detection and variable assignment patterns
+  - OAuth patterns: oauth_token, client_secret, refresh_token
+  - API tokens: api_token, auth_token, access_token
+  - URL credentials: user:pass@host in HTTP/FTP URLs
+  - .env patterns: SECRET_KEY, DATABASE_URL, PASSWORD environment variables
+  - Docker registry: auth field and docker config.json structure detection
+  - Session/cookie: session_secret, cookie_secret patterns
+  - LDAP: credentials in LDAP URLs and bind password assignments
+  - Each pattern includes severity level, confidence rating, and description
 
-- [ ] Create `src/hamburglar/detectors/patterns/crypto.py` with patterns for: Bitcoin Address (1, 3, bc1 prefixes), Ethereum Address (0x prefix + 40 hex), Monero Address, Litecoin Address, Dogecoin Address, Ripple Address, Bitcoin Private Key (WIF format), Ethereum Private Key, Cryptocurrency Seed Phrases (12/24 word detection)
+- [x] Create `src/hamburglar/detectors/patterns/crypto.py` with patterns for: Bitcoin Address (1, 3, bc1 prefixes), Ethereum Address (0x prefix + 40 hex), Monero Address, Litecoin Address, Dogecoin Address, Ripple Address, Bitcoin Private Key (WIF format), Ethereum Private Key, Cryptocurrency Seed Phrases (12/24 word detection)
+  - Implemented 33 cryptocurrency detection patterns covering all specified types plus additional patterns
+  - Bitcoin: P2PKH (1), P2SH (3), Bech32 (bc1), Bech32m/Taproot (bc1p) addresses; WIF private keys (compressed/uncompressed)
+  - Ethereum: Address (0x + 40 hex), Private key with context, Raw private key (0x + 64 hex)
+  - Monero: Standard, Integrated, and Subaddress formats
+  - Litecoin: Legacy (L), P2SH (M), Bech32 (ltc1) addresses
+  - Dogecoin: Standard (D) and P2SH (9) addresses
+  - Ripple (XRP): Classic (r) and X-address formats
+  - Additional: Cardano Shelley, Solana addresses
+  - Seed phrases: 12-word, 24-word, and generic patterns with context detection
+  - Hardware wallets: Trezor passphrase, Ledger recovery phrase detection
+  - Exchange API keys: Binance, Coinbase, Kraken
+  - Blockchain explorer keys: Etherscan, Infura, Alchemy
+  - Each pattern includes severity level, confidence rating, and description
 
 - [ ] Create `src/hamburglar/detectors/patterns/network.py` with patterns for: IPv4 Address, IPv6 Address, Private IP Ranges (10.x, 172.16-31.x, 192.168.x), MAC Address, URL with credentials, Internal hostnames, S3 Bucket URLs, Azure Blob URLs, GCS URLs, Localhost references with ports
 
@@ -72,9 +98,18 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Tests validate pattern matching, metadata properties, and collection integrity
   - Uses intentionally fake/example key content to avoid triggering secret scanners
 
-- [ ] Create `tests/test_patterns_credentials.py` with at least 2 positive and 2 negative test cases for each credential pattern
+- [x] Create `tests/test_patterns_credentials.py` with at least 2 positive and 2 negative test cases for each credential pattern
+  - Created comprehensive test suite with 129 tests covering all 30 credential patterns
+  - Each pattern has 2+ positive and 2+ negative test cases
+  - Tests organized by pattern category (passwords, databases, HTTP auth, JWT, OAuth, API tokens, etc.)
+  - Collection tests verify pattern count, categories, descriptions, regex validity, and unique names
 
-- [ ] Create `tests/test_patterns_crypto.py` with at least 2 positive and 2 negative test cases for each cryptocurrency pattern
+- [x] Create `tests/test_patterns_crypto.py` with at least 2 positive and 2 negative test cases for each cryptocurrency pattern
+  - Created comprehensive test suite with 145 tests covering all 33 cryptocurrency patterns
+  - Each pattern has 2+ positive and 2+ negative test cases
+  - Tests organized by cryptocurrency type (Bitcoin, Ethereum, Monero, Litecoin, etc.)
+  - Collection tests verify pattern count, categories, descriptions, regex validity, and unique names
+  - Severity validation tests ensure private keys and seed phrases are CRITICAL
 
 - [ ] Create `tests/test_entropy_detector.py` with tests for: high entropy strings are detected, low entropy strings are ignored, base64 detection works, hex string detection works, configurable thresholds work
 

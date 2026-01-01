@@ -24,12 +24,15 @@ from hamburglar.core.exceptions import (
 from hamburglar.core.logging import setup_logging
 from hamburglar.core.models import OutputFormat, ScanConfig
 from hamburglar.core.scanner import Scanner
-from hamburglar.detectors.patterns import PatternCategory
+from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.yara_detector import YaraDetector
 
 # Valid category names for CLI parsing
 VALID_CATEGORIES = {cat.value: cat for cat in PatternCategory}
+
+# Valid confidence levels for CLI parsing
+VALID_CONFIDENCE_LEVELS = {conf.value: conf for conf in Confidence}
 
 from hamburglar.outputs.json_output import JsonOutput
 from hamburglar.outputs.table_output import TableOutput
@@ -63,6 +66,32 @@ def parse_categories(value: str) -> list[PatternCategory]:
         categories.append(VALID_CATEGORIES[name])
 
     return categories
+
+
+def parse_confidence(value: str) -> Confidence:
+    """Parse a confidence level string into a Confidence enum.
+
+    Args:
+        value: Confidence level name (e.g., "high", "medium", "low")
+
+    Returns:
+        Confidence enum value.
+
+    Raises:
+        typer.BadParameter: If the confidence level is invalid.
+    """
+    if not value:
+        raise typer.BadParameter("Confidence level cannot be empty")
+
+    level = value.strip().lower()
+    if level not in VALID_CONFIDENCE_LEVELS:
+        valid_names = ", ".join(sorted(VALID_CONFIDENCE_LEVELS.keys()))
+        raise typer.BadParameter(
+            f"Invalid confidence level '{level}'. Valid levels: {valid_names}"
+        )
+
+    return VALID_CONFIDENCE_LEVELS[level]
+
 
 if TYPE_CHECKING:
     from hamburglar.detectors import BaseDetector
@@ -233,6 +262,15 @@ def scan(
             "Example: --no-categories generic,network",
         ),
     ] = None,
+    min_confidence: Annotated[
+        Optional[str],
+        typer.Option(
+            "--min-confidence",
+            help="Minimum confidence level for findings (high, medium, low). "
+            "Only patterns with this confidence level or higher will be used. "
+            "Example: --min-confidence high",
+        ),
+    ] = None,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -291,6 +329,16 @@ def scan(
             _display_error(ConfigError(str(e), config_key="no_categories"))
             raise typer.Exit(code=EXIT_ERROR) from None
 
+    # Parse minimum confidence level
+    confidence_filter: Confidence | None = None
+    if min_confidence:
+        try:
+            confidence_filter = parse_confidence(min_confidence)
+            use_expanded_patterns = True  # Use expanded patterns when filtering by confidence
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="min_confidence"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
     if verbose and not quiet:
         console.print(f"[dim]Scanning:[/dim] {path}")
         console.print(f"[dim]Recursive:[/dim] {recursive}")
@@ -299,6 +347,8 @@ def scan(
             console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
         if disabled_categories:
             console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
+        if confidence_filter:
+            console.print(f"[dim]Min confidence:[/dim] {confidence_filter.value}")
         if yara:
             console.print(f"[dim]YARA rules:[/dim] {yara}")
 
@@ -316,6 +366,7 @@ def scan(
         use_expanded_patterns=use_expanded_patterns,
         enabled_categories=enabled_categories,
         disabled_categories=disabled_categories,
+        min_confidence=confidence_filter,
     )
     detectors: list[BaseDetector] = [regex_detector]
 

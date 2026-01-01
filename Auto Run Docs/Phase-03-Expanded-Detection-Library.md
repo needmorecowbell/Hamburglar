@@ -205,6 +205,20 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
     - Integration with other CLI options (3 tests)
   - All 1734 tests pass (27 new + 1707 existing)
 
-- [ ] Update CLI to add `--min-confidence` option to filter findings by confidence level (high, medium, low)
+- [x] Update CLI to add `--min-confidence` option to filter findings by confidence level (high, medium, low)
+  - Added `--min-confidence` option accepting values: high, medium, low
+  - Case-insensitive parsing with whitespace trimming for user convenience
+  - Added `parse_confidence()` helper function for CLI parsing with validation
+  - Added `VALID_CONFIDENCE_LEVELS` mapping for enum lookup
+  - When using confidence filter, the expanded pattern library is automatically enabled
+  - Verbose mode shows the minimum confidence level being used
+  - Created comprehensive test suite `tests/test_cli_min_confidence.py` with 26 tests covering:
+    - `parse_confidence()` function behavior (8 tests)
+    - Help output verification (2 tests)
+    - `--min-confidence` option functionality (6 tests)
+    - Verbose output (2 tests)
+    - Integration with other CLI options (6 tests)
+    - Pattern filtering verification (2 tests)
+  - All 1760 tests pass (26 new + 1734 existing)
 
 - [ ] Run pytest and ensure all new pattern tests pass with maintained 95%+ coverage

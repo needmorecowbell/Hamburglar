@@ -149,7 +149,15 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - All tests skip gracefully when Docker is unavailable
   - All 3500 existing tests plus 17 new Docker tests pass (3517 total, 23 skipped)
 
-- [ ] Create `tests/test_api.py` with tests for: high-level scan_directory function works, scan_git function works, scan_url function works, options are passed through correctly, library usage pattern works
+- [x] Create `tests/test_api.py` with tests for: high-level scan_directory function works, scan_git function works, scan_url function works, options are passed through correctly, library usage pattern works
+  - File already exists with 39 comprehensive tests covering all required scenarios
+  - TestScanDirectory: 10 tests covering directory scanning with various options
+  - TestScanGit: 6 tests covering git repository scanning
+  - TestScanUrl: 4 tests covering URL scanning with mocked HTTP requests
+  - TestOptionsPassthrough: 2 tests verifying options are passed correctly
+  - TestLibraryUsagePattern: 3 tests validating documented usage examples
+  - Additional coverage: TestCreateDetectors (6), TestAliases (4), TestPackageExports (4)
+  - All 39 tests pass
 
 - [ ] Create `README.md` updates with: installation instructions (pip, docker, from source), quick start examples, CLI usage documentation, library usage examples, Docker usage examples, Docker Compose integration example, link to full documentation
 

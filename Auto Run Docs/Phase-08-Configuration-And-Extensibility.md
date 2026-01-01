@@ -122,7 +122,18 @@ This phase implements a robust configuration system and plugin architecture, all
   - Test classes: TestConfigDefaults, TestConfigFileLoading, TestEnvironmentVariableOverrides, TestCLIArgumentOverrides, TestInvalidConfigHandling, TestConfigMerging, TestConfigLoader, TestGetConfig, TestFileSizeParsing, TestExampleConfigFile
   - All 24 tests pass successfully
 
-- [ ] Create `tests/test_config_schema.py` with tests for: all settings have proper types, defaults are applied correctly, validation catches invalid values, nested settings work correctly
+- [x] Create `tests/test_config_schema.py` with tests for: all settings have proper types, defaults are applied correctly, validation catches invalid values, nested settings work correctly
+  - Created comprehensive test file with 83 tests organized into 18 test classes
+  - `TestLogLevelEnum`, `TestOutputFormatConfigEnum`: Tests for enum values
+  - `TestScanSettingsTypes/Defaults/Validation`: Type checking, default values, validation for ScanSettings
+  - `TestDetectorSettingsTypes/Defaults/Validation`: Type checking, default values, validation for DetectorSettings
+  - `TestOutputSettingsTypes/Defaults/Validation`: Type checking, default values, validation for OutputSettings
+  - `TestYaraSettingsTypes/Defaults/Validation`: Type checking, default values, validation for YaraSettings
+  - `TestHamburglarConfigTypes/Defaults/Validation`: Type checking, default values, validation for main config
+  - `TestNestedSettingsWork`: Tests for nested dict creation, partial dicts, pre-constructed objects, deeply nested validation
+  - `TestToScanConfig`: Tests for the to_scan_config conversion method
+  - `TestConfigExtraFields`: Tests that extra fields are ignored correctly
+  - All 3869 tests pass with 83 new tests added
 
 - [ ] Create `tests/test_plugins.py` with tests for: plugin discovery finds installed plugins, detector plugin can be loaded and used, output plugin can be loaded and used, invalid plugin raises helpful error, plugin config is passed correctly
 

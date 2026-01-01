@@ -18,7 +18,8 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
 - [x] Create `docs/quickstart.md` with: basic scan example, output format examples, common use cases (scanning directories, git repos, URLs), interpreting results, next steps links
   - Verified and corrected existing docs/quickstart.md: Fixed command names (scan-url → scan-web), fixed CLI flags (--output-format → --format, --history → --include-history/--no-history, --max-commits → --depth, --min-severity → --min-confidence), removed non-existent --include/--exclude CLI options (replaced with config file reference), added info severity level
 
-- [ ] Create `docs/cli-reference.md` with: complete CLI documentation auto-generated from Typer, all commands and subcommands, all options with descriptions, exit codes explanation, examples for each command
+- [x] Create `docs/cli-reference.md` with: complete CLI documentation auto-generated from Typer, all commands and subcommands, all options with descriptions, exit codes explanation, examples for each command
+  - Completely rewrote docs/cli-reference.md with accurate documentation matching the actual CLI implementation. Documented all 5 main commands (scan, scan-git, scan-web, history, report), 2 command groups (plugins, config) with their subcommands (plugins list/info, config show/init/validate), all options with correct flags and defaults, exit codes (0=success with findings, 1=error, 2=no findings), configuration precedence, and comprehensive examples for each command
 
 - [ ] Create `docs/configuration.md` with: configuration file format and location, all configuration options with types and defaults, environment variables reference, configuration precedence explanation, example configurations for common scenarios
 

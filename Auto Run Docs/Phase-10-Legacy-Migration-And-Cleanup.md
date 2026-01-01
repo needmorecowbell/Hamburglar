@@ -101,7 +101,60 @@ This phase completes the modernization by ensuring all functionality from the or
     - Compatibility with other flags (quiet, categories, min-confidence, stream) (4 tests)
   - All 4298 tests pass (64 skipped)
 
-- [ ] Review original hamburglar.py for any features not yet implemented, document any intentionally removed features with rationale
+- [x] Review original hamburglar.py for any features not yet implemented, document any intentionally removed features with rationale
+
+  **Comprehensive Feature Review Completed:**
+
+  ### Features Fully Preserved in New Implementation:
+  - ✅ All 27 regex patterns from original `regexList` dictionary (AWS API Key, GitHub, Private Keys, Slack, Google OAuth, Bitcoin/crypto addresses, Email, IPv4, URL, Generic Secret, Heroku, Twitter/Facebook OAuth, etc.)
+  - ✅ Hexdump functionality (`-x` flag → `hexdump` command with `--output` and `--color` options)
+  - ✅ YARA rule support (`-y` flag → `--yara-rules` flag)
+  - ✅ IOC extraction via iocextract (`-i` flag → `--use-iocextract` flag)
+  - ✅ Git repository scanning (`-g` flag → `scan-git` command)
+  - ✅ Web URL scanning (`-w` flag → `scan-web` command)
+  - ✅ Local directory/file scanning (default → `scan` command)
+  - ✅ JSON output format (`-o` flag → `--output` flag)
+  - ✅ Verbose mode (`-v` flag → `--verbose` flag)
+  - ✅ Blacklist/whitelist file filtering (hardcoded → configurable `--blacklist-patterns`/`--whitelist-patterns`)
+
+  ### Features Intentionally Removed with Rationale:
+
+  1. **MySQL-based Magic Signature Detection** (`compare_signature()` function, lines 289-316)
+     - **Rationale:** Required MySQL database setup with custom `fileSign` schema, complex `ham.conf` configuration for SQL credentials, and external signature database maintenance
+     - **Alternative:** YARA rules provide superior file type identification with no database dependency. Users can create YARA rules for specific file signatures. The `rules/` directory contains ready-to-use magic signature rules (png.yar, jpeg.yar, gif.yar, pdf.yar, executables.yar, etc.)
+
+  2. **`get_offset()` and `convert_to_regex()` helper functions** (lines 258-286)
+     - **Rationale:** Only used by MySQL signature detection system
+     - **Alternative:** Not needed - YARA handles offset-based pattern matching natively
+
+  3. **Threading-based worker pool** (`_startWorkers()`, `maxWorkers` variable)
+     - **Rationale:** Python threading limited by GIL, manual thread management error-prone
+     - **Alternative:** Modern `asyncio` with semaphore-based concurrency control provides better performance, responsiveness, and cancellation support
+
+  4. **Global mutable state** (`filestack`, `requestStack`, `cumulativeFindings`, `whitelistOn`)
+     - **Rationale:** Global state makes code hard to test, not thread-safe, prevents re-entrancy
+     - **Alternative:** Pydantic `ScanResult` and `Finding` models with explicit data flow
+
+  5. **Newspaper library for web content** (`Article` class from newspaper3k)
+     - **Rationale:** newspaper3k is unmaintained, has heavy dependencies, and inconsistent HTML parsing
+     - **Alternative:** `httpx` + `BeautifulSoup4` provides more reliable HTTP handling and HTML parsing with JavaScript extraction support
+
+  6. **Hardcoded blacklist/whitelist arrays** (lines 18-37)
+     - **Rationale:** Required code modification to customize
+     - **Alternative:** CLI flags (`--blacklist-patterns`, `--whitelist-patterns`) and TOML config files allow runtime customization
+
+  ### New Features Added (Not in Original):
+  - Async/await architecture with progress callbacks
+  - 7 output formats (JSON, Table, CSV, HTML, Markdown, SARIF, Streaming)
+  - SQLite database for scan history persistence
+  - Git history analysis with secret lifecycle tracking (`SecretTimeline`)
+  - 100+ patterns organized into 7 categories with severity/confidence levels
+  - Plugin system for custom detectors and output formats
+  - Rich CLI with colored output, command aliases, and helpful error messages
+  - Configuration via TOML files and environment variables
+  - `doctor` command for system health checks
+  - Dry-run and benchmark modes
+  - Real-time streaming output
 
 - [ ] Create `MIGRATION.md` documenting: CLI flag changes (old flag -> new flag), output format changes, configuration changes, removed features and alternatives, new features available
 

@@ -37,7 +37,14 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Excludes IDE files (.vscode/, .idea/, *.swp)
   - All existing tests pass (3445 passed)
 
-- [ ] Update `pyproject.toml` with complete PyPI metadata: description, long_description from README, author and maintainer info, project URLs (homepage, repository, documentation), classifiers (Development Status, License, Programming Language versions, Topic), keywords for discoverability
+- [x] Update `pyproject.toml` with complete PyPI metadata: description, long_description from README, author and maintainer info, project URLs (homepage, repository, documentation), classifiers (Development Status, License, Programming Language versions, Topic), keywords for discoverability
+  - Enhanced description to include git repos, URLs, and YARA rules capabilities
+  - Added maintainers section matching author info
+  - Expanded keywords from 6 to 16 (secret-detection, credential-scanner, security-scanner, code-analysis, git-scanner, regex-scanner, vulnerability-scanner, data-leak, api-keys, private-keys)
+  - Added Topic classifiers: Security::Cryptography, Software Development::Quality Assurance, Software Development::Testing
+  - Added Typing::Typed classifier
+  - Added Documentation and Changelog URLs to project.urls
+  - Validated pyproject.toml syntax and all PyPI metadata requirements
 
 - [ ] Create `MANIFEST.in` to include: YARA rules directory, LICENSE file, README.md, any data files needed at runtime
 

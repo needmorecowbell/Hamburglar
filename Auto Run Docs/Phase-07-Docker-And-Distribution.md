@@ -46,7 +46,11 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Added Documentation and Changelog URLs to project.urls
   - Validated pyproject.toml syntax and all PyPI metadata requirements
 
-- [ ] Create `MANIFEST.in` to include: YARA rules directory, LICENSE file, README.md, any data files needed at runtime
+- [x] Create `MANIFEST.in` to include: YARA rules directory, LICENSE file, README.md, any data files needed at runtime
+  - Created MANIFEST.in with include directives for LICENSE and README.md
+  - Includes YARA rules from both root /rules and src/hamburglar/rules directories using recursive-include
+  - Excludes __pycache__, *.py[cod], *.so, .DS_Store, and *.egg-info artifacts
+  - All 3445 existing tests pass
 
 - [ ] Update `src/hamburglar/__init__.py` to expose main API classes: Scanner, ScanConfig, ScanResult, Finding for library usage
 

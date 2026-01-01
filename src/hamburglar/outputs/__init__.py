@@ -123,6 +123,7 @@ default_registry = OutputRegistry()
 # Lazy imports to avoid circular import issues
 # These imports are placed after BaseOutput and OutputRegistry are defined
 # so that submodules can import from this package
+from hamburglar.outputs.sarif import SarifOutput
 from hamburglar.outputs.streaming import (
     NDJSONStreamWriter,
     StreamingOutput,
@@ -133,6 +134,7 @@ __all__ = [
     "BaseOutput",
     "NDJSONStreamWriter",
     "OutputRegistry",
+    "SarifOutput",
     "StreamingOutput",
     "default_registry",
     "stream_to_ndjson",

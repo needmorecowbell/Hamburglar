@@ -259,7 +259,15 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - `TestStreamingEdgeCases` (5 tests): empty matches/metadata, complex metadata, large batch, severity levels
     - All 37 tests pass in 0.16s execution time
 
-- [ ] Update all existing tests to work with async scanner (use pytest-asyncio fixtures)
+- [x] Update all existing tests to work with async scanner (use pytest-asyncio fixtures)
+  - **Completed:** Updated 3 test files to use proper pytest-asyncio fixtures:
+    - `test_binary_files.py`: Converted TestScannerMixedDirectories (3 async tests)
+    - `test_large_files.py`: Converted TestMockedLargeFiles (2 tests) and TestScannerWithLargeFileSizeLimit (3 tests)
+    - `test_encoding.py`: Converted all 30 test methods across 8 test classes
+    - Removed `asyncio.run()` wrapper calls in favor of `@pytest.mark.asyncio` and `async def` patterns
+    - Removed unused `asyncio` and `tempfile` imports
+    - All 2248 tests pass with 3 skipped and 4 warnings
+    - pytest-asyncio `asyncio_mode = "auto"` correctly auto-detects async tests
 
 - [ ] Add `--benchmark` CLI flag that runs a quick performance test and reports files/second throughput
 

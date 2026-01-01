@@ -15,7 +15,15 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Healthcheck using `hamburglar --version`
   - Note: Docker build not tested due to socket permissions - requires elevated access
 
-- [ ] Create `docker-compose.yml` with: hamburglar service using the Dockerfile, volume mounts for target directories and output, optional MySQL service for centralized storage (commented out by default), environment variables for configuration, example usage comments
+- [x] Create `docker-compose.yml` with: hamburglar service using the Dockerfile, volume mounts for target directories and output, optional MySQL service for centralized storage (commented out by default), environment variables for configuration, example usage comments
+  - Created comprehensive docker-compose.yml with hamburglar service using the Dockerfile
+  - Volume mounts: ./target:/data (read-only for targets), ./output:/output (for results)
+  - Environment variables: PYTHONUNBUFFERED=1, optional HAMBURGLAR_LOG_LEVEL
+  - Optional MySQL 8.0 service (commented out) with profiles for selective startup
+  - Optional PostgreSQL 15 service (commented out) as alternative database option
+  - Extensive usage examples in comments for common scan operations
+  - Resource limits section (commented out) for container constraints
+  - Validated with `docker compose config`
 
 - [ ] Create `.dockerignore` file excluding: __pycache__, *.pyc, .git, .pytest_cache, .mypy_cache, .ruff_cache, *.egg-info, dist/, build/, .env, tests/ (for production image)
 

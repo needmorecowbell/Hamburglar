@@ -1,0 +1,156 @@
+# Hamburglar Docker Compose Configuration
+# ========================================
+#
+# This file provides Docker Compose configuration for running Hamburglar
+# in containerized environments.
+#
+# Quick Start:
+# ------------
+#   # Build the image
+#   docker compose build
+#
+#   # Scan a local directory
+#   docker compose run --rm hamburglar scan /data
+#
+#   # Scan with JSON output saved to file
+#   docker compose run --rm hamburglar scan /data --format json --output /output/results.json
+#
+#   # Scan a git repository
+#   docker compose run --rm hamburglar scan-git https://github.com/example/repo.git
+#
+#   # Enable YARA rules
+#   docker compose run --rm hamburglar scan /data --yara
+#
+# Volume Mounts:
+# --------------
+#   - ./target:/data     - Mount your target directory to scan here
+#   - ./output:/output   - Scan results and reports are written here
+#
+# Environment Variables:
+# ----------------------
+#   HAMBURGLAR_LOG_LEVEL  - Set logging level (DEBUG, INFO, WARNING, ERROR)
+#   PYTHONUNBUFFERED      - Ensure real-time output (default: 1)
+
+services:
+  # Main Hamburglar scanner service
+  hamburglar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hamburglar:latest
+
+    # Mount target directory for scanning and output directory for results
+    volumes:
+      # Mount your target directory here for scanning
+      # Example: ./my-project:/data
+      - ./target:/data:ro
+
+      # Mount output directory for results
+      - ./output:/output
+
+    # Environment configuration
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Uncomment to set log level
+      # - HAMBURGLAR_LOG_LEVEL=INFO
+
+    # Security: use the built-in non-root user
+    # The Dockerfile already sets USER hamburglar
+
+    # Resource limits (optional, uncomment to enable)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 256M
+
+  # ========================================================================
+  # Optional: MySQL Service for Centralized Storage
+  # ========================================================================
+  # Uncomment this section to enable MySQL database storage for findings.
+  # This allows persistent storage and querying of scan results across
+  # multiple scans and team environments.
+  #
+  # Usage:
+  #   docker compose --profile database up -d mysql
+  #   docker compose run --rm hamburglar scan /data --save-to-db
+  #
+  # mysql:
+  #   image: mysql:8.0
+  #   profiles:
+  #     - database
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-hamburglar_root}
+  #     MYSQL_DATABASE: ${MYSQL_DATABASE:-hamburglar}
+  #     MYSQL_USER: ${MYSQL_USER:-hamburglar}
+  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hamburglar_secret}
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   ports:
+  #     - "3306:3306"
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+
+  # ========================================================================
+  # Optional: PostgreSQL Service (Alternative to MySQL)
+  # ========================================================================
+  # Uncomment to use PostgreSQL instead of MySQL.
+  #
+  # postgres:
+  #   image: postgres:15-alpine
+  #   profiles:
+  #     - database
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB:-hamburglar}
+  #     POSTGRES_USER: ${POSTGRES_USER:-hamburglar}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hamburglar_secret}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hamburglar}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+
+# Volumes for database persistence (uncomment if using database services)
+# volumes:
+#   mysql_data:
+#   postgres_data:
+
+# ========================================================================
+# Example Usage Patterns
+# ========================================================================
+#
+# 1. One-off scan of a directory:
+#    docker compose run --rm hamburglar scan /data
+#
+# 2. Scan with specific output format:
+#    docker compose run --rm hamburglar scan /data --format sarif --output /output/results.sarif
+#
+# 3. Scan a git repository history:
+#    docker compose run --rm hamburglar scan-git https://github.com/user/repo.git --depth 100
+#
+# 4. Generate HTML report from previous scan:
+#    docker compose run --rm hamburglar report --format html --output /output/report.html
+#
+# 5. Interactive shell for debugging:
+#    docker compose run --rm --entrypoint /bin/bash hamburglar
+#
+# 6. Run with database storage:
+#    docker compose --profile database up -d mysql
+#    docker compose run --rm hamburglar scan /data --save-to-db
+#
+# 7. CI/CD integration (exit with error on findings):
+#    docker compose run --rm hamburglar scan /data --fail-on-findings
+#
+# ========================================================================

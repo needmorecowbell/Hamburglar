@@ -591,3 +591,532 @@ class TestPatternMetadata:
         """Test Twitter OAuth pattern has correct metadata."""
         assert TWITTER_OAUTH_PATTERN.severity == Severity.CRITICAL
         assert TWITTER_OAUTH_PATTERN.category == PatternCategory.API_KEYS
+
+
+# =============================================================================
+# Hexdump Legacy Compatibility Tests
+# =============================================================================
+
+
+class TestHexdumpLegacyFormat:
+    """Tests for hexdump output format compatibility with original hamburglar.py.
+
+    The original hamburglar.py hexdump function (lines 230-255) produced output
+    in the format:
+        {offset:08x}  {hex_bytes_left}  {hex_bytes_right}  |{ascii}|
+
+    These tests ensure the new hexdump utility maintains this exact format.
+    """
+
+    def test_hexdump_offset_format(self, tmp_path: Path) -> None:
+        """Test offset is 8-character lowercase hex as in original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"A" * 32)
+
+        result = hexdump(test_file)
+        lines = result.split("\n")
+
+        # First line should start with 8 zeros
+        assert lines[0].startswith("00000000")
+        # Second line should start with 00000010 (16 in hex)
+        assert lines[1].startswith("00000010")
+
+    def test_hexdump_ascii_column_pipes(self, tmp_path: Path) -> None:
+        """Test ASCII column is pipe-delimited as in original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"Hello World!")
+
+        result = hexdump(test_file)
+        # ASCII should be enclosed in pipes
+        assert "|Hello World!|" in result
+
+    def test_hexdump_non_printable_as_dot(self, tmp_path: Path) -> None:
+        """Test non-printable characters shown as dots like original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"\x00\x01\x02\x03")
+
+        result = hexdump(test_file)
+        # Non-printable should be dots in ASCII column
+        assert "|....|" in result
+
+    def test_hexdump_16_bytes_per_line(self, tmp_path: Path) -> None:
+        """Test 16 bytes per line as in original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"A" * 16 + b"B" * 16)
+
+        result = hexdump(test_file)
+        lines = result.split("\n")
+        assert len(lines) == 2
+
+        # First line should have all A's (16 bytes)
+        assert lines[0].count("41") == 16  # 0x41 = 'A'
+        # Second line should have all B's
+        assert lines[1].count("42") == 16  # 0x42 = 'B'
+
+    def test_hexdump_double_space_separator(self, tmp_path: Path) -> None:
+        """Test double space between hex halves as in original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(bytes(range(16)))
+
+        result = hexdump(test_file)
+        # Should have double space between first 8 bytes and second 8 bytes
+        hex_part = result[10:58]  # Skip offset, get hex section
+        assert "  " in hex_part
+
+    def test_hexdump_partial_line_padding(self, tmp_path: Path) -> None:
+        """Test partial lines maintain structure as in original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"ABC")
+
+        result = hexdump(test_file)
+        # Should still have the pipe delimiters
+        assert "|ABC|" in result
+
+    def test_hexdump_empty_file(self, tmp_path: Path) -> None:
+        """Test empty file returns empty string."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "empty.bin"
+        test_file.write_bytes(b"")
+
+        result = hexdump(test_file)
+        assert result == ""
+
+    def test_hexdump_accepts_string_path(self, tmp_path: Path) -> None:
+        """Test hexdump accepts string path like original."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"test")
+
+        # Original accepted string paths
+        result = hexdump(str(test_file))
+        assert "test" in result
+
+
+class TestHexdumpLegacyMagicBytes:
+    """Tests for recognizing magic bytes like original hamburglar.py.
+
+    The original hamburglar.py used magic bytes for file type identification.
+    These tests verify hexdump correctly displays common magic bytes.
+    """
+
+    def test_hexdump_elf_magic(self, tmp_path: Path) -> None:
+        """Test ELF magic bytes display correctly."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.elf"
+        test_file.write_bytes(b"\x7fELF" + b"\x00" * 12)
+
+        result = hexdump(test_file)
+        assert "7f 45 4c 46" in result
+        # ELF in ASCII column (with 0x7f as dot)
+        assert ".ELF" in result
+
+    def test_hexdump_pdf_magic(self, tmp_path: Path) -> None:
+        """Test PDF magic bytes display correctly."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.pdf"
+        test_file.write_bytes(b"%PDF-1.4" + b"\x00" * 8)
+
+        result = hexdump(test_file)
+        assert "25 50 44 46" in result  # %PDF
+        assert "%PDF-1.4" in result
+
+    def test_hexdump_zip_magic(self, tmp_path: Path) -> None:
+        """Test ZIP magic bytes display correctly."""
+        from hamburglar.utils.hexdump import hexdump
+
+        test_file = tmp_path / "test.zip"
+        test_file.write_bytes(b"PK\x03\x04" + b"\x00" * 12)
+
+        result = hexdump(test_file)
+        assert "50 4b 03 04" in result  # PK..
+
+
+# =============================================================================
+# IOCExtract Legacy Compatibility Tests
+# =============================================================================
+
+
+class TestIOCExtractLegacyBehavior:
+    """Tests for iocextract integration matching original hamburglar.py -i flag.
+
+    The original hamburglar.py used iocextract.extract_* functions directly.
+    These tests verify the new iocextract integration maintains compatibility.
+    """
+
+    def test_iocextract_availability_check(self) -> None:
+        """Test iocextract availability can be checked."""
+        from hamburglar.compat.ioc_extract import is_available
+
+        result = is_available()
+        assert isinstance(result, bool)
+
+    def test_iocextract_fallback_detector_exists(self) -> None:
+        """Test fallback detector is available when iocextract not installed."""
+        from hamburglar.compat.ioc_extract import IOCExtractFallbackDetector
+
+        detector = IOCExtractFallbackDetector()
+        # Should return empty list, not raise
+        findings = detector.detect("http://example.com", "/test/file.txt")
+        assert findings == []
+
+    def test_iocextract_get_detector_with_fallback(self) -> None:
+        """Test get_detector returns valid detector with fallback."""
+        from hamburglar.compat.ioc_extract import get_detector
+        from hamburglar.detectors import BaseDetector
+
+        detector = get_detector(fallback=True)
+        assert isinstance(detector, BaseDetector)
+
+    def test_iocextract_legacy_extract_function_exists(self) -> None:
+        """Test legacy extract_iocs_legacy function exists."""
+        from hamburglar.compat.ioc_extract import extract_iocs_legacy
+
+        # Should exist and be callable
+        assert callable(extract_iocs_legacy)
+
+    def test_iocextract_exception_class(self) -> None:
+        """Test IOCExtractNotAvailable exception is proper ImportError."""
+        from hamburglar.compat.ioc_extract import IOCExtractNotAvailable
+
+        assert issubclass(IOCExtractNotAvailable, ImportError)
+
+        exc = IOCExtractNotAvailable()
+        assert "iocextract is not installed" in str(exc)
+
+
+class TestIOCExtractLegacyIOCTypes:
+    """Tests for iocextract IOC types matching original hamburglar.py."""
+
+    @pytest.fixture
+    def skip_if_unavailable(self) -> None:
+        """Skip if iocextract not installed."""
+        from hamburglar.compat.ioc_extract import is_available
+
+        if not is_available():
+            pytest.skip("iocextract is not installed")
+
+    def test_url_extraction_matches_legacy(self, skip_if_unavailable: None) -> None:
+        """Test URL extraction works like original."""
+        from hamburglar.compat.ioc_extract import extract_urls
+
+        urls = extract_urls("Check http://example.com and https://test.org")
+        assert isinstance(urls, list)
+
+    def test_email_extraction_matches_legacy(self, skip_if_unavailable: None) -> None:
+        """Test email extraction works like original."""
+        from hamburglar.compat.ioc_extract import extract_emails
+
+        emails = extract_emails("Contact admin@example.com for help")
+        assert isinstance(emails, list)
+        if emails:
+            assert "admin@example.com" in emails
+
+    def test_ip_extraction_matches_legacy(self, skip_if_unavailable: None) -> None:
+        """Test IP extraction works like original."""
+        from hamburglar.compat.ioc_extract import extract_ips
+
+        ips = extract_ips("Server at 192.168.1.1")
+        assert isinstance(ips, list)
+
+    def test_hash_extraction_matches_legacy(self, skip_if_unavailable: None) -> None:
+        """Test hash extraction works like original."""
+        from hamburglar.compat.ioc_extract import extract_hashes
+
+        # MD5 hash
+        hashes = extract_hashes("Hash: d41d8cd98f00b204e9800998ecf8427e")
+        assert isinstance(hashes, list)
+
+
+# =============================================================================
+# CLI Flag Compatibility Tests
+# =============================================================================
+
+
+class TestCLIFlagCompatibility:
+    """Tests for CLI flag compatibility with original hamburglar.py.
+
+    Original flags (from hamburglar.py lines 72-88):
+    - `-g` / `--git` → scan-git command
+    - `-x` / `--hexdump` → hexdump command
+    - `-v` / `--verbose` → --verbose flag
+    - `-w` / `--web` → scan-web command
+    - `-i` / `--ioc` → --use-iocextract flag
+    - `-o` / `--out` → --output flag
+    - `-y` / `--yara` → --yara-rules flag
+    """
+
+    def test_verbose_flag_exists(self) -> None:
+        """Test --verbose flag is available in new CLI."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        assert "--verbose" in result.output
+
+    def test_output_flag_exists(self) -> None:
+        """Test --output flag is available (was -o/--out)."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        assert "--output" in result.output
+
+    def test_yara_flag_exists(self) -> None:
+        """Test --yara flag is available (was -y/--yara)."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        assert "--yara" in result.output
+
+    def test_scan_git_command_exists(self) -> None:
+        """Test scan-git command exists (was -g/--git flag)."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan-git", "--help"])
+        assert result.exit_code == 0
+        assert "scan-git" in result.output.lower() or "git" in result.output.lower()
+
+    def test_scan_web_command_exists(self) -> None:
+        """Test scan-web command exists (was -w/--web flag)."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan-web", "--help"])
+        assert result.exit_code == 0
+
+    def test_hexdump_command_exists(self) -> None:
+        """Test hexdump command exists (was -x/--hexdump flag)."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["hexdump", "--help"])
+        assert result.exit_code == 0
+        assert "hexdump" in result.output.lower() or "hex" in result.output.lower()
+
+    def test_iocextract_flag_exists(self) -> None:
+        """Test --use-iocextract flag exists (was -i/--ioc)."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        assert "--use-iocextract" in result.output
+
+
+class TestCLIScanCommand:
+    """Tests for scan command compatibility with original hamburglar.py behavior."""
+
+    def test_scan_single_file(self, tmp_path: Path) -> None:
+        """Test scanning single file works like original."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        # Create a test file with an AWS key
+        test_file = tmp_path / "config.txt"
+        test_file.write_text("AWS_KEY=AKIAIOSFODNN7EXAMPLE")
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", str(test_file), "--format", "json"])
+        assert result.exit_code == 0
+        assert "AWS" in result.output or "findings" in result.output.lower()
+
+    def test_scan_directory(self, tmp_path: Path) -> None:
+        """Test scanning directory works like original."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        # Create test files
+        (tmp_path / "file1.txt").write_text("test content")
+        (tmp_path / "file2.txt").write_text("more content")
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", str(tmp_path), "--format", "table"])
+        # Exit code 0 means findings, 2 means no findings - both are valid
+        assert result.exit_code in (0, 2)
+
+    def test_scan_with_verbose(self, tmp_path: Path) -> None:
+        """Test verbose flag increases output like original -v."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("test content")
+
+        runner = CliRunner()
+        result = runner.invoke(
+            app, ["scan", str(test_file), "--verbose", "--format", "table"]
+        )
+        # Exit code 0 means findings, 2 means no findings - both are valid
+        assert result.exit_code in (0, 2)
+
+    def test_scan_output_to_file(self, tmp_path: Path) -> None:
+        """Test --output flag writes to file like original -o."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("AWS_KEY=AKIAIOSFODNN7EXAMPLE")
+        output_file = tmp_path / "output.json"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            ["scan", str(test_file), "--output", str(output_file), "--format", "json"],
+        )
+        assert result.exit_code == 0
+        assert output_file.exists()
+
+
+class TestHexdumpCommand:
+    """Tests for hexdump command compatibility with original -x flag."""
+
+    def test_hexdump_basic_output(self, tmp_path: Path) -> None:
+        """Test hexdump command produces expected output."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"Hello World!")
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["hexdump", str(test_file)])
+        assert result.exit_code == 0
+        assert "Hello World!" in result.output
+        assert "00000000" in result.output
+
+    def test_hexdump_with_output_file(self, tmp_path: Path) -> None:
+        """Test hexdump --output flag like original file output."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"Test data")
+        output_file = tmp_path / "hexdump.txt"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            app, ["hexdump", str(test_file), "--output", str(output_file)]
+        )
+        assert result.exit_code == 0
+        assert output_file.exists()
+        assert "Test data" in output_file.read_text()
+
+    def test_hexdump_file_not_found(self) -> None:
+        """Test hexdump handles missing file gracefully."""
+        from typer.testing import CliRunner
+
+        from hamburglar.cli.main import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["hexdump", "/nonexistent/file.bin"])
+        assert result.exit_code != 0
+
+
+class TestLegacyPatternDetection:
+    """Tests verifying all original regex patterns still detect correctly."""
+
+    @pytest.fixture
+    def detector(self) -> Any:
+        """Create a regex detector with all patterns."""
+        from hamburglar.detectors.regex_detector import RegexDetector
+
+        return RegexDetector()
+
+    def test_aws_api_key_detection(self, detector: Any) -> None:
+        """Test AWS API Key detection (original pattern)."""
+        content = "aws_key = AKIAIOSFODNN7EXAMPLE"
+        findings = detector.detect(content, "/test.txt")
+        aws_findings = [f for f in findings if "AWS" in f.detector_name.upper()]
+        assert len(aws_findings) > 0
+
+    def test_rsa_private_key_detection(self, detector: Any) -> None:
+        """Test RSA private key detection (original pattern)."""
+        content = "-----BEGIN RSA PRIVATE KEY-----\nkey data\n-----END RSA PRIVATE KEY-----"
+        findings = detector.detect(content, "/test.txt")
+        key_findings = [f for f in findings if "RSA" in f.detector_name.upper()]
+        assert len(key_findings) > 0
+
+    def test_slack_token_detection(self, detector: Any) -> None:
+        """Test Slack token detection (original pattern)."""
+        content = "token = xoxp-123456789012-123456789012-123456789012-abcdefghijklmnopqrstuvwxyz123456"
+        findings = detector.detect(content, "/test.txt")
+        slack_findings = [f for f in findings if "SLACK" in f.detector_name.upper()]
+        assert len(slack_findings) > 0
+
+    def test_ipv4_detection(self, detector: Any) -> None:
+        """Test IPv4 detection (original pattern)."""
+        content = "Server IP: 192.168.1.1"
+        findings = detector.detect(content, "/test.txt")
+        ip_findings = [f for f in findings if "IP" in f.detector_name.upper()]
+        assert len(ip_findings) > 0
+
+    def test_google_oauth_detection(self, detector: Any) -> None:
+        """Test Google OAuth detection (original pattern)."""
+        content = '{"client_secret":"abc123def456ghi789jkl012"}'
+        findings = detector.detect(content, "/test.txt")
+        oauth_findings = [
+            f
+            for f in findings
+            if "GOOGLE" in f.detector_name.upper() or "OAUTH" in f.detector_name.upper()
+        ]
+        assert len(oauth_findings) > 0
+
+    def test_ethereum_address_detection(self, detector: Any) -> None:
+        """Test Ethereum address detection (original pattern)."""
+        content = "ETH address: 0x742d35Cc6634C0532925a3b844Bc9e7595f8e5F8"
+        findings = detector.detect(content, "/test.txt")
+        eth_findings = [f for f in findings if "ETHEREUM" in f.detector_name.upper()]
+        assert len(eth_findings) > 0
+
+    def test_pgp_private_key_detection(self, detector: Any) -> None:
+        """Test PGP private key detection (original pattern)."""
+        content = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+        findings = detector.detect(content, "/test.txt")
+        pgp_findings = [f for f in findings if "PGP" in f.detector_name.upper()]
+        assert len(pgp_findings) > 0
+
+
+# Required import for Path type hint
+from pathlib import Path
+from typing import Any

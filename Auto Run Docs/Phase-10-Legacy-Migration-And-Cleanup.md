@@ -215,9 +215,28 @@ This phase completes the modernization by ensuring all functionality from the or
   - Preserved test fixture exclusions for `tests/fixtures/**/*.txt` and `tests/fixtures/**/*.json`
   - All 4325 tests pass
 
-- [ ] Remove old requirements.txt (dependencies now in pyproject.toml)
+- [x] Remove old requirements.txt (dependencies now in pyproject.toml)
+  - Removed `requirements.txt` using `git rm` to preserve git history
+  - Old file contained outdated 2019 dependencies (beautifulsoup4==4.7.1, yara-python==3.11.0, etc.)
+  - Included deprecated packages: newspaper3k, PyMySQL, SQLAlchemy (intentionally removed in v2)
+  - All dependencies now managed in `pyproject.toml` with modern version constraints
+  - All 4325 tests pass (64 skipped for optional dependencies)
 
-- [ ] Create `tests/test_legacy_compat.py` with tests for: all original regex patterns still work, hexdump produces expected output, iocextract integration works when available, CLI flag compatibility where maintained
+- [x] Create `tests/test_legacy_compat.py` with tests for: all original regex patterns still work, hexdump produces expected output, iocextract integration works when available, CLI flag compatibility where maintained
+  - Expanded existing `tests/test_legacy_compat.py` from 73 pattern tests to 114 comprehensive tests
+  - **Hexdump Legacy Format Tests (11 tests):**
+    - TestHexdumpLegacyFormat: 8-char offset format, pipe-delimited ASCII, non-printable as dots, 16 bytes/line, double-space separator
+    - TestHexdumpLegacyMagicBytes: ELF, PDF, ZIP magic bytes display correctly
+  - **IOCExtract Legacy Behavior Tests (9 tests):**
+    - TestIOCExtractLegacyBehavior: availability check, fallback detector, legacy extract function, exception handling
+    - TestIOCExtractLegacyIOCTypes: URL, email, IP, hash extraction matching original `-i` flag (skipped when iocextract not installed)
+  - **CLI Flag Compatibility Tests (14 tests):**
+    - TestCLIFlagCompatibility: All legacy flags mapped (`-v`→`--verbose`, `-o`→`--output`, `-y`→`--yara`, `-i`→`--use-iocextract`, `-g`→`scan-git`, `-w`→`scan-web`, `-x`→`hexdump`)
+    - TestCLIScanCommand: Single file, directory, verbose, and output-to-file scanning
+    - TestHexdumpCommand: Basic output, output to file, error handling
+  - **Legacy Pattern Detection Tests (7 tests):**
+    - TestLegacyPatternDetection: AWS API Key, RSA Private Key, Slack Token, IPv4, Google OAuth, Ethereum Address, PGP Private Key detection via RegexDetector
+  - All 4362 tests pass (68 skipped for optional dependencies)
 
 - [ ] Create `tests/test_migration.py` with tests for: old config files can be migrated, migration script handles edge cases, migrated config produces same behavior
 

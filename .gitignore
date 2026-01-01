@@ -1,9 +1,105 @@
-*.txt
-!tests/fixtures/*.txt
-!tests/fixtures/patterns/*.txt
-*.swp
-*.json
-test/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.venv
 env/
-__pychache__/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Editors
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+
+# Linting / Type checking
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Documentation
 site/
+docs/_build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Output files from hamburglar scanning
+# (users may want to keep these, so only ignore in development)
+src/hamburglar/outputs/.gitkeep
+
+# Test fixtures - exclude specific patterns
+!tests/fixtures/**/*.txt
+!tests/fixtures/**/*.json
+
+# Archives (usually temporary)
+*.tar.gz
+*.zip
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Jupyter Notebooks
+.ipynb_checkpoints/

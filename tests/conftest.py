@@ -13,6 +13,9 @@ from typing import TYPE_CHECKING, Generator
 
 import pytest
 
+# Import git fixtures to make them available project-wide
+pytest_plugins = ["tests.fixtures.git.conftest"]
+
 # Configure path before any hamburglar imports.
 # This is needed because there's a legacy hamburglar.py file in the project root
 # that shadows the hamburglar package. We need to ensure src/ is searched first.

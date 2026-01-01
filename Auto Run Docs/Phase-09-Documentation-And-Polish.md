@@ -21,7 +21,8 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
 - [x] Create `docs/cli-reference.md` with: complete CLI documentation auto-generated from Typer, all commands and subcommands, all options with descriptions, exit codes explanation, examples for each command
   - Completely rewrote docs/cli-reference.md with accurate documentation matching the actual CLI implementation. Documented all 5 main commands (scan, scan-git, scan-web, history, report), 2 command groups (plugins, config) with their subcommands (plugins list/info, config show/init/validate), all options with correct flags and defaults, exit codes (0=success with findings, 1=error, 2=no findings), configuration precedence, and comprehensive examples for each command
 
-- [ ] Create `docs/configuration.md` with: configuration file format and location, all configuration options with types and defaults, environment variables reference, configuration precedence explanation, example configurations for common scenarios
+- [x] Create `docs/configuration.md` with: configuration file format and location, all configuration options with types and defaults, environment variables reference, configuration precedence explanation, example configurations for common scenarios
+  - Completely rewrote docs/configuration.md with accurate documentation matching the actual implementation. Documented all 4 configuration sections (scan, detector, output, yara) plus global settings, all 15 environment variables with correct mappings, supported file names and locations, configuration precedence, file size parsing formats, and 5 common scenario examples (CI/CD, large repo, security audit, pre-commit hook, specific file types)
 
 - [ ] Create `docs/detectors.md` with: list of all detection patterns, pattern categories explanation, severity levels explanation, confidence scores explanation, adding custom patterns, YARA rules usage
 

@@ -124,4 +124,6 @@ class BaseScanner(ABC):
                 pass
 
 
-__all__ = ["BaseScanner", "ProgressCallback"]
+from hamburglar.scanners.directory import DirectoryScanner
+
+__all__ = ["BaseScanner", "DirectoryScanner", "ProgressCallback"]

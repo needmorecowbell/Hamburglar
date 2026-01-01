@@ -110,7 +110,19 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Uses actions/checkout@v4, actions/setup-python@v5, codecov/codecov-action@v4
   - YAML syntax validated successfully
 
-- [ ] Create GitHub Actions workflow `.github/workflows/release.yml` that: triggers on version tag (v*), builds and tests, builds Docker image, pushes to Docker Hub, publishes to PyPI, creates GitHub release with changelog
+- [x] Create GitHub Actions workflow `.github/workflows/release.yml` that: triggers on version tag (v*), builds and tests, builds Docker image, pushes to Docker Hub, publishes to PyPI, creates GitHub release with changelog
+  - Created comprehensive release.yml workflow in .github/workflows/
+  - Triggers on push to version tags matching `v*` pattern
+  - Six jobs with proper dependencies: test -> build-python/build-docker -> publish-pypi/publish-docker -> create-release
+  - Test job: runs pytest with coverage, ruff linting, and mypy type checking
+  - Build Python job: builds wheel/sdist, checks with twine, uploads artifacts
+  - Build Docker job: multi-platform build, smoke tests (version, help, non-root user), saves image artifact
+  - Publish PyPI job: uses trusted publishing (OIDC) with fallback to PYPI_API_TOKEN secret
+  - Publish Docker job: pushes to Docker Hub with version and latest tags, multi-arch (amd64/arm64), updates Docker Hub description
+  - Create Release job: generates changelog from git history, creates GitHub release with installation instructions, attaches wheel/sdist/docker artifacts, marks alpha/beta/rc as pre-releases
+  - Uses concurrency control to prevent parallel releases
+  - YAML syntax validated successfully
+  - All 3500 existing tests pass
 
 - [ ] Create GitHub Actions workflow `.github/workflows/docker.yml` that: builds Docker image on push to main, pushes to GitHub Container Registry, tags with commit SHA and latest
 

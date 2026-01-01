@@ -1,0 +1,330 @@
+# GitHub Actions workflow for releasing Hamburglar
+# Triggers on version tags (v*), builds, tests, publishes to PyPI and Docker Hub,
+# and creates a GitHub release
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Ensure only one release workflow runs at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE: needmorecowbell/hamburglar
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # =============================================================================
+  # Job 1: Run tests to ensure release quality
+  # =============================================================================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libyara-dev
+
+      - name: Install package and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run pytest with coverage
+        run: |
+          pytest --cov=src/hamburglar --cov-report=xml --cov-report=term-missing
+
+      - name: Run ruff linting
+        run: |
+          pip install ruff
+          ruff check src/ tests/
+
+      - name: Run mypy type checking
+        run: |
+          mypy src/hamburglar --ignore-missing-imports
+
+  # =============================================================================
+  # Job 2: Build Python package (wheel and sdist)
+  # =============================================================================
+  build-python:
+    name: Build Python Package
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build wheel and sdist
+        run: |
+          python -m build
+
+      - name: Check package with twine
+        run: |
+          twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+          retention-days: 5
+
+  # =============================================================================
+  # Job 3: Build Docker image
+  # =============================================================================
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.DOCKER_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Docker smoke tests
+        run: |
+          echo "Testing hamburglar --version..."
+          docker run --rm ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }} --version
+
+          echo "Testing hamburglar --help..."
+          docker run --rm ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }} --help
+
+          echo "Testing non-root user..."
+          USER=$(docker run --rm --entrypoint whoami ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }})
+          if [ "$USER" != "hamburglar" ]; then
+            echo "ERROR: Container should run as 'hamburglar' user, got '$USER'"
+            exit 1
+          fi
+          echo "Docker smoke tests passed!"
+
+      - name: Save Docker image
+        run: |
+          docker save ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }} | gzip > hamburglar-docker-image.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: hamburglar-docker-image.tar.gz
+          retention-days: 5
+
+  # =============================================================================
+  # Job 4: Publish to PyPI
+  # =============================================================================
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: build-python
+    environment:
+      name: pypi
+      url: https://pypi.org/project/hamburglar/
+
+    permissions:
+      id-token: write  # Required for trusted publishing
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Uses trusted publishing (OIDC) - no token needed if configured
+          # Falls back to PYPI_API_TOKEN secret if trusted publishing not set up
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
+
+  # =============================================================================
+  # Job 5: Push Docker image to Docker Hub
+  # =============================================================================
+  publish-docker:
+    name: Publish to Docker Hub
+    runs-on: ubuntu-latest
+    needs: build-docker
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.DOCKER_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKER_IMAGE }}
+          short-description: "Security scanner for extracting sensitive information from files, git repos, and URLs"
+          readme-filepath: ./README.md
+
+  # =============================================================================
+  # Job 6: Create GitHub Release
+  # =============================================================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - publish-pypi
+      - publish-docker
+
+    permissions:
+      contents: write  # Required for creating releases
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for changelog generation
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download Python package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: ./
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "Generating changelog from $PREV_TAG to ${{ github.ref_name }}..."
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..${{ github.ref_name }} | head -50)
+          else
+            echo "No previous tag found, using recent commits..."
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" -20)
+          fi
+
+          # Write changelog to file (handles multiline)
+          echo "$CHANGELOG" > changelog.txt
+          echo "Generated changelog with $(echo "$CHANGELOG" | wc -l) entries"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Hamburglar v${{ steps.version.outputs.version }}
+          body: |
+            ## Hamburglar v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            **Via pip:**
+            ```bash
+            pip install hamburglar==${{ steps.version.outputs.version }}
+            ```
+
+            **Via Docker:**
+            ```bash
+            docker pull ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.version }}
+            ```
+
+            ### Changes
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            See the [full changelog](https://github.com/needmorecowbell/Hamburglar/compare/v${{ steps.version.outputs.version }}...HEAD) for more details.
+
+            ### Artifacts
+
+            - Python wheel and sdist attached below
+            - Docker image available on [Docker Hub](${{ env.DOCKER_IMAGE }})
+          files: |
+            dist/*
+            hamburglar-docker-image.tar.gz
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

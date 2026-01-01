@@ -56,7 +56,18 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Exported from hamburglar.scanners module
   - Test coverage at 92% for web.py, overall project at 94%
 
-- [ ] Create `src/hamburglar/core/http_client.py` with an async HTTP client using httpx that: supports rate limiting, handles redirects, supports authentication (basic, bearer), has configurable timeout, implements retry logic with backoff, caches responses optionally
+- [x] Create `src/hamburglar/core/http_client.py` with an async HTTP client using httpx that: supports rate limiting, handles redirects, supports authentication (basic, bearer), has configurable timeout, implements retry logic with backoff, caches responses optionally
+  - Created comprehensive async HTTP client with httpx backend
+  - AuthConfig with AuthType enum supporting NONE, BASIC, and BEARER authentication
+  - RateLimitConfig with token bucket algorithm (RateLimiter class) for request throttling
+  - RetryConfig with exponential backoff (configurable base_delay, max_delay, exponential_base, retry_on_status codes)
+  - CacheConfig with in-memory ResponseCache supporting TTL, max_entries, and automatic eviction
+  - HttpClientConfig combining all settings: timeout, user_agent, follow_redirects, max_redirects, verify_ssl
+  - HttpClient class with async context manager, get/post/head methods, cache_size property, clear_cache method
+  - HttpClientError exception with url and status_code context
+  - HttpResponse dataclass with content, status_code, headers, url, from_cache fields
+  - Comprehensive test suite with 71 tests in tests/test_http_client.py
+  - Test coverage at 98% for http_client.py, overall project at 94.13%
 
 - [ ] Update CLI with `scan-git` command: positional URL/path argument, `--depth` for commit history depth (default all), `--branch` to scan specific branch, `--include-history` flag to scan historical commits, `--clone-dir` to specify clone location
 

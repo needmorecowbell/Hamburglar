@@ -349,11 +349,15 @@ class StorageRegistry:
 # Global registry instance for convenience
 default_registry = StorageRegistry()
 
+# Lazy imports to avoid circular import issues
+from hamburglar.storage.sqlite import SqliteStorage
+
 __all__ = [
     "BaseStorage",
     "FindingFilter",
     "ScanFilter",
     "ScanStatistics",
+    "SqliteStorage",
     "StorageError",
     "StorageRegistry",
     "StoredScan",

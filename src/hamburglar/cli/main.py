@@ -24,10 +24,45 @@ from hamburglar.core.exceptions import (
 from hamburglar.core.logging import setup_logging
 from hamburglar.core.models import OutputFormat, ScanConfig
 from hamburglar.core.scanner import Scanner
+from hamburglar.detectors.patterns import PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.yara_detector import YaraDetector
+
+# Valid category names for CLI parsing
+VALID_CATEGORIES = {cat.value: cat for cat in PatternCategory}
+
 from hamburglar.outputs.json_output import JsonOutput
 from hamburglar.outputs.table_output import TableOutput
+
+
+def parse_categories(value: str) -> list[PatternCategory]:
+    """Parse a comma-separated list of category names into PatternCategory enums.
+
+    Args:
+        value: Comma-separated category names (e.g., "api_keys,cloud,credentials")
+
+    Returns:
+        List of PatternCategory enums.
+
+    Raises:
+        typer.BadParameter: If any category name is invalid.
+    """
+    if not value:
+        return []
+
+    categories = []
+    for name in value.split(","):
+        name = name.strip().lower()
+        if not name:
+            continue
+        if name not in VALID_CATEGORIES:
+            valid_names = ", ".join(sorted(VALID_CATEGORIES.keys()))
+            raise typer.BadParameter(
+                f"Invalid category '{name}'. Valid categories: {valid_names}"
+            )
+        categories.append(VALID_CATEGORIES[name])
+
+    return categories
 
 if TYPE_CHECKING:
     from hamburglar.detectors import BaseDetector
@@ -180,6 +215,24 @@ def scan(
             help="Suppress non-error output (only show errors)",
         ),
     ] = False,
+    categories: Annotated[
+        Optional[str],
+        typer.Option(
+            "--categories",
+            "-c",
+            help="Enable only specific detector categories (comma-separated). "
+            "Valid categories: api_keys, cloud, credentials, crypto, generic, network, private_keys. "
+            "Example: --categories api_keys,cloud",
+        ),
+    ] = None,
+    no_categories: Annotated[
+        Optional[str],
+        typer.Option(
+            "--no-categories",
+            help="Disable specific detector categories (comma-separated). "
+            "Example: --no-categories generic,network",
+        ),
+    ] = None,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -217,10 +270,35 @@ def scan(
 
     output_format = OutputFormat.JSON if format_lower == "json" else OutputFormat.TABLE
 
+    # Parse category filters
+    enabled_categories: list[PatternCategory] | None = None
+    disabled_categories: list[PatternCategory] | None = None
+    use_expanded_patterns = False
+
+    if categories:
+        try:
+            enabled_categories = parse_categories(categories)
+            use_expanded_patterns = True  # Use expanded patterns when filtering by category
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="categories"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    if no_categories:
+        try:
+            disabled_categories = parse_categories(no_categories)
+            use_expanded_patterns = True  # Use expanded patterns when filtering by category
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="no_categories"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
     if verbose and not quiet:
         console.print(f"[dim]Scanning:[/dim] {path}")
         console.print(f"[dim]Recursive:[/dim] {recursive}")
         console.print(f"[dim]Format:[/dim] {output_format.value}")
+        if enabled_categories:
+            console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
+        if disabled_categories:
+            console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
         if yara:
             console.print(f"[dim]YARA rules:[/dim] {yara}")
 
@@ -234,7 +312,15 @@ def scan(
     )
 
     # Initialize detectors
-    detectors: list[BaseDetector] = [RegexDetector()]
+    regex_detector = RegexDetector(
+        use_expanded_patterns=use_expanded_patterns,
+        enabled_categories=enabled_categories,
+        disabled_categories=disabled_categories,
+    )
+    detectors: list[BaseDetector] = [regex_detector]
+
+    if verbose and not quiet and use_expanded_patterns:
+        console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
 
     if yara:
         try:

@@ -187,7 +187,23 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - `TestEntropyDetectorIntegration`: 4 tests for realistic scenarios
   - All 1707 tests pass (78 new + 1629 existing)
 
-- [ ] Update CLI to add `--categories/-c` option to enable/disable detector categories (e.g., `--categories api_keys,cloud` or `--no-categories generic`)
+- [x] Update CLI to add `--categories/-c` option to enable/disable detector categories (e.g., `--categories api_keys,cloud` or `--no-categories generic`)
+  - Added `--categories/-c` option to enable specific detector categories (comma-separated)
+  - Added `--no-categories` option to exclude specific detector categories
+  - Valid categories: api_keys, cloud, credentials, crypto, generic, network, private_keys
+  - Categories are case-insensitive for user convenience
+  - Added `parse_categories()` helper function for CLI parsing with validation
+  - Verbose mode shows enabled/excluded categories and pattern count
+  - When using category filters, the expanded pattern library is automatically enabled
+  - Created comprehensive test suite `tests/test_cli_categories.py` with 27 tests covering:
+    - `parse_categories()` function behavior (8 tests)
+    - Help output verification (3 tests)
+    - `--categories` option functionality (6 tests)
+    - `--no-categories` option functionality (4 tests)
+    - Combination of both options (2 tests)
+    - Verbose output (1 test)
+    - Integration with other CLI options (3 tests)
+  - All 1734 tests pass (27 new + 1707 existing)
 
 - [ ] Update CLI to add `--min-confidence` option to filter findings by confidence level (high, medium, low)
 

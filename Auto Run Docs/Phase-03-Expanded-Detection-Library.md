@@ -15,7 +15,12 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Added `to_dict()` method for compatibility with RegexDetector
   - Created comprehensive test suite in `tests/test_pattern_models.py` with 20 tests
 
-- [ ] Create `src/hamburglar/detectors/patterns/api_keys.py` with patterns for: AWS Access Key ID, AWS Secret Key, GitHub Token (ghp_, gho_, ghu_, ghs_, ghr_), GitHub OAuth, GitLab Token, Slack Token, Slack Webhook, Google API Key, Google OAuth, Stripe API Key (sk_live_, rk_live_), Stripe Publishable Key, Twilio Account SID, Twilio Auth Token, SendGrid API Key, Mailgun API Key, Mailchimp API Key, NPM Token, PyPI Token, NuGet API Key, Heroku API Key, DigitalOcean Token, Datadog API Key, New Relic Key
+- [x] Create `src/hamburglar/detectors/patterns/api_keys.py` with patterns for: AWS Access Key ID, AWS Secret Key, GitHub Token (ghp_, gho_, ghu_, ghs_, ghr_), GitHub OAuth, GitLab Token, Slack Token, Slack Webhook, Google API Key, Google OAuth, Stripe API Key (sk_live_, rk_live_), Stripe Publishable Key, Twilio Account SID, Twilio Auth Token, SendGrid API Key, Mailgun API Key, Mailchimp API Key, NPM Token, PyPI Token, NuGet API Key, Heroku API Key, DigitalOcean Token, Datadog API Key, New Relic Key
+  - Implemented 38 API key patterns covering all specified services
+  - Each pattern includes: name, regex, severity, category, description, and confidence level
+  - Patterns organized with appropriate severity levels (CRITICAL for live secrets, HIGH for sensitive keys)
+  - Created comprehensive test suite `tests/test_patterns_api_keys.py` with 159 tests (2+ positive and 2+ negative cases per pattern)
+  - All patterns validated with both positive matches and negative rejection cases
 
 - [ ] Create `src/hamburglar/detectors/patterns/cloud.py` with patterns for: Azure Storage Key, Azure Connection String, Azure SAS Token, GCP Service Account Key (JSON structure detection), GCP API Key, AWS Session Token, AWS ARN, Firebase URL, Firebase API Key, Cloudflare API Key, Alibaba Cloud Access Key, IBM Cloud API Key, Oracle Cloud OCID
 
@@ -35,7 +40,8 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
 
 - [ ] Create `tests/fixtures/patterns/` directory with test files containing real-world-like examples for each pattern category
 
-- [ ] Create `tests/test_patterns_api_keys.py` with at least 2 positive and 2 negative test cases for each API key pattern (use fake but realistic-looking patterns)
+- [x] Create `tests/test_patterns_api_keys.py` with at least 2 positive and 2 negative test cases for each API key pattern (use fake but realistic-looking patterns)
+  - Created as part of the api_keys.py implementation above
 
 - [ ] Create `tests/test_patterns_cloud.py` with at least 2 positive and 2 negative test cases for each cloud pattern
 

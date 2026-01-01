@@ -13,11 +13,19 @@ This phase implements a robust configuration system and plugin architecture, all
   - Also created supporting modules: `schema.py`, `loader.py`, `env.py`
   - Added `tests/test_config_loading.py` with 21 tests covering all priority scenarios
 
-- [ ] Create `src/hamburglar/config/schema.py` with Pydantic Settings models: `ScanSettings` (recursive, max_file_size, concurrency, timeout), `DetectorSettings` (enabled_categories, disabled_patterns, min_confidence, custom_patterns_path), `OutputSettings` (format, output_path, save_to_db, db_path), `YaraSettings` (rules_path, timeout, enabled), `HamburglarConfig` combining all settings
+- [x] Create `src/hamburglar/config/schema.py` with Pydantic Settings models: `ScanSettings` (recursive, max_file_size, concurrency, timeout), `DetectorSettings` (enabled_categories, disabled_patterns, min_confidence, custom_patterns_path), `OutputSettings` (format, output_path, save_to_db, db_path), `YaraSettings` (rules_path, timeout, enabled), `HamburglarConfig` combining all settings
+  - Already created as part of task 1; verified complete with all required models
+  - Includes additional features: `LogLevel` enum, `OutputFormatConfig` enum, blacklist/whitelist in ScanSettings
+  - Has validators for file size parsing, confidence levels, and format validation
 
-- [ ] Create `src/hamburglar/config/loader.py` with a `ConfigLoader` class that: searches for config files (.hamburglar.yml, .hamburglar.yaml, .hamburglar.toml, hamburglar.config.json), supports project-local and user-global configs (~/.config/hamburglar/), merges configs with proper precedence, validates config against schema, provides helpful error messages for invalid config
+- [x] Create `src/hamburglar/config/loader.py` with a `ConfigLoader` class that: searches for config files (.hamburglar.yml, .hamburglar.yaml, .hamburglar.toml, hamburglar.config.json), supports project-local and user-global configs (~/.config/hamburglar/), merges configs with proper precedence, validates config against schema, provides helpful error messages for invalid config
+  - Already created as part of task 1; verified complete with all required features
+  - Supports YAML, TOML, JSON formats with auto-detection for .hamburglarrc files
+  - Includes `validate_config_file()` method and `get_default_config_content()` for generating templates
 
-- [ ] Create `src/hamburglar/config/env.py` with environment variable mapping: HAMBURGLAR_CONFIG_PATH, HAMBURGLAR_YARA_RULES, HAMBURGLAR_OUTPUT_FORMAT, HAMBURGLAR_DB_PATH, HAMBURGLAR_CONCURRENCY, HAMBURGLAR_LOG_LEVEL, HAMBURGLAR_CATEGORIES
+- [x] Create `src/hamburglar/config/env.py` with environment variable mapping: HAMBURGLAR_CONFIG_PATH, HAMBURGLAR_YARA_RULES, HAMBURGLAR_OUTPUT_FORMAT, HAMBURGLAR_DB_PATH, HAMBURGLAR_CONCURRENCY, HAMBURGLAR_LOG_LEVEL, HAMBURGLAR_CATEGORIES
+  - Already created as part of task 1; verified complete with all required env vars
+  - Also includes: HAMBURGLAR_MAX_FILE_SIZE, HAMBURGLAR_TIMEOUT, HAMBURGLAR_RECURSIVE, HAMBURGLAR_YARA_ENABLED, HAMBURGLAR_SAVE_TO_DB, HAMBURGLAR_MIN_CONFIDENCE, HAMBURGLAR_QUIET, HAMBURGLAR_VERBOSE
 
 - [ ] Create `src/hamburglar/plugins/__init__.py` with plugin system base: `PluginManager` class, `@detector_plugin` decorator, `@output_plugin` decorator, plugin discovery from entry points and directories
 

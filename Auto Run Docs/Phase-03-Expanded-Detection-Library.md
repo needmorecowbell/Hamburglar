@@ -221,4 +221,8 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
     - Pattern filtering verification (2 tests)
   - All 1760 tests pass (26 new + 1734 existing)
 
-- [ ] Run pytest and ensure all new pattern tests pass with maintained 95%+ coverage
+- [x] Run pytest and ensure all new pattern tests pass with maintained 95%+ coverage
+  - All 1784 tests pass (24 new tests added in `tests/test_phase03_coverage.py`)
+  - Test coverage increased to **96.85%** (above the 95% threshold)
+  - New tests cover edge cases in: EntropyDetector, RegexDetector pattern loading, YaraDetector error handling, and CLI category parsing
+  - Tests cover: hex exclusion filter, severity determination, finding type detection, common word false positives, base64 validation, YAML pattern loading errors, JSON pattern loading, missing fields in patterns, custom file loading errors, expanded pattern merging, regex timeout in chunked processing, YARA availability checks, YARA compilation errors, rule state handling

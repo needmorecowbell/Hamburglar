@@ -16,12 +16,6 @@ The easiest way to install Hamburglar is via pip:
 pip install hamburglar
 ```
 
-To install with all optional dependencies:
-
-```bash
-pip install hamburglar[all]
-```
-
 ### Upgrading
 
 ```bash
@@ -93,18 +87,22 @@ pytest
 
 ## Optional Dependencies
 
-Hamburglar has several optional dependencies:
+Hamburglar includes all required dependencies by default. The core dependencies are:
 
 | Package | Purpose |
 |---------|---------|
+| `typer` | CLI framework |
+| `rich` | Terminal formatting and output |
+| `pydantic` | Data validation and settings |
 | `yara-python` | YARA rule support for binary file detection |
 | `pyyaml` | YAML configuration file support |
-| `tomli` | TOML configuration file support |
+| `tomli` | TOML configuration file support (Python < 3.11 only) |
+| `charset-normalizer` | Text encoding detection |
 
-These are included by default, but if you installed a minimal version:
+For development, install with dev dependencies:
 
 ```bash
-pip install yara-python pyyaml tomli
+pip install hamburglar[dev]
 ```
 
 ### YARA Installation Notes

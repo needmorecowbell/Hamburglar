@@ -12,7 +12,8 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
 - [x] Create `docs/index.md` with: project overview and goals, feature highlights, quick install command, link to quickstart, badges (PyPI, Docker, coverage, license)
   - Verified existing docs/index.md already contains all required content: overview section, 7 key features, pip/Docker install commands, quickstart links, and all 4 badges (PyPI, Docker, Coverage, License)
 
-- [ ] Create `docs/installation.md` with: pip installation instructions, Docker installation, building from source, development setup, system requirements, optional dependencies explanation
+- [x] Create `docs/installation.md` with: pip installation instructions, Docker installation, building from source, development setup, system requirements, optional dependencies explanation
+  - Verified and updated existing docs/installation.md with accurate dependency information matching pyproject.toml, removed incorrect [all] install option, added complete dependency table
 
 - [ ] Create `docs/quickstart.md` with: basic scan example, output format examples, common use cases (scanning directories, git repos, URLs), interpreting results, next steps links
 

@@ -217,7 +217,22 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Additional test classes for error handling, reset, blacklist/whitelist, non-recursive mode
     - All 36 tests pass with 0.31s execution time
 
-- [ ] Create `tests/test_file_reader.py` with tests for: async file reading works correctly, encoding detection works, large files are handled efficiently, binary file detection works, corrupt files don't crash reader
+- [x] Create `tests/test_file_reader.py` with tests for: async file reading works correctly, encoding detection works, large files are handled efficiently, binary file detection works, corrupt files don't crash reader
+  - **Completed:** Test file already exists with 50 comprehensive tests covering all required areas:
+    - `TestAsyncFileReaderBasic` (5 tests): text/bytes/empty file reading, file not found, directory error
+    - `TestAsyncContextManager` (4 tests): open/close lifecycle, exception handling, manual open/close
+    - `TestEncodingDetection` (4 tests): UTF-8, Latin-1, forced encoding, UTF-16 detection
+    - `TestFileTypeDetection` (6 tests): text/binary detection, is_binary/is_text class methods, detect_type without opening
+    - `TestChunkedReading` (4 tests): chunked reading, text chunks, custom chunk sizes
+    - `TestMemoryMappedFiles` (4 tests): force mmap, force no mmap, threshold, mmap with chunks
+    - `TestSeekOperations` (3 tests): seek to position, from end, relative seek
+    - `TestFileInfo` (2 tests): file info attributes for text and binary files
+    - `TestConvenienceMethods` (3 tests): read_file, read_file_bytes class methods
+    - `TestErrorHandling` (6 tests): read/seek/chunk without open, permission denied, double open
+    - `TestLargeFiles` (2 tests): 1MB file read, 500KB chunked read
+    - `TestConcurrency` (2 tests): multiple readers same file, concurrent file reads
+    - `TestEdgeCases` (5 tests): whitespace, unicode names, long lines, mixed line endings, high-bit characters
+    - All 50 tests pass in 0.15s execution time
 
 - [ ] Create `tests/test_performance.py` with performance benchmarks: scan speed with 100 files, scan speed with 1000 files, memory usage stays bounded, concurrent scanning is faster than sequential
 

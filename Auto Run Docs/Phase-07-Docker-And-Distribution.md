@@ -100,7 +100,15 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Displays package summary with installation instructions after upload
   - Script syntax validated and help command tested
 
-- [ ] Create GitHub Actions workflow `.github/workflows/test.yml` that: runs on push and PR, tests on Python 3.9, 3.10, 3.11, 3.12, runs pytest with coverage, uploads coverage report, runs ruff linting, runs mypy type checking
+- [x] Create GitHub Actions workflow `.github/workflows/test.yml` that: runs on push and PR, tests on Python 3.9, 3.10, 3.11, 3.12, runs pytest with coverage, uploads coverage report, runs ruff linting, runs mypy type checking
+  - Created comprehensive test.yml workflow in .github/workflows/
+  - Three parallel jobs: test (matrix across Python 3.9, 3.10, 3.11, 3.12), lint (ruff check + format), type-check (mypy)
+  - Test job installs libyara-dev, runs pytest with coverage, uploads to Codecov on Python 3.11
+  - Lint job runs ruff check and ruff format --check on src/ and tests/
+  - Type-check job runs mypy on src/hamburglar with ignore-missing-imports
+  - Triggers on push to any branch and pull requests to main/master
+  - Uses actions/checkout@v4, actions/setup-python@v5, codecov/codecov-action@v4
+  - YAML syntax validated successfully
 
 - [ ] Create GitHub Actions workflow `.github/workflows/release.yml` that: triggers on version tag (v*), builds and tests, builds Docker image, pushes to Docker Hub, publishes to PyPI, creates GitHub release with changelog
 

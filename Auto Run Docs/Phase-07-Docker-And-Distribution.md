@@ -137,7 +137,17 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - YAML syntax validated successfully
   - All 3500 existing tests pass
 
-- [ ] Create `tests/test_docker.py` with tests for: Docker image builds successfully (requires docker), container runs and produces output, volume mounts work correctly, non-root user is used (marked as integration tests, skipped if docker unavailable)
+- [x] Create `tests/test_docker.py` with tests for: Docker image builds successfully (requires docker), container runs and produces output, volume mounts work correctly, non-root user is used (marked as integration tests, skipped if docker unavailable)
+  - Created comprehensive integration test suite with 17 tests across 6 test classes
+  - TestDockerImageBuild: Tests image builds successfully and has correct properties
+  - TestDockerContainerRuns: Tests version, help, and scan subcommand execution
+  - TestDockerVolumeMounts: Tests read-only mounts, output volume mounts, and target scanning
+  - TestDockerSecurity: Tests non-root user (uid 1000), hamburglar user, and restricted system access
+  - TestDockerYaraRules: Tests YARA rules inclusion in the image
+  - TestDockerScanFunctionality: Tests actual scanning (AWS keys, recursive, JSON/table formats)
+  - Added `integration` marker to pyproject.toml pytest configuration
+  - All tests skip gracefully when Docker is unavailable
+  - All 3500 existing tests plus 17 new Docker tests pass (3517 total, 23 skipped)
 
 - [ ] Create `tests/test_api.py` with tests for: high-level scan_directory function works, scan_git function works, scan_url function works, options are passed through correctly, library usage pattern works
 

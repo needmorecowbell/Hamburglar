@@ -103,6 +103,9 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v"
 pythonpath = ["src"]
+markers = [
+    "integration: marks tests as integration tests requiring external dependencies (deselect with '-m \"not integration\"')",
+]
 
 [tool.mypy]
 python_version = "3.9"

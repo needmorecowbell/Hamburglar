@@ -35,7 +35,7 @@ from hamburglar.core.exceptions import (
     YaraCompilationError,
 )
 from hamburglar.core.logging import setup_logging
-from hamburglar.core.models import OutputFormat, ScanConfig
+from hamburglar.core.models import OutputFormat, ScanConfig, Severity
 from hamburglar.core.progress import ScanProgress
 from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
@@ -56,7 +56,7 @@ from hamburglar.outputs.csv_output import CsvOutput
 from hamburglar.outputs.html_output import HtmlOutput
 from hamburglar.outputs.markdown_output import MarkdownOutput
 from hamburglar.outputs import BaseOutput
-from hamburglar.storage import StorageError
+from hamburglar.storage import ScanStatistics, StorageError
 from hamburglar.storage.sqlite import SqliteStorage
 
 # Valid output formats for CLI parsing
@@ -2139,6 +2139,532 @@ async def _run_web_streaming_scan(
     raise typer.Exit(code=EXIT_SUCCESS)
 
 
+def parse_severities(value: str) -> list[Severity]:
+    """Parse a comma-separated list of severity levels.
+
+    Args:
+        value: Comma-separated severity names (e.g., "high,critical")
+
+    Returns:
+        List of Severity enums.
+
+    Raises:
+        typer.BadParameter: If any severity name is invalid.
+    """
+    if not value:
+        return []
+
+    valid_severities = {s.value: s for s in Severity}
+    severities = []
+
+    for name in value.split(","):
+        name = name.strip().lower()
+        if not name:
+            continue
+        if name not in valid_severities:
+            valid_names = ", ".join(sorted(valid_severities.keys()))
+            raise typer.BadParameter(
+                f"Invalid severity '{name}'. Valid severities: {valid_names}"
+            )
+        severities.append(valid_severities[name])
+
+    return severities
+
+
+def parse_date(value: str) -> datetime:
+    """Parse a date string in various formats.
+
+    Args:
+        value: Date string (e.g., "2024-01-01", "2024-01-01T12:00:00", "1d", "7d", "24h")
+
+    Returns:
+        datetime object.
+
+    Raises:
+        typer.BadParameter: If the date format is invalid.
+    """
+    from datetime import timedelta
+    import re
+
+    value = value.strip()
+
+    # Handle relative time formats: 1d, 7d, 24h, etc.
+    relative_match = re.match(r"^(\d+)([dhwm])$", value.lower())
+    if relative_match:
+        amount = int(relative_match.group(1))
+        unit = relative_match.group(2)
+
+        now = datetime.now()
+        if unit == "h":
+            return now - timedelta(hours=amount)
+        elif unit == "d":
+            return now - timedelta(days=amount)
+        elif unit == "w":
+            return now - timedelta(weeks=amount)
+        elif unit == "m":
+            return now - timedelta(days=amount * 30)
+
+    # Try ISO format (with optional time component)
+    try:
+        # Try with time component first
+        return datetime.fromisoformat(value)
+    except ValueError:
+        pass
+
+    # Try date-only format
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        pass
+
+    raise typer.BadParameter(
+        f"Invalid date format '{value}'. Use ISO format (YYYY-MM-DD), "
+        "or relative format (e.g., 1d, 7d, 24h, 2w, 1m)"
+    )
+
+
+@app.command("history")
+def history(
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-o",
+            help="Write output to file instead of stdout",
+        ),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (json, table, sarif, csv, html, markdown)",
+            case_sensitive=False,
+        ),
+    ] = "table",
+    since: Annotated[
+        Optional[str],
+        typer.Option(
+            "--since",
+            "-s",
+            help="Show findings since date/time. Accepts ISO format (YYYY-MM-DD) "
+            "or relative format (1d=1 day, 7d=7 days, 24h=24 hours, 2w=2 weeks, 1m=1 month)",
+        ),
+    ] = None,
+    until: Annotated[
+        Optional[str],
+        typer.Option(
+            "--until",
+            help="Show findings until date/time. Same format as --since",
+        ),
+    ] = None,
+    severity: Annotated[
+        Optional[str],
+        typer.Option(
+            "--severity",
+            help="Filter by severity level(s), comma-separated "
+            "(critical, high, medium, low, info)",
+        ),
+    ] = None,
+    detector: Annotated[
+        Optional[str],
+        typer.Option(
+            "--detector",
+            "-d",
+            help="Filter by detector name (exact match)",
+        ),
+    ] = None,
+    path: Annotated[
+        Optional[str],
+        typer.Option(
+            "--path",
+            "-p",
+            help="Filter by file path (prefix match)",
+        ),
+    ] = None,
+    target: Annotated[
+        Optional[str],
+        typer.Option(
+            "--target",
+            "-t",
+            help="Filter by scan target path (prefix match)",
+        ),
+    ] = None,
+    limit: Annotated[
+        Optional[int],
+        typer.Option(
+            "--limit",
+            "-n",
+            help="Maximum number of findings to show",
+            min=1,
+        ),
+    ] = None,
+    stats: Annotated[
+        bool,
+        typer.Option(
+            "--stats",
+            help="Show statistics summary instead of findings",
+        ),
+    ] = False,
+    db_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--db-path",
+            help="Path to SQLite database file. Default: ~/.hamburglar/findings.db",
+            resolve_path=True,
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Enable verbose output",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress non-error output (only show errors)",
+        ),
+    ] = False,
+) -> None:
+    """Query stored findings from the database.
+
+    View and filter historical scan findings stored in the database.
+    Use --stats to see aggregate statistics instead of individual findings.
+
+    Examples:
+        hamburglar history                     # Show all findings
+        hamburglar history --since 7d          # Findings from last 7 days
+        hamburglar history --severity high,critical  # High/critical only
+        hamburglar history --detector aws_key  # Filter by detector
+        hamburglar history --stats             # Show statistics summary
+        hamburglar history --format json -o out.json  # Export as JSON
+
+    Exit codes:
+        0: Success (findings found)
+        1: Error occurred
+        2: No findings found
+    """
+    from hamburglar.storage import FindingFilter
+
+    # Set up logging based on verbosity
+    if not quiet:
+        setup_logging(verbose=verbose)
+
+    # Validate format option
+    format_lower = format.lower()
+    if format_lower not in VALID_FORMATS:
+        valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
+        _display_error(
+            ConfigError(
+                f"Invalid format '{format}'. Valid formats: {valid_names}",
+                config_key="format",
+            )
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    output_format = VALID_FORMATS[format_lower]
+
+    # Parse date filters
+    since_dt: datetime | None = None
+    until_dt: datetime | None = None
+
+    if since:
+        try:
+            since_dt = parse_date(since)
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="since"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    if until:
+        try:
+            until_dt = parse_date(until)
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="until"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Parse severity filter
+    severity_filter: list[Severity] | None = None
+    if severity:
+        try:
+            severity_filter = parse_severities(severity)
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="severity"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Get database path
+    resolved_db_path = get_db_path(db_path)
+
+    # Check if database exists
+    if not resolved_db_path.exists():
+        if not quiet:
+            console.print(
+                f"[yellow]No database found at:[/yellow] {resolved_db_path}\n"
+                "[dim]Run a scan with --save-to-db to create the database.[/dim]"
+            )
+        raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+    if verbose and not quiet:
+        console.print(f"[dim]Database:[/dim] {resolved_db_path}")
+        if since_dt:
+            console.print(f"[dim]Since:[/dim] {since_dt.isoformat()}")
+        if until_dt:
+            console.print(f"[dim]Until:[/dim] {until_dt.isoformat()}")
+        if severity_filter:
+            console.print(f"[dim]Severities:[/dim] {', '.join(s.value for s in severity_filter)}")
+        if detector:
+            console.print(f"[dim]Detector:[/dim] {detector}")
+        if path:
+            console.print(f"[dim]Path filter:[/dim] {path}")
+        if target:
+            console.print(f"[dim]Target filter:[/dim] {target}")
+        if limit:
+            console.print(f"[dim]Limit:[/dim] {limit}")
+
+    try:
+        with SqliteStorage(resolved_db_path) as storage:
+            if stats:
+                # Show statistics summary
+                statistics = storage.get_statistics()
+                _display_statistics(statistics, quiet, verbose, output, output_format)
+            else:
+                # Query findings
+                finding_filter = FindingFilter(
+                    since=since_dt,
+                    until=until_dt,
+                    file_path=path,
+                    detector_name=detector,
+                    severity=severity_filter if severity_filter else None,
+                    target_path=target,
+                    limit=limit,
+                )
+
+                findings = storage.get_findings(finding_filter)
+
+                if not findings:
+                    if not quiet:
+                        console.print("[yellow]No findings match the specified filters.[/yellow]")
+                    raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+                # Create a ScanResult for formatting
+                # Note: We need to convert findings to dicts and back to ensure
+                # they use the same Finding class as ScanResult (avoids issues
+                # with module reimports during testing)
+                from hamburglar.core.models import Finding as CurrentFinding
+                from hamburglar.core.models import ScanResult
+
+                converted_findings = [
+                    CurrentFinding.model_validate(f.model_dump())
+                    for f in findings
+                ]
+
+                result = ScanResult(
+                    target_path="history",
+                    findings=converted_findings,
+                    scan_duration=0.0,
+                    stats={
+                        "findings_count": len(findings),
+                        "source": "database",
+                        "database_path": str(resolved_db_path),
+                    },
+                )
+
+                # Format output
+                formatter = get_formatter(output_format)
+                formatted_output = formatter.format(result)
+
+                # Write to file or stdout
+                if output:
+                    try:
+                        output.write_text(formatted_output)
+                        if not quiet:
+                            console.print(f"[green]Output written to:[/green] {output}")
+                    except PermissionError as e:
+                        _display_error(e)
+                        raise typer.Exit(code=EXIT_ERROR) from None
+                    except OSError as e:
+                        _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+                        raise typer.Exit(code=EXIT_ERROR) from None
+                elif not quiet:
+                    if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
+                        print(formatted_output)
+                    else:
+                        console.print(formatted_output)
+
+                if verbose and not quiet:
+                    console.print(f"[dim]Found {len(findings)} matching findings[/dim]")
+
+    except typer.Exit:
+        # Re-raise typer.Exit (exit codes from within the try block)
+        raise
+    except StorageError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except PermissionError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except Exception as e:
+        _display_error(e, title="Error querying database")
+        raise typer.Exit(code=EXIT_ERROR) from None
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+def _display_statistics(
+    statistics: "ScanStatistics",
+    quiet: bool,
+    verbose: bool,
+    output: Optional[Path],
+    output_format: OutputFormat,
+) -> None:
+    """Display scan statistics in the requested format.
+
+    Args:
+        statistics: The ScanStatistics to display.
+        quiet: If True, suppress output.
+        verbose: If True, show detailed output.
+        output: Optional path to write output to.
+        output_format: The output format to use.
+    """
+    from hamburglar.storage import ScanStatistics
+    import json
+
+    # Build a structured representation of the statistics
+    stats_dict = {
+        "total_scans": statistics.total_scans,
+        "total_findings": statistics.total_findings,
+        "total_files_scanned": statistics.total_files_scanned,
+        "findings_by_severity": statistics.findings_by_severity,
+        "findings_by_detector": statistics.findings_by_detector,
+        "scans_by_date": statistics.scans_by_date,
+        "first_scan_date": statistics.first_scan_date.isoformat() if statistics.first_scan_date else None,
+        "last_scan_date": statistics.last_scan_date.isoformat() if statistics.last_scan_date else None,
+        "average_findings_per_scan": round(statistics.average_findings_per_scan, 2),
+        "average_scan_duration": round(statistics.average_scan_duration, 2),
+    }
+
+    if output_format == OutputFormat.JSON:
+        formatted_output = json.dumps(stats_dict, indent=2)
+    elif output_format == OutputFormat.CSV:
+        # Create a simple CSV representation
+        lines = ["metric,value"]
+        lines.append(f"total_scans,{statistics.total_scans}")
+        lines.append(f"total_findings,{statistics.total_findings}")
+        lines.append(f"total_files_scanned,{statistics.total_files_scanned}")
+        lines.append(f"average_findings_per_scan,{statistics.average_findings_per_scan:.2f}")
+        lines.append(f"average_scan_duration,{statistics.average_scan_duration:.2f}")
+        if statistics.first_scan_date:
+            lines.append(f"first_scan_date,{statistics.first_scan_date.isoformat()}")
+        if statistics.last_scan_date:
+            lines.append(f"last_scan_date,{statistics.last_scan_date.isoformat()}")
+        formatted_output = "\r\n".join(lines) + "\r\n"
+    else:
+        # Build a rich text table for table/html/markdown/sarif formats
+        from rich.table import Table
+
+        # Summary table
+        summary = Table(title="Scan Statistics Summary", show_header=True, header_style="bold cyan")
+        summary.add_column("Metric", style="dim")
+        summary.add_column("Value", justify="right")
+
+        summary.add_row("Total Scans", str(statistics.total_scans))
+        summary.add_row("Total Findings", str(statistics.total_findings))
+        summary.add_row("Total Files Scanned", str(statistics.total_files_scanned))
+        summary.add_row("Avg Findings/Scan", f"{statistics.average_findings_per_scan:.2f}")
+        summary.add_row("Avg Scan Duration", f"{statistics.average_scan_duration:.2f}s")
+        if statistics.first_scan_date:
+            summary.add_row("First Scan", statistics.first_scan_date.strftime("%Y-%m-%d %H:%M"))
+        if statistics.last_scan_date:
+            summary.add_row("Last Scan", statistics.last_scan_date.strftime("%Y-%m-%d %H:%M"))
+
+        # Severity breakdown table
+        severity_table = Table(title="Findings by Severity", show_header=True, header_style="bold cyan")
+        severity_table.add_column("Severity", style="dim")
+        severity_table.add_column("Count", justify="right")
+
+        # Order severities by criticality
+        severity_order = ["critical", "high", "medium", "low", "info"]
+        for sev in severity_order:
+            count = statistics.findings_by_severity.get(sev, 0)
+            if count > 0:
+                severity_table.add_row(sev.upper(), str(count))
+
+        # Detector breakdown table (show top 10)
+        detector_table = Table(title="Findings by Detector (Top 10)", show_header=True, header_style="bold cyan")
+        detector_table.add_column("Detector", style="dim")
+        detector_table.add_column("Count", justify="right")
+
+        sorted_detectors = sorted(
+            statistics.findings_by_detector.items(),
+            key=lambda x: x[1],
+            reverse=True,
+        )[:10]
+        for det_name, count in sorted_detectors:
+            detector_table.add_row(det_name, str(count))
+
+        # Scan activity table (show last 7 dates)
+        activity_table = Table(title="Recent Scan Activity", show_header=True, header_style="bold cyan")
+        activity_table.add_column("Date", style="dim")
+        activity_table.add_column("Scans", justify="right")
+
+        sorted_dates = sorted(statistics.scans_by_date.items(), reverse=True)[:7]
+        for date, count in sorted_dates:
+            activity_table.add_row(date, str(count))
+
+        # For non-JSON/CSV formats, use the console to render
+        if output:
+            # Capture console output to string
+            from io import StringIO
+            from rich.console import Console
+
+            string_io = StringIO()
+            temp_console = Console(file=string_io, force_terminal=False)
+            temp_console.print(summary)
+            temp_console.print()
+            if statistics.findings_by_severity:
+                temp_console.print(severity_table)
+                temp_console.print()
+            if statistics.findings_by_detector:
+                temp_console.print(detector_table)
+                temp_console.print()
+            if statistics.scans_by_date:
+                temp_console.print(activity_table)
+            formatted_output = string_io.getvalue()
+        else:
+            if not quiet:
+                console.print(summary)
+                console.print()
+                if statistics.findings_by_severity:
+                    console.print(severity_table)
+                    console.print()
+                if statistics.findings_by_detector:
+                    console.print(detector_table)
+                    console.print()
+                if statistics.scans_by_date:
+                    console.print(activity_table)
+            return
+
+    # Write to file or stdout
+    if output:
+        try:
+            output.write_text(formatted_output)
+            if not quiet:
+                console.print(f"[green]Statistics written to:[/green] {output}")
+        except PermissionError as e:
+            _display_error(e)
+            raise typer.Exit(code=EXIT_ERROR) from None
+        except OSError as e:
+            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+            raise typer.Exit(code=EXIT_ERROR) from None
+    elif not quiet:
+        if output_format in (OutputFormat.JSON, OutputFormat.CSV):
+            print(formatted_output)
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -2157,6 +2683,7 @@ def main(
     Use 'hamburglar scan <path>' to scan files for secrets and sensitive data.
     Use 'hamburglar scan-git <url/path>' to scan git repositories.
     Use 'hamburglar scan-web <url>' to scan web URLs.
+    Use 'hamburglar history' to view stored findings from previous scans.
     """
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())

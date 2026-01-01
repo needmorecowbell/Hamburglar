@@ -6,8 +6,6 @@ used for organizing detection patterns.
 
 from __future__ import annotations
 
-import pytest
-
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import (
     Confidence,

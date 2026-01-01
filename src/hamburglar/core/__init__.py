@@ -12,8 +12,8 @@ from hamburglar.core.profiling import (
     PerformanceProfiler,
     PerformanceReport,
     TimingStats,
-    format_bytes,
     force_gc,
+    format_bytes,
     get_current_memory_rss,
     is_memory_tracking_available,
     timed,
@@ -26,6 +26,6 @@ from hamburglar.core.progress import (
 )
 from hamburglar.core.stats import (
     ScanStats,
-    SkipReason,
     SkippedFile,
+    SkipReason,
 )

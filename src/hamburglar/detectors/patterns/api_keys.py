@@ -7,7 +7,6 @@ services including cloud providers, development platforms, and third-party servi
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # AWS Patterns
 AWS_ACCESS_KEY_ID = Pattern(
     name="aws_access_key_id",

@@ -74,9 +74,7 @@ class DetectorError(HamburglarError):
         >>> raise DetectorError("Regex timeout", detector_name="RegexDetector")
     """
 
-    def __init__(
-        self, message: str, detector_name: str | None = None, context: dict | None = None
-    ):
+    def __init__(self, message: str, detector_name: str | None = None, context: dict | None = None):
         """Initialize the detector error.
 
         Args:

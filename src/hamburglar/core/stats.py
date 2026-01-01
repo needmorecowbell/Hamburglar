@@ -14,7 +14,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from hamburglar.core.models import Finding, Severity
+    from hamburglar.core.models import Finding
 
 
 class SkipReason(str, Enum):
@@ -184,7 +184,7 @@ class ScanStats:
         if severity:
             self.findings_by_severity[severity] += 1
 
-    def add_findings(self, findings: list["Finding"]) -> None:
+    def add_findings(self, findings: list[Finding]) -> None:
         """Record multiple findings at once.
 
         Args:
@@ -333,7 +333,7 @@ class ScanStats:
             "errors": self.errors,
         }
 
-    def merge(self, other: "ScanStats") -> None:
+    def merge(self, other: ScanStats) -> None:
         """Merge statistics from another ScanStats instance.
 
         This is useful for aggregating statistics from parallel scans.
@@ -352,7 +352,7 @@ class ScanStats:
         self._total_findings += other._total_findings
         self.errors.extend(other.errors)
 
-    def __add__(self, other: "ScanStats") -> "ScanStats":
+    def __add__(self, other: ScanStats) -> ScanStats:
         """Combine two ScanStats instances into a new one.
 
         Creates a new ScanStats with combined counts from both instances.
@@ -430,7 +430,7 @@ class ScanStats:
             Multi-line summary of scan statistics.
         """
         lines = [
-            f"Scan Statistics:",
+            "Scan Statistics:",
             f"  Files: {self.total_files_scanned}/{self.total_files_discovered} scanned "
             f"({self.total_files_skipped} skipped)",
             f"  Bytes: {self.format_bytes()}",

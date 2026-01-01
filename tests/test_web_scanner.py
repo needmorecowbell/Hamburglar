@@ -15,7 +15,6 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,12 +31,11 @@ for key in list(sys.modules.keys()):
         del sys.modules[key]
 
 from hamburglar.core.exceptions import ScanError  # noqa: E402
-from hamburglar.core.models import Finding, Severity  # noqa: E402
+from hamburglar.core.models import Finding  # noqa: E402
 from hamburglar.core.progress import ScanProgress  # noqa: E402
 from hamburglar.detectors import BaseDetector  # noqa: E402
 from hamburglar.detectors.regex_detector import RegexDetector  # noqa: E402
 from hamburglar.scanners import BaseScanner, WebScanner  # noqa: E402
-
 
 # Sample HTML with various content types for testing
 SAMPLE_HTML = """
@@ -375,26 +373,17 @@ class TestWebScannerDomainChecking:
     def test_is_same_domain_true(self):
         """Test that same domain returns True."""
         scanner = WebScanner("https://example.com")
-        assert scanner._is_same_domain(
-            "https://example.com/page",
-            "https://example.com"
-        )
+        assert scanner._is_same_domain("https://example.com/page", "https://example.com")
 
     def test_is_same_domain_false(self):
         """Test that different domain returns False."""
         scanner = WebScanner("https://example.com")
-        assert not scanner._is_same_domain(
-            "https://other.com/page",
-            "https://example.com"
-        )
+        assert not scanner._is_same_domain("https://other.com/page", "https://example.com")
 
     def test_is_same_domain_subdomain(self):
         """Test that subdomains are different."""
         scanner = WebScanner("https://example.com")
-        assert not scanner._is_same_domain(
-            "https://sub.example.com/page",
-            "https://example.com"
-        )
+        assert not scanner._is_same_domain("https://sub.example.com/page", "https://example.com")
 
 
 class TestWebScannerCancellation:
@@ -699,9 +688,7 @@ class TestWebScannerHTTPErrors:
             mock_client.return_value.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_client.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            mock_instance.get = AsyncMock(
-                side_effect=httpx.RequestError("Connection refused")
-            )
+            mock_instance.get = AsyncMock(side_effect=httpx.RequestError("Connection refused"))
 
             result = await scanner.scan()
 
@@ -804,8 +791,7 @@ class TestWebScannerScriptScanning:
 
             # Should find secret in inline script
             inline_findings = [
-                f for f in result.findings
-                if f.metadata.get("source_type") == "inline_script"
+                f for f in result.findings if f.metadata.get("source_type") == "inline_script"
             ]
             assert len(inline_findings) > 0
 
@@ -837,9 +823,7 @@ class TestWebScannerScriptScanning:
             mock_js_response.text = SAMPLE_JS
             mock_js_response.raise_for_status = MagicMock()
 
-            mock_instance.get = AsyncMock(
-                side_effect=[mock_html_response, mock_js_response]
-            )
+            mock_instance.get = AsyncMock(side_effect=[mock_html_response, mock_js_response])
 
             result = await scanner.scan()
 
@@ -1020,9 +1004,7 @@ class TestWebScannerRobotsCaching:
             mock_html_response.text = SAMPLE_HTML_NO_SECRETS
             mock_html_response.raise_for_status = MagicMock()
 
-            mock_instance.get = AsyncMock(
-                side_effect=[mock_robots_response, mock_html_response]
-            )
+            mock_instance.get = AsyncMock(side_effect=[mock_robots_response, mock_html_response])
 
             await scanner.scan()
 
@@ -1057,8 +1039,7 @@ class TestWebScannerFindingMetadata:
             result = await scanner.scan()
 
             html_findings = [
-                f for f in result.findings
-                if f.metadata.get("source_type") == "html_text"
+                f for f in result.findings if f.metadata.get("source_type") == "html_text"
             ]
 
             for finding in html_findings:
@@ -1169,13 +1150,13 @@ class TestWebScannerDuplicateURLHandling:
             mock_client.return_value.__aexit__ = AsyncMock(return_value=None)
 
             # HTML with multiple links to the same page
-            html = '''
+            html = """
             <html><body>
                 <a href="/page">Link 1</a>
                 <a href="/page">Link 2</a>
                 <a href="/page#section">Link 3 with fragment</a>
             </body></html>
-            '''
+            """
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-type": "text/html"}

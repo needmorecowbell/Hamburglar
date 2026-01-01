@@ -557,14 +557,13 @@ class TestDetectorPluginInheritance:
         # Use the already imported BaseDetector to avoid module isolation issues
         assert isinstance(detector, BaseDetector)
         # Also verify via MRO
-        assert any(
-            cls.__name__ == "BaseDetector" for cls in type(detector).__mro__
-        )
+        assert any(cls.__name__ == "BaseDetector" for cls in type(detector).__mro__)
 
     def test_abstract_methods_required(self) -> None:
         """Test that abstract methods must be implemented."""
         # This should raise TypeError because name and detect are abstract
         with pytest.raises(TypeError):
+
             class IncompletePlugin(DetectorPlugin):
                 pass
 
@@ -573,6 +572,7 @@ class TestDetectorPluginInheritance:
     def test_abstract_name_required(self) -> None:
         """Test that name property must be implemented."""
         with pytest.raises(TypeError):
+
             class NoNamePlugin(DetectorPlugin):
                 def detect(self, content: str, file_path: str = "") -> list[Finding]:
                     return []
@@ -582,6 +582,7 @@ class TestDetectorPluginInheritance:
     def test_abstract_detect_required(self) -> None:
         """Test that detect method must be implemented."""
         with pytest.raises(TypeError):
+
             class NoDetectPlugin(DetectorPlugin):
                 @property
                 def name(self) -> str:

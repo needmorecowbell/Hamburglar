@@ -15,7 +15,6 @@ import asyncio
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,7 +31,7 @@ for key in list(sys.modules.keys()):
         del sys.modules[key]
 
 from hamburglar.core.exceptions import ScanError  # noqa: E402
-from hamburglar.core.models import Finding, Severity  # noqa: E402
+from hamburglar.core.models import Finding  # noqa: E402
 from hamburglar.core.progress import ScanProgress  # noqa: E402
 from hamburglar.detectors import BaseDetector  # noqa: E402
 from hamburglar.detectors.regex_detector import RegexDetector  # noqa: E402
@@ -140,8 +139,7 @@ def git_repo_with_current_secret(tmp_path: Path) -> Path:
     # Create file with secret
     secrets_file = repo_path / "config.py"
     secrets_file.write_text(
-        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n'
-        'API_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"\n'
+        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\nAPI_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"\n'
     )
     subprocess.run(["git", "add", "."], cwd=repo_path, check=True, capture_output=True)
     subprocess.run(
@@ -230,9 +228,7 @@ class TestGitScannerLocalRepo:
             assert finding.metadata["source_type"] == "current_file"
 
     @pytest.mark.asyncio
-    async def test_scan_local_repo_finds_historical_secrets(
-        self, git_repo: Path
-    ) -> None:
+    async def test_scan_local_repo_finds_historical_secrets(self, git_repo: Path) -> None:
         """Test that scanner finds secrets in commit history."""
         detector = RegexDetector()
         scanner = GitScanner(
@@ -247,16 +243,12 @@ class TestGitScannerLocalRepo:
 
         # Should find secrets in historical diffs (the removed secret)
         diff_findings = [
-            f
-            for f in result.findings
-            if f.metadata.get("content_type") == "commit_diff"
+            f for f in result.findings if f.metadata.get("content_type") == "commit_diff"
         ]
         assert len(diff_findings) > 0
 
     @pytest.mark.asyncio
-    async def test_scan_local_repo_finds_commit_message_secrets(
-        self, git_repo: Path
-    ) -> None:
+    async def test_scan_local_repo_finds_commit_message_secrets(self, git_repo: Path) -> None:
         """Test that scanner finds secrets in commit messages."""
         detector = RegexDetector()
         scanner = GitScanner(
@@ -269,16 +261,12 @@ class TestGitScannerLocalRepo:
 
         # Should find secret in commit message
         message_findings = [
-            f
-            for f in result.findings
-            if f.metadata.get("content_type") == "commit_message"
+            f for f in result.findings if f.metadata.get("content_type") == "commit_message"
         ]
         assert len(message_findings) > 0
 
     @pytest.mark.asyncio
-    async def test_scan_without_history(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_scan_without_history(self, git_repo_with_current_secret: Path) -> None:
         """Test scanning without commit history."""
         detector = RegexDetector()
         scanner = GitScanner(
@@ -337,9 +325,7 @@ class TestGitScannerCancellation:
         assert scanner.is_cancelled
 
     @pytest.mark.asyncio
-    async def test_cancellation_stops_scan(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_cancellation_stops_scan(self, git_repo_with_current_secret: Path) -> None:
         """Test that cancellation stops the scan."""
         scan_started = asyncio.Event()
         files_processed = 0
@@ -355,6 +341,7 @@ class TestGitScannerCancellation:
                 scan_started.set()
                 # Add a small delay to allow cancellation to take effect
                 import time
+
                 time.sleep(0.01)
                 return []
 
@@ -381,9 +368,7 @@ class TestGitScannerProgressCallback:
     """Test progress callback functionality."""
 
     @pytest.mark.asyncio
-    async def test_progress_callback_is_called(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_progress_callback_is_called(self, git_repo_with_current_secret: Path) -> None:
         """Test that progress callback is called during scan."""
         progress_calls: list[ScanProgress] = []
 
@@ -427,9 +412,7 @@ class TestGitScannerStreaming:
     """Test streaming output functionality."""
 
     @pytest.mark.asyncio
-    async def test_stream_yields_findings(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_stream_yields_findings(self, git_repo_with_current_secret: Path) -> None:
         """Test that scan_stream yields findings as they're discovered."""
         detector = RegexDetector()
         scanner = GitScanner(
@@ -461,9 +444,7 @@ class TestGitScannerStreaming:
             findings.append(finding)
 
         # Should have findings from both current files and history
-        current_findings = [
-            f for f in findings if f.metadata.get("source_type") == "current_file"
-        ]
+        current_findings = [f for f in findings if f.metadata.get("source_type") == "current_file"]
         history_findings = [
             f for f in findings if f.metadata.get("source_type") == "commit_history"
         ]
@@ -497,9 +478,7 @@ class TestGitScannerStats:
         assert stats["files_scanned"] > 0
 
     @pytest.mark.asyncio
-    async def test_scan_duration_is_tracked(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_scan_duration_is_tracked(self, git_repo_with_current_secret: Path) -> None:
         """Test that scan duration is tracked."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -559,9 +538,7 @@ class TestGitScannerClone:
         clone_dir = tmp_path / "custom_clone"
 
         # Mock the git clone command
-        with patch.object(
-            GitScanner, "_run_git_command", new_callable=AsyncMock
-        ) as mock_git:
+        with patch.object(GitScanner, "_run_git_command", new_callable=AsyncMock) as mock_git:
             mock_git.return_value = (0, "", "")
 
             scanner = GitScanner(
@@ -575,9 +552,7 @@ class TestGitScannerClone:
     @pytest.mark.asyncio
     async def test_clone_with_depth(self, tmp_path: Path) -> None:
         """Test that depth parameter is passed to git clone."""
-        with patch.object(
-            GitScanner, "_run_git_command", new_callable=AsyncMock
-        ) as mock_git:
+        with patch.object(GitScanner, "_run_git_command", new_callable=AsyncMock) as mock_git:
             mock_git.return_value = (0, "", "")
 
             scanner = GitScanner(
@@ -631,9 +606,7 @@ class TestGitScannerNoDetectors:
     """Test scanning without detectors."""
 
     @pytest.mark.asyncio
-    async def test_scan_without_detectors(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_scan_without_detectors(self, git_repo_with_current_secret: Path) -> None:
         """Test that scanner works without any detectors."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -651,9 +624,7 @@ class TestGitScannerDetectorErrors:
     """Test handling of detector errors."""
 
     @pytest.mark.asyncio
-    async def test_detector_error_handling(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_detector_error_handling(self, git_repo_with_current_secret: Path) -> None:
         """Test that scanner handles detector errors gracefully."""
 
         class FailingDetector(BaseDetector):
@@ -682,9 +653,7 @@ class TestGitScannerFileReadErrors:
     """Test handling of file read errors."""
 
     @pytest.mark.asyncio
-    async def test_handles_unreadable_file(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_handles_unreadable_file(self, git_repo_with_current_secret: Path) -> None:
         """Test that scanner handles file read errors gracefully."""
         # Make a file unreadable
         config_file = git_repo_with_current_secret / "config.py"
@@ -746,9 +715,7 @@ class TestGitScannerReset:
     """Test scanner reset functionality."""
 
     @pytest.mark.asyncio
-    async def test_reset_clears_state(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_reset_clears_state(self, git_repo_with_current_secret: Path) -> None:
         """Test that _reset clears all scanner state."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -767,9 +734,7 @@ class TestGitScannerReset:
         assert scanner.get_stats()["findings_count"] == 0
 
     @pytest.mark.asyncio
-    async def test_can_scan_multiple_times(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_can_scan_multiple_times(self, git_repo_with_current_secret: Path) -> None:
         """Test that scanner can be used for multiple scans."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -820,15 +785,11 @@ class TestGitScannerRemoteClone:
         """Test that clone failure raises appropriate error."""
         scanner = GitScanner("https://invalid-url-that-will-fail.git")
 
-        with patch.object(
-            GitScanner, "_run_git_command", new_callable=AsyncMock
-        ) as mock_git:
+        with patch.object(GitScanner, "_run_git_command", new_callable=AsyncMock) as mock_git:
             mock_git.side_effect = ScanError("Clone failed")
 
             with pytest.raises(ScanError) as exc_info:
-                await scanner._clone_repository(
-                    "https://invalid-url.git", tmp_path / "dest"
-                )
+                await scanner._clone_repository("https://invalid-url.git", tmp_path / "dest")
 
             assert "Failed to clone" in str(exc_info.value)
 
@@ -837,9 +798,7 @@ class TestGitScannerRemoteClone:
         """Test that remote repositories use temp directory when clone_dir not set."""
         scanner = GitScanner("https://github.com/user/repo.git")
 
-        with patch.object(
-            GitScanner, "_clone_repository", new_callable=AsyncMock
-        ) as mock_clone:
+        with patch.object(GitScanner, "_clone_repository", new_callable=AsyncMock) as mock_clone:
             mock_clone.return_value = None
 
             # Mock the tempdir creation
@@ -857,9 +816,7 @@ class TestGitScannerRemoteClone:
                 mock_temp.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_setup_repository_remote_with_custom_clone_dir(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_setup_repository_remote_with_custom_clone_dir(self, tmp_path: Path) -> None:
         """Test that remote repositories use custom clone_dir when set."""
         clone_dir = tmp_path / "custom_clone"
         scanner = GitScanner(
@@ -867,9 +824,7 @@ class TestGitScannerRemoteClone:
             clone_dir=clone_dir,
         )
 
-        with patch.object(
-            GitScanner, "_clone_repository", new_callable=AsyncMock
-        ) as mock_clone:
+        with patch.object(GitScanner, "_clone_repository", new_callable=AsyncMock) as mock_clone:
             mock_clone.return_value = None
 
             result = await scanner._setup_repository()
@@ -908,9 +863,7 @@ class TestGitScannerGitCommandFailure:
             mock_process.communicate.return_value = (b"output", b"error")
             mock_exec.return_value = mock_process
 
-            returncode, stdout, stderr = await scanner._run_git_command(
-                ["status"], check=False
-            )
+            returncode, stdout, stderr = await scanner._run_git_command(["status"], check=False)
 
             assert returncode == 1
             assert stdout == "output"
@@ -929,14 +882,10 @@ class TestGitScannerCloneArgs:
             branch="develop",
         )
 
-        with patch.object(
-            GitScanner, "_run_git_command", new_callable=AsyncMock
-        ) as mock_git:
+        with patch.object(GitScanner, "_run_git_command", new_callable=AsyncMock) as mock_git:
             mock_git.return_value = (0, "", "")
 
-            await scanner._clone_repository(
-                "https://github.com/user/repo.git", tmp_path / "dest"
-            )
+            await scanner._clone_repository("https://github.com/user/repo.git", tmp_path / "dest")
 
             # Check that the command included depth and branch args
             call_args = mock_git.call_args[0][0]
@@ -1065,9 +1014,7 @@ class TestGitScannerCleanupErrors:
     """Test cleanup error handling."""
 
     @pytest.mark.asyncio
-    async def test_cleanup_handles_exception(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_cleanup_handles_exception(self, git_repo_with_current_secret: Path) -> None:
         """Test that cleanup handles exceptions gracefully."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -1090,9 +1037,7 @@ class TestGitScannerGetProgress:
     """Test get_progress method."""
 
     @pytest.mark.asyncio
-    async def test_get_progress_before_scan(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_get_progress_before_scan(self, git_repo_with_current_secret: Path) -> None:
         """Test that _get_progress returns correct values before scan."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -1108,9 +1053,7 @@ class TestGitScannerGetProgress:
         assert progress.elapsed_time == 0.0
 
     @pytest.mark.asyncio
-    async def test_get_progress_during_scan(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_get_progress_during_scan(self, git_repo_with_current_secret: Path) -> None:
         """Test that _get_progress returns correct values during scan."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -1154,9 +1097,7 @@ class TestGitScannerScanContentContext:
     """Test _scan_content with context."""
 
     @pytest.mark.asyncio
-    async def test_scan_content_adds_context(
-        self, git_repo_with_current_secret: Path
-    ) -> None:
+    async def test_scan_content_adds_context(self, git_repo_with_current_secret: Path) -> None:
         """Test that _scan_content adds context to findings."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -1181,9 +1122,7 @@ class TestGitScannerReadFileErrors:
     """Test file read error handling."""
 
     @pytest.mark.asyncio
-    async def test_read_file_oserror(
-        self, git_repo_with_current_secret: Path, monkeypatch
-    ) -> None:
+    async def test_read_file_oserror(self, git_repo_with_current_secret: Path, monkeypatch) -> None:
         """Test that _read_file handles OSError gracefully."""
         scanner = GitScanner(
             str(git_repo_with_current_secret),
@@ -1198,9 +1137,7 @@ class TestGitScannerReadFileErrors:
 
         monkeypatch.setattr(Path, "read_text", mock_read_text)
 
-        result = await scanner._read_file(
-            git_repo_with_current_secret / "config.py"
-        )
+        result = await scanner._read_file(git_repo_with_current_secret / "config.py")
 
         assert result is None
         assert len(scanner._errors) > 0
@@ -1221,9 +1158,7 @@ class TestGitScannerReadFileErrors:
 
         monkeypatch.setattr(Path, "read_text", mock_read_text)
 
-        result = await scanner._read_file(
-            git_repo_with_current_secret / "config.py"
-        )
+        result = await scanner._read_file(git_repo_with_current_secret / "config.py")
 
         assert result is None
         assert any("Permission denied" in err for err in scanner._errors)

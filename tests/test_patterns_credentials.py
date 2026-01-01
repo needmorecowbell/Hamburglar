@@ -377,14 +377,22 @@ class TestJWTPatterns:
         """Test JWT token format."""
         pattern = re.compile(JWT_TOKEN.regex)
         # Fake JWT structure
-        jwt = fake_token("eyJhbGciOiJIUzI1NiJ9", ".", "eyJzdWIiOiIxMjM0NTY3ODkwIn0", ".", "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
+        jwt = fake_token(
+            "eyJhbGciOiJIUzI1NiJ9",
+            ".",
+            "eyJzdWIiOiIxMjM0NTY3ODkwIn0",
+            ".",
+            "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        )
         result = pattern.search(jwt)
         assert result is not None
 
     def test_jwt_token_positive_2(self) -> None:
         """Test JWT token in context."""
         pattern = re.compile(JWT_TOKEN.regex)
-        jwt = fake_token("token: eyJhbGciOiJSUzI1NiJ9", ".", "eyJpc3MiOiJmYWtlIn0", ".", "signature_here_123")
+        jwt = fake_token(
+            "token: eyJhbGciOiJSUzI1NiJ9", ".", "eyJpc3MiOiJmYWtlIn0", ".", "signature_here_123"
+        )
         result = pattern.search(jwt)
         assert result is not None
 
@@ -403,14 +411,22 @@ class TestJWTPatterns:
     def test_jwt_token_assignment_positive_1(self) -> None:
         """Test JWT token assignment."""
         pattern = re.compile(JWT_TOKEN_ASSIGNMENT.regex)
-        jwt = fake_token("jwt = 'eyJhbGciOiJIUzI1NiJ9", ".", "eyJzdWIiOiIxMjM0NTY3ODkwIn0", ".", "SflKxwRJSMeKKF2QT'")
+        jwt = fake_token(
+            "jwt = 'eyJhbGciOiJIUzI1NiJ9",
+            ".",
+            "eyJzdWIiOiIxMjM0NTY3ODkwIn0",
+            ".",
+            "SflKxwRJSMeKKF2QT'",
+        )
         result = pattern.search(jwt)
         assert result is not None
 
     def test_jwt_token_assignment_positive_2(self) -> None:
         """Test access_token assignment with JWT."""
         pattern = re.compile(JWT_TOKEN_ASSIGNMENT.regex)
-        jwt = fake_token('access_token: "eyJhbGciOiJSUzI1NiJ9', '.', 'eyJpc3MiOiJmYWtlIn0', '.', 'sig123"')
+        jwt = fake_token(
+            'access_token: "eyJhbGciOiJSUzI1NiJ9', ".", "eyJpc3MiOiJmYWtlIn0", ".", 'sig123"'
+        )
         result = pattern.search(jwt)
         assert result is not None
 

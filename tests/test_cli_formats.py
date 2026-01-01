@@ -24,7 +24,7 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.cli.main import app, VALID_FORMATS, FORMAT_FORMATTERS, get_formatter
+from hamburglar.cli.main import FORMAT_FORMATTERS, VALID_FORMATS, app, get_formatter
 from hamburglar.core.models import OutputFormat
 
 runner = CliRunner()
@@ -123,8 +123,7 @@ class TestSarifFormat:
         """Test that SARIF output can be written to file."""
         output_file = tmp_path / "output.sarif"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--format", "sarif", "--output", str(output_file)]
+            app, ["scan", str(temp_directory), "--format", "sarif", "--output", str(output_file)]
         )
         assert result.exit_code == 0
         assert output_file.exists()
@@ -173,8 +172,7 @@ class TestCsvFormat:
         """Test that CSV output can be written to file."""
         output_file = tmp_path / "output.csv"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--format", "csv", "--output", str(output_file)]
+            app, ["scan", str(temp_directory), "--format", "csv", "--output", str(output_file)]
         )
         assert result.exit_code == 0
         assert output_file.exists()
@@ -221,8 +219,7 @@ class TestHtmlFormat:
         """Test that HTML output can be written to file."""
         output_file = tmp_path / "output.html"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--format", "html", "--output", str(output_file)]
+            app, ["scan", str(temp_directory), "--format", "html", "--output", str(output_file)]
         )
         assert result.exit_code == 0
         assert output_file.exists()
@@ -265,8 +262,7 @@ class TestMarkdownFormat:
         """Test that Markdown output can be written to file."""
         output_file = tmp_path / "output.md"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--format", "markdown", "--output", str(output_file)]
+            app, ["scan", str(temp_directory), "--format", "markdown", "--output", str(output_file)]
         )
         assert result.exit_code == 0
         assert output_file.exists()
@@ -317,7 +313,15 @@ class TestFormatWithQuiet:
         output_file = tmp_path / "output.sarif"
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--quiet", "--format", "sarif", "--output", str(output_file)]
+            [
+                "scan",
+                str(temp_directory),
+                "--quiet",
+                "--format",
+                "sarif",
+                "--output",
+                str(output_file),
+            ],
         )
         assert result.exit_code == 0
         assert result.output == ""
@@ -332,7 +336,15 @@ class TestFormatWithQuiet:
         output_file = tmp_path / "output.csv"
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--quiet", "--format", "csv", "--output", str(output_file)]
+            [
+                "scan",
+                str(temp_directory),
+                "--quiet",
+                "--format",
+                "csv",
+                "--output",
+                str(output_file),
+            ],
         )
         assert result.exit_code == 0
         assert result.output == ""
@@ -380,7 +392,15 @@ class TestVerboseWithFormats:
         output_file = tmp_path / "output.sarif"
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--format", "sarif", "--verbose", "--output", str(output_file)]
+            [
+                "scan",
+                str(temp_directory),
+                "--format",
+                "sarif",
+                "--verbose",
+                "--output",
+                str(output_file),
+            ],
         )
         assert result.exit_code == 0
         assert output_file.exists()

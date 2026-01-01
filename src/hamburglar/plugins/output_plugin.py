@@ -33,13 +33,10 @@ from __future__ import annotations
 
 import json
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from hamburglar.core.models import Finding, ScanResult, Severity
 from hamburglar.outputs import BaseOutput, default_registry
-
-if TYPE_CHECKING:
-    pass
 
 
 class OutputPlugin(BaseOutput):
@@ -233,8 +230,7 @@ class OutputPlugin(BaseOutput):
         """
         output: dict[str, Any] = {
             "findings": [
-                self.format_finding(f, include_metadata=include_metadata)
-                for f in result.findings
+                self.format_finding(f, include_metadata=include_metadata) for f in result.findings
             ],
         }
 

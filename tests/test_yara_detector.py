@@ -106,9 +106,7 @@ rule test_rule {
 """)
         return YaraDetector(rule_file)
 
-    def test_detect_matching_content(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_matching_content(self, detector_with_rule: YaraDetector) -> None:
         """Test detecting content that matches a rule."""
         content = "This content contains FIND_ME in it"
         findings = detector_with_rule.detect(content, "test.txt")
@@ -127,9 +125,7 @@ rule test_rule {
         findings = detector_with_rule.detect("", "test.txt")
         assert len(findings) == 0
 
-    def test_detect_extracts_metadata(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_extracts_metadata(self, detector_with_rule: YaraDetector) -> None:
         """Test that detection extracts rule metadata."""
         content = "FIND_ME"
         findings = detector_with_rule.detect(content, "test.txt")
@@ -139,17 +135,13 @@ rule test_rule {
         assert metadata.get("description") == "Test rule"
         assert "rule_name" in metadata
 
-    def test_detect_sets_file_path(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_sets_file_path(self, detector_with_rule: YaraDetector) -> None:
         """Test that detection sets the file path in findings."""
         findings = detector_with_rule.detect("FIND_ME", "/path/to/file.txt")
         assert len(findings) == 1
         assert findings[0].file_path == "/path/to/file.txt"
 
-    def test_detect_unicode_content(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_unicode_content(self, detector_with_rule: YaraDetector) -> None:
         """Test detecting content with unicode characters."""
         content = "Unicode: é ñ ü and FIND_ME"
         findings = detector_with_rule.detect(content, "test.txt")
@@ -173,26 +165,20 @@ rule test_rule {
 """)
         return YaraDetector(rule_file)
 
-    def test_detect_bytes_matching(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_bytes_matching(self, detector_with_rule: YaraDetector) -> None:
         """Test detecting bytes that match a rule."""
         content = b"This content contains FIND_ME"
         findings = detector_with_rule.detect_bytes(content, "test.bin")
         assert len(findings) == 1
         assert "FIND_ME" in findings[0].matches
 
-    def test_detect_bytes_no_match(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_bytes_no_match(self, detector_with_rule: YaraDetector) -> None:
         """Test detecting bytes that don't match any rule."""
         content = b"No secrets here"
         findings = detector_with_rule.detect_bytes(content, "test.bin")
         assert len(findings) == 0
 
-    def test_detect_bytes_binary_content(
-        self, detector_with_rule: YaraDetector
-    ) -> None:
+    def test_detect_bytes_binary_content(self, detector_with_rule: YaraDetector) -> None:
         """Test detecting binary content with null bytes."""
         content = b"\x00\x01\x02FIND_ME\x03\x04\x05"
         findings = detector_with_rule.detect_bytes(content, "test.bin")
@@ -208,32 +194,24 @@ class TestYaraDetectorWithBundledRules:
         rules_path = get_rules_path()
         return YaraDetector(rules_path)
 
-    def test_bundled_detector_loads_rules(
-        self, bundled_detector: YaraDetector
-    ) -> None:
+    def test_bundled_detector_loads_rules(self, bundled_detector: YaraDetector) -> None:
         """Test that bundled detector loads multiple rules."""
         assert bundled_detector.rule_count > 0
         assert bundled_detector.name == "yara"
 
-    def test_bundled_detector_can_scan_content(
-        self, bundled_detector: YaraDetector
-    ) -> None:
+    def test_bundled_detector_can_scan_content(self, bundled_detector: YaraDetector) -> None:
         """Test that bundled detector can scan content without errors."""
         content = "This is test content"
         findings = bundled_detector.detect(content, "test.txt")
         assert isinstance(findings, list)
 
-    def test_bundled_detector_can_scan_bytes(
-        self, bundled_detector: YaraDetector
-    ) -> None:
+    def test_bundled_detector_can_scan_bytes(self, bundled_detector: YaraDetector) -> None:
         """Test that bundled detector can scan bytes without errors."""
         content = b"This is test content in bytes"
         findings = bundled_detector.detect_bytes(content, "test.bin")
         assert isinstance(findings, list)
 
-    def test_clean_content_no_matches(
-        self, bundled_detector: YaraDetector
-    ) -> None:
+    def test_clean_content_no_matches(self, bundled_detector: YaraDetector) -> None:
         """Test that clean text content has no matches."""
         content = "This is just regular text content with no magic bytes."
         findings = bundled_detector.detect(content, "test.txt")
@@ -333,15 +311,11 @@ rule rule_two {
 """)
         return YaraDetector(rules_dir)
 
-    def test_rule_count_multiple_files(
-        self, detector_with_multiple_rules: YaraDetector
-    ) -> None:
+    def test_rule_count_multiple_files(self, detector_with_multiple_rules: YaraDetector) -> None:
         """Test rule count with multiple rule files."""
         assert detector_with_multiple_rules.rule_count == 2
 
-    def test_detects_from_multiple_rules(
-        self, detector_with_multiple_rules: YaraDetector
-    ) -> None:
+    def test_detects_from_multiple_rules(self, detector_with_multiple_rules: YaraDetector) -> None:
         """Test detection from multiple rule files."""
         # Match rule one
         findings = detector_with_multiple_rules.detect("ONE", "test.txt")
@@ -353,9 +327,7 @@ rule rule_two {
         assert len(findings) == 1
         assert "rule_two" in findings[0].detector_name
 
-    def test_detects_multiple_matches(
-        self, detector_with_multiple_rules: YaraDetector
-    ) -> None:
+    def test_detects_multiple_matches(self, detector_with_multiple_rules: YaraDetector) -> None:
         """Test detecting content that matches multiple rules."""
         findings = detector_with_multiple_rules.detect("ONE and TWO", "test.txt")
         assert len(findings) == 2
@@ -525,9 +497,7 @@ class TestYaraCompilationError:
         assert error.message
         assert "Failed to compile" in error.message or "YARA" in error.message
 
-    def test_compilation_error_for_single_file_includes_path(
-        self, tmp_path: Path
-    ) -> None:
+    def test_compilation_error_for_single_file_includes_path(self, tmp_path: Path) -> None:
         """Test that compilation error includes rule file path for single file."""
         rule_file = tmp_path / "bad.yar"
         rule_file.write_text("invalid syntax here")
@@ -788,9 +758,7 @@ rule test_rule {
                 detector.detect("FIND_ME", "test.txt")
 
             # Check that performance log message is present
-            assert any(
-                "YaraDetector processed" in record.message for record in caplog.records
-            )
+            assert any("YaraDetector processed" in record.message for record in caplog.records)
         finally:
             logger.propagate = original_propagate
 
@@ -818,8 +786,6 @@ rule test_rule {
                 detector.detect(content, "large.txt")
 
             # Check that size warning is logged
-            assert any(
-                "exceeds YARA max" in record.message for record in caplog.records
-            )
+            assert any("exceeds YARA max" in record.message for record in caplog.records)
         finally:
             logger.propagate = original_propagate

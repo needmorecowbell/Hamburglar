@@ -34,7 +34,19 @@ Example usage::
 __version__ = "2.0.0"
 
 # Core scanner
-from hamburglar.core.scanner import Scanner
+# High-level API functions
+from hamburglar.api import (
+    scan,
+    scan_dir,
+    scan_directory,
+    scan_git,
+    scan_repo,
+    scan_url,
+    scan_web,
+)
+
+# Exceptions
+from hamburglar.core.exceptions import HamburglarError, ScanError
 
 # Data models
 from hamburglar.core.models import (
@@ -46,23 +58,10 @@ from hamburglar.core.models import (
     Severity,
     WebFinding,
 )
+from hamburglar.core.scanner import Scanner
 
 # Detector base classes
 from hamburglar.detectors import BaseDetector, DetectorRegistry, default_registry
-
-# Exceptions
-from hamburglar.core.exceptions import HamburglarError, ScanError
-
-# High-level API functions
-from hamburglar.api import (
-    scan_directory,
-    scan_git,
-    scan_url,
-    scan,
-    scan_dir,
-    scan_repo,
-    scan_web,
-)
 
 __all__ = [
     # Version

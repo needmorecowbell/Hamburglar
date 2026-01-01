@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from hamburglar.core.logging import get_logger, setup_logging
-from hamburglar.core.models import ScanConfig, Severity
+from hamburglar.core.models import ScanConfig
 from hamburglar.core.scanner import Scanner
 from hamburglar.detectors.regex_detector import (
     DEFAULT_MAX_FILE_SIZE,
@@ -128,9 +128,7 @@ class TestLargeFileWarningLogs:
         finally:
             logger.propagate = original_propagate
 
-    def test_warning_contains_file_path(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_warning_contains_file_path(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that the warning message contains the file path."""
         setup_logging(verbose=True)
         logger = get_logger()
@@ -144,16 +142,11 @@ class TestLargeFileWarningLogs:
                 detector.detect("a" * 100, "/path/to/specific/file.txt")
 
             # Check that file path is in the log message
-            assert any(
-                "/path/to/specific/file.txt" in record.message
-                for record in caplog.records
-            )
+            assert any("/path/to/specific/file.txt" in record.message for record in caplog.records)
         finally:
             logger.propagate = original_propagate
 
-    def test_warning_contains_file_size(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_warning_contains_file_size(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that the warning message contains the file size."""
         setup_logging(verbose=True)
         logger = get_logger()
@@ -172,9 +165,7 @@ class TestLargeFileWarningLogs:
         finally:
             logger.propagate = original_propagate
 
-    def test_warning_contains_max_size_limit(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_warning_contains_max_size_limit(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that the warning message contains the max size limit."""
         setup_logging(verbose=True)
         logger = get_logger()
@@ -192,9 +183,7 @@ class TestLargeFileWarningLogs:
         finally:
             logger.propagate = original_propagate
 
-    def test_no_warning_for_small_files(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_no_warning_for_small_files(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that no size warning is logged for files under the limit."""
         setup_logging(verbose=True)
         logger = get_logger()
@@ -361,9 +350,7 @@ class TestScannerWithLargeFileSizeLimit:
     """Integration tests for scanner with large file size limits."""
 
     @pytest.mark.asyncio
-    async def test_scanner_processes_small_files_with_default_limit(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_scanner_processes_small_files_with_default_limit(self, tmp_path: Path) -> None:
         """Test that scanner processes small files with default 10MB limit."""
         test_file = tmp_path / "secrets.txt"
         test_file.write_text("AWS_KEY=AKIAIOSFODNN7EXAMPLE")

@@ -10,13 +10,10 @@ import gc
 import os
 import sys
 import time
-from collections import defaultdict
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Generator, TypeVar
-
-if TYPE_CHECKING:
-    pass
+from typing import Any, Callable, TypeVar
 
 # Check if psutil is available for memory tracking
 try:
@@ -47,7 +44,7 @@ class MemorySnapshot:
     label: str = ""
 
     @classmethod
-    def take(cls, label: str = "") -> "MemorySnapshot":
+    def take(cls, label: str = "") -> MemorySnapshot:
         """Take a memory snapshot of the current process.
 
         Args:
@@ -203,9 +200,7 @@ class DetectorTimingStats:
         """Initialize the detect_time stats."""
         self.detect_time = TimingStats(name=f"{self.detector_name}.detect")
 
-    def record_detection(
-        self, duration: float, findings: int = 0
-    ) -> None:
+    def record_detection(self, duration: float, findings: int = 0) -> None:
         """Record a detection operation.
 
         Args:
@@ -576,13 +571,9 @@ class PerformanceReport:
                 "bytes_per_second_formatted": format_bytes(int(self.bytes_per_second)) + "/s",
             },
             "memory": self.memory_profiler.get_report(),
-            "detectors": {
-                name: stats.to_dict()
-                for name, stats in self.detector_stats.items()
-            },
+            "detectors": {name: stats.to_dict() for name, stats in self.detector_stats.items()},
             "custom_timings": {
-                name: stats.to_dict()
-                for name, stats in self.custom_timings.items()
+                name: stats.to_dict() for name, stats in self.custom_timings.items()
             },
         }
 
@@ -611,23 +602,25 @@ class PerformanceReport:
         ]
 
         if self.memory_profiler.enabled:
-            lines.extend([
-                "",
-                "Memory:",
-                f"  Peak RSS: {format_bytes(self.memory_profiler.peak_memory_rss)}",
-                f"  Peak VMS: {format_bytes(self.memory_profiler.peak_memory_vms)}",
-                f"  Delta RSS: {'+' if self.memory_profiler.memory_delta_rss >= 0 else ''}"
-                f"{format_bytes(abs(self.memory_profiler.memory_delta_rss))}",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "Memory:",
+                    f"  Peak RSS: {format_bytes(self.memory_profiler.peak_memory_rss)}",
+                    f"  Peak VMS: {format_bytes(self.memory_profiler.peak_memory_vms)}",
+                    f"  Delta RSS: {'+' if self.memory_profiler.memory_delta_rss >= 0 else ''}"
+                    f"{format_bytes(abs(self.memory_profiler.memory_delta_rss))}",
+                ]
+            )
 
         if self.detector_stats:
             lines.extend(["", "Detector Timing:"])
-            for name, stats in sorted(self.detector_stats.items()):
+            for _name, stats in sorted(self.detector_stats.items()):
                 lines.append(f"  {stats}")
 
         if self.custom_timings:
             lines.extend(["", "Custom Timings:"])
-            for name, stats in sorted(self.custom_timings.items()):
+            for _name, stats in sorted(self.custom_timings.items()):
                 lines.append(f"  {stats}")
 
         return "\n".join(lines)
@@ -654,9 +647,7 @@ class PerformanceProfiler:
             memory_tracking: Whether to enable memory tracking.
         """
         self._memory_tracking = memory_tracking
-        self._report = PerformanceReport(
-            memory_profiler=MemoryProfiler(enabled=memory_tracking)
-        )
+        self._report = PerformanceReport(memory_profiler=MemoryProfiler(enabled=memory_tracking))
         self._is_profiling = False
 
     @property

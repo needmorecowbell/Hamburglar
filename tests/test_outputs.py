@@ -24,10 +24,9 @@ for key in list(sys.modules.keys()):
         del sys.modules[key]
 
 from hamburglar.core.models import Finding, ScanResult, Severity
-from hamburglar.outputs import BaseOutput, OutputRegistry, default_registry
+from hamburglar.outputs import BaseOutput, OutputRegistry
 from hamburglar.outputs.json_output import JsonOutput
-from hamburglar.outputs.table_output import TableOutput, SEVERITY_COLORS
-
+from hamburglar.outputs.table_output import SEVERITY_COLORS, TableOutput
 
 # ============================================================================
 # Test Fixtures

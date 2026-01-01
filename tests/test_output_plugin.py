@@ -611,7 +611,7 @@ class TestOutputPluginEdgeCases:
         finding = Finding(
             file_path="test.py",
             detector_name="test",
-            matches=["key=\"value\"", "data: 'test'", "line\nbreak"],
+            matches=['key="value"', "data: 'test'", "line\nbreak"],
             severity=Severity.HIGH,
             metadata={},
         )
@@ -625,7 +625,7 @@ class TestOutputPluginEdgeCases:
         # JSON should handle special characters
         json_str = output.format(result)
         data = json.loads(json_str)
-        assert data["findings"][0]["matches"][0] == "key=\"value\""
+        assert data["findings"][0]["matches"][0] == 'key="value"'
 
     def test_unicode_content(self) -> None:
         """Test formatting with unicode content."""

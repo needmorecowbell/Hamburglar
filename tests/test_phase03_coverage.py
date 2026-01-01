@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -31,7 +31,7 @@ class TestEntropyDetectorAdditionalCoverage:
         # A high-entropy hex string that would normally be detected
         # 64 hex chars = 256-bit key
         hex_secret = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2"
-        content = f"key = \"{hex_secret}\""
+        content = f'key = "{hex_secret}"'
 
         findings = detector.detect(content, "test.py")
         # With hex exclusion, the hex string should be filtered out
@@ -41,7 +41,6 @@ class TestEntropyDetectorAdditionalCoverage:
     def test_high_entropy_with_encoding_severity(self) -> None:
         """Test severity determination for high entropy base64/hex (lines 426-427, 430-431)."""
         from hamburglar.detectors.entropy_detector import EntropyDetector
-        from hamburglar.core.models import Severity
 
         detector = EntropyDetector(
             exclude_base64=False,
@@ -53,7 +52,7 @@ class TestEntropyDetectorAdditionalCoverage:
         # Test high entropy hex string (line 426-427: is_base64 or is_hex path)
         # Use a truly random-looking hex string
         hex_string = "9f8e7d6c5b4a3928172635445362718192a3b4c5d6e7f8091a2b3c4d5e6f7089"
-        content = f"api_key = \"{hex_string}\""
+        content = f'api_key = "{hex_string}"'
         findings = detector.detect(content, "test.py")
         # Should find the hex string
         assert len(findings) >= 0  # May or may not match depending on entropy
@@ -65,7 +64,7 @@ class TestEntropyDetectorAdditionalCoverage:
             entropy_threshold=4.0,
         )
         random_string = "xK7mP2nQ9vB3cF6hJ8wL5tR1yG4zA0oE"
-        content_no_context = f"value = \"{random_string}\""
+        content_no_context = f'value = "{random_string}"'
         findings_no_ctx = detector_no_context.detect(content_no_context, "data.txt")
         # Should be able to detect without context when require_context=False
         assert isinstance(findings_no_ctx, list)
@@ -172,6 +171,7 @@ patterns:
     def test_load_patterns_from_custom_file_with_error(self, tmp_path: Path) -> None:
         """Test RegexDetector handles custom pattern file loading errors (lines 368-369)."""
         import warnings
+
         from hamburglar.detectors.regex_detector import RegexDetector
 
         # Create an invalid pattern file
@@ -190,8 +190,8 @@ patterns:
 
     def test_use_expanded_patterns_with_custom_merge(self) -> None:
         """Test merging expanded patterns with custom patterns (line 356-357)."""
-        from hamburglar.detectors.regex_detector import RegexDetector
         from hamburglar.core.models import Severity
+        from hamburglar.detectors.regex_detector import RegexDetector
 
         custom_patterns = {
             "custom_secret": {
@@ -211,9 +211,8 @@ patterns:
 
     def test_regex_timeout_in_chunked_processing(self) -> None:
         """Test regex timeout during chunked processing (line 634)."""
-        import time
-        from hamburglar.detectors.regex_detector import RegexDetector
         from hamburglar.core.models import Severity
+        from hamburglar.detectors.regex_detector import RegexDetector
 
         # Create detector with very short timeout
         detector = RegexDetector(
@@ -250,7 +249,8 @@ class TestYaraDetectorAdditionalCoverage:
         """Test YARA_AVAILABLE is False when yara can't be imported (lines 25-27)."""
         # We can't easily test this without unloading yara, but we can verify
         # the is_yara_available function works correctly
-        from hamburglar.detectors.yara_detector import is_yara_available, YARA_AVAILABLE
+        from hamburglar.detectors.yara_detector import YARA_AVAILABLE, is_yara_available
+
         assert is_yara_available() == YARA_AVAILABLE
 
     def test_yara_detector_init_without_yara(self, tmp_path: Path) -> None:
@@ -266,8 +266,8 @@ class TestYaraDetectorAdditionalCoverage:
 
     def test_yara_syntax_error_with_line_info(self, tmp_path: Path) -> None:
         """Test YARA syntax error that includes line information (lines 141-145)."""
-        from hamburglar.detectors.yara_detector import YaraDetector
         from hamburglar.core.exceptions import YaraCompilationError
+        from hamburglar.detectors.yara_detector import YaraDetector
 
         yara_file = tmp_path / "syntax_error.yar"
         # Create a file with syntax error
@@ -289,8 +289,9 @@ rule test {
     def test_yara_error_not_syntax_error(self, tmp_path: Path) -> None:
         """Test handling of yara.Error (not SyntaxError) during compilation (line 154)."""
         import yara as yara_module
-        from hamburglar.detectors.yara_detector import YaraDetector
+
         from hamburglar.core.exceptions import YaraCompilationError
+        from hamburglar.detectors.yara_detector import YaraDetector
 
         yara_file = tmp_path / "test.yar"
         yara_file.write_text("rule test { condition: true }")
@@ -373,7 +374,6 @@ class TestEntropyDetectorSeverityEdgeCases:
     def test_severity_high_with_base64_encoding(self) -> None:
         """Test HIGH severity is assigned to high-entropy base64 strings."""
         from hamburglar.detectors.entropy_detector import EntropyDetector
-        from hamburglar.core.models import Severity
 
         detector = EntropyDetector(
             exclude_base64=False,
@@ -383,7 +383,7 @@ class TestEntropyDetectorSeverityEdgeCases:
 
         # Create a high-entropy base64 string
         # Base64 with high entropy (random-looking)
-        base64_secret = "secret = \"aGVsbG8gd29ybGQgdGhpcyBpcyBhIHRlc3Q=\""
+        base64_secret = 'secret = "aGVsbG8gd29ybGQgdGhpcyBpcyBhIHRlc3Q="'
 
         findings = detector.detect(base64_secret, "test.py")
         # Check if any finding was detected
@@ -400,7 +400,7 @@ class TestEntropyDetectorSeverityEdgeCases:
         )
 
         # High entropy string without secret context keywords
-        content = "data = \"xK7mP2nQ9vB3cF6h\""
+        content = 'data = "xK7mP2nQ9vB3cF6h"'
         findings = detector.detect(content, "data.txt")
         # Should find the string if entropy is high enough
 

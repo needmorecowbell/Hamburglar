@@ -138,9 +138,7 @@ class TestAzurePatterns:
     def test_azure_connection_string_negative_2(self) -> None:
         """Test Azure Connection String doesn't match wrong protocol."""
         pattern = re.compile(AZURE_CONNECTION_STRING.regex)
-        result = pattern.search(
-            "DefaultEndpointsProtocol=ftp;AccountName=test;AccountKey=abc123"
-        )
+        result = pattern.search("DefaultEndpointsProtocol=ftp;AccountName=test;AccountKey=abc123")
         assert result is None
 
     def test_azure_sas_token_positive_1(self) -> None:
@@ -175,17 +173,13 @@ class TestAzurePatterns:
     def test_azure_ad_client_secret_positive_1(self) -> None:
         """Test Azure AD Client Secret matches."""
         pattern = re.compile(AZURE_AD_CLIENT_SECRET.regex)
-        result = pattern.search(
-            "azure_client_secret = 'abc123DEF456ghi789JKL012mno345PQR~-'"
-        )
+        result = pattern.search("azure_client_secret = 'abc123DEF456ghi789JKL012mno345PQR~-'")
         assert result is not None
 
     def test_azure_ad_client_secret_positive_2(self) -> None:
         """Test Azure AD Client Secret alternate format."""
         pattern = re.compile(AZURE_AD_CLIENT_SECRET.regex)
-        result = pattern.search(
-            'AAD_CLIENT_SECRET: "FAKE.secret~value_here-12345678901234"'
-        )
+        result = pattern.search('AAD_CLIENT_SECRET: "FAKE.secret~value_here-12345678901234"')
         assert result is not None
 
     def test_azure_ad_client_secret_negative_1(self) -> None:
@@ -203,17 +197,13 @@ class TestAzurePatterns:
     def test_azure_subscription_key_positive_1(self) -> None:
         """Test Azure Subscription Key matches."""
         pattern = re.compile(AZURE_SUBSCRIPTION_KEY.regex)
-        result = pattern.search(
-            "Ocp-Apim-Subscription-Key: 1234567890abcdef1234567890abcdef"
-        )
+        result = pattern.search("Ocp-Apim-Subscription-Key: 1234567890abcdef1234567890abcdef")
         assert result is not None
 
     def test_azure_subscription_key_positive_2(self) -> None:
         """Test Azure Subscription Key alternate format."""
         pattern = re.compile(AZURE_SUBSCRIPTION_KEY.regex)
-        result = pattern.search(
-            'azure_subscription_key = "abcdef1234567890abcdef1234567890"'
-        )
+        result = pattern.search('azure_subscription_key = "abcdef1234567890abcdef1234567890"')
         assert result is not None
 
     def test_azure_subscription_key_negative_1(self) -> None:
@@ -482,9 +472,7 @@ class TestFirebasePatterns:
     def test_firebase_config_negative_2(self) -> None:
         """Test Firebase Config no firebase keyword."""
         pattern = re.compile(FIREBASE_CONFIG.regex)
-        result = pattern.search(
-            'config = { apiKey: "AIzaSyDaFAKEKEY123456789012345678901abc"'
-        )
+        result = pattern.search('config = { apiKey: "AIzaSyDaFAKEKEY123456789012345678901abc"')
         assert result is None
 
 
@@ -495,17 +483,13 @@ class TestCloudflarePatterns:
         """Test Cloudflare API Key matches."""
         pattern = re.compile(CLOUDFLARE_API_KEY.regex)
         # 37 hex chars
-        result = pattern.search(
-            "cloudflare_api_key = '1234567890abcdef1234567890abcdef12345'"
-        )
+        result = pattern.search("cloudflare_api_key = '1234567890abcdef1234567890abcdef12345'")
         assert result is not None
 
     def test_cloudflare_api_key_positive_2(self) -> None:
         """Test Cloudflare API Key alternate format."""
         pattern = re.compile(CLOUDFLARE_API_KEY.regex)
-        result = pattern.search(
-            'CLOUDFLARE_KEY: "abcdef1234567890abcdef1234567890abcde"'
-        )
+        result = pattern.search('CLOUDFLARE_KEY: "abcdef1234567890abcdef1234567890abcde"')
         assert result is not None
 
     def test_cloudflare_api_key_negative_1(self) -> None:
@@ -524,26 +508,20 @@ class TestCloudflarePatterns:
         """Test Cloudflare API Token matches."""
         pattern = re.compile(CLOUDFLARE_API_TOKEN.regex)
         # 40 chars
-        result = pattern.search(
-            "cloudflare_api_token = 'abcdefghijklmnopqrstuvwxyz01234567890123'"
-        )
+        result = pattern.search("cloudflare_api_token = 'abcdefghijklmnopqrstuvwxyz01234567890123'")
         assert result is not None
 
     def test_cloudflare_api_token_positive_2(self) -> None:
         """Test Cloudflare API Token alternate format."""
         pattern = re.compile(CLOUDFLARE_API_TOKEN.regex)
         # 40 chars token
-        result = pattern.search(
-            'CLOUDFLARE_TOKEN: "ABCDEFGHIJKLMNOPQRSTUVWXYZ-_123456789012"'
-        )
+        result = pattern.search('CLOUDFLARE_TOKEN: "ABCDEFGHIJKLMNOPQRSTUVWXYZ-_123456789012"')
         assert result is not None
 
     def test_cloudflare_api_token_negative_1(self) -> None:
         """Test Cloudflare API Token no context."""
         pattern = re.compile(CLOUDFLARE_API_TOKEN.regex)
-        result = pattern.search(
-            "api_token = 'abcdefghijklmnopqrstuvwxyz01234567890123'"
-        )
+        result = pattern.search("api_token = 'abcdefghijklmnopqrstuvwxyz01234567890123'")
         assert result is None
 
     def test_cloudflare_api_token_negative_2(self) -> None:
@@ -556,18 +534,14 @@ class TestCloudflarePatterns:
         """Test Cloudflare Origin CA Key matches."""
         pattern = re.compile(CLOUDFLARE_ORIGIN_CA_KEY.regex)
         # v1.0- + 24 hex + - + 146-150 hex
-        test_str = fake_token(
-            "v1.0-", "0" * 24, "-", "a" * 146
-        )
+        test_str = fake_token("v1.0-", "0" * 24, "-", "a" * 146)
         result = pattern.search(test_str)
         assert result is not None
 
     def test_cloudflare_origin_ca_key_positive_2(self) -> None:
         """Test Cloudflare Origin CA Key in config."""
         pattern = re.compile(CLOUDFLARE_ORIGIN_CA_KEY.regex)
-        test_str = fake_token(
-            'key = "v1.0-', "abcdef" * 4, "-", "0123456789" * 15, '"'
-        )
+        test_str = fake_token('key = "v1.0-', "abcdef" * 4, "-", "0123456789" * 15, '"')
         result = pattern.search(test_str)
         assert result is not None
 
@@ -615,17 +589,13 @@ class TestAlibabaPatterns:
     def test_alibaba_secret_key_positive_1(self) -> None:
         """Test Alibaba Secret Key matches."""
         pattern = re.compile(ALIBABA_SECRET_KEY.regex)
-        result = pattern.search(
-            "alibaba_secret_key = 'ABCDEFghij1234567890klmnopqrst'"
-        )
+        result = pattern.search("alibaba_secret_key = 'ABCDEFghij1234567890klmnopqrst'")
         assert result is not None
 
     def test_alibaba_secret_key_positive_2(self) -> None:
         """Test Alibaba Secret Key alternate format."""
         pattern = re.compile(ALIBABA_SECRET_KEY.regex)
-        result = pattern.search(
-            'ALIYUN_SECRET_ACCESS_KEY: "abcdefghijklmnopqrstuvwxyz1234"'
-        )
+        result = pattern.search('ALIYUN_SECRET_ACCESS_KEY: "abcdefghijklmnopqrstuvwxyz1234"')
         assert result is not None
 
     def test_alibaba_secret_key_negative_1(self) -> None:
@@ -657,17 +627,13 @@ class TestIBMPatterns:
         """Test IBM Cloud API Key alternate format."""
         pattern = re.compile(IBM_CLOUD_API_KEY.regex)
         # 44 chars token
-        result = pattern.search(
-            'IBM_API_KEY: "ABCDEFGHIJ-KLMNOPQRST_UVWXYZ1234567890123456"'
-        )
+        result = pattern.search('IBM_API_KEY: "ABCDEFGHIJ-KLMNOPQRST_UVWXYZ1234567890123456"')
         assert result is not None
 
     def test_ibm_cloud_api_key_negative_1(self) -> None:
         """Test IBM Cloud API Key no context."""
         pattern = re.compile(IBM_CLOUD_API_KEY.regex)
-        result = pattern.search(
-            "api_key = 'abcdefghijklmnopqrstuvwxyz123456789012345678'"
-        )
+        result = pattern.search("api_key = 'abcdefghijklmnopqrstuvwxyz123456789012345678'")
         assert result is None
 
     def test_ibm_cloud_api_key_negative_2(self) -> None:
@@ -680,9 +646,7 @@ class TestIBMPatterns:
         """Test IBM COS HMAC Key matches."""
         pattern = re.compile(IBM_COS_HMAC_KEY.regex)
         # 32 hex chars
-        result = pattern.search(
-            "ibm_cos_hmac_access_key_id = '1234567890abcdef1234567890abcdef'"
-        )
+        result = pattern.search("ibm_cos_hmac_access_key_id = '1234567890abcdef1234567890abcdef'")
         assert result is not None
 
     def test_ibm_cos_hmac_key_positive_2(self) -> None:
@@ -737,25 +701,19 @@ class TestOraclePatterns:
         """Test Oracle API Key matches."""
         pattern = re.compile(ORACLE_API_KEY.regex)
         # 40+ chars
-        result = pattern.search(
-            "oracle_cloud_api_key = 'abcdefghijklmnopqrstuvwxyz1234567890ABCD'"
-        )
+        result = pattern.search("oracle_cloud_api_key = 'abcdefghijklmnopqrstuvwxyz1234567890ABCD'")
         assert result is not None
 
     def test_oracle_api_key_positive_2(self) -> None:
         """Test Oracle API Key alternate format."""
         pattern = re.compile(ORACLE_API_KEY.regex)
-        result = pattern.search(
-            'ORACLE_API_KEY: "ABCDEFGHIJKLMNOPQRSTUVWXYZ/+1234567890abc="'
-        )
+        result = pattern.search('ORACLE_API_KEY: "ABCDEFGHIJKLMNOPQRSTUVWXYZ/+1234567890abc="')
         assert result is not None
 
     def test_oracle_api_key_negative_1(self) -> None:
         """Test Oracle API Key no context."""
         pattern = re.compile(ORACLE_API_KEY.regex)
-        result = pattern.search(
-            "api_key = 'abcdefghijklmnopqrstuvwxyz1234567890ABCD'"
-        )
+        result = pattern.search("api_key = 'abcdefghijklmnopqrstuvwxyz1234567890ABCD'")
         assert result is None
 
     def test_oracle_api_key_negative_2(self) -> None:

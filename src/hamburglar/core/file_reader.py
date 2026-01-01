@@ -119,7 +119,7 @@ class AsyncFileReader:
         """Get file information (available after opening)."""
         return self._file_info
 
-    async def __aenter__(self) -> "Self":
+    async def __aenter__(self) -> Self:
         """Async context manager entry."""
         await self.open()
         return self
@@ -214,7 +214,7 @@ class AsyncFileReader:
         try:
             with open(path, "rb") as f:
                 sample = f.read(sample_size)
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.warning(f"Could not read file for type detection: {e}")
             return FileType.UNKNOWN, None, 0.0
 
@@ -241,8 +241,9 @@ class AsyncFileReader:
 
         # Check for Unicode BOMs - these indicate text encodings, not binary
         # UTF-16 LE: FF FE, UTF-16 BE: FE FF, UTF-8 BOM: EF BB BF, UTF-32: various
-        if data.startswith((b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf",
-                           b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+        if data.startswith(
+            (b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf", b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")
+        ):
             return False  # It's a Unicode text file
 
         # Check for null bytes - strong indicator of binary
@@ -256,9 +257,7 @@ class AsyncFileReader:
 
         # Count control characters (excluding common text ones)
         # Exclude: tab (9), newline (10), carriage return (13)
-        control_chars = sum(
-            1 for byte in data if byte < 32 and byte not in (9, 10, 13)
-        )
+        control_chars = sum(1 for byte in data if byte < 32 and byte not in (9, 10, 13))
 
         # If more than 10% control characters, likely binary
         threshold = len(data) * 0.1
@@ -306,7 +305,7 @@ class AsyncFileReader:
             result = from_bytes(sample)
             best = result.best()
             if best is not None:
-                return best.encoding, 1.0 - (best.chaos if hasattr(best, 'chaos') else 0.0)
+                return best.encoding, 1.0 - (best.chaos if hasattr(best, "chaos") else 0.0)
         except ImportError:
             logger.debug("charset-normalizer not available, using fallback detection")
         except Exception as e:

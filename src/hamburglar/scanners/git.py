@@ -13,11 +13,11 @@ The scanner examines:
 import asyncio
 import logging
 import re
-import shutil
 import tempfile
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import TYPE_CHECKING, AsyncIterator
+from typing import TYPE_CHECKING
 
 from hamburglar.core.exceptions import ScanError
 from hamburglar.core.models import Finding, ScanResult
@@ -291,9 +291,7 @@ class GitScanner(BaseScanner):
                 try:
                     return file_path.read_text(encoding="utf-8")
                 except UnicodeDecodeError:
-                    logger.debug(
-                        f"UTF-8 decode failed for {file_path}, falling back to latin-1"
-                    )
+                    logger.debug(f"UTF-8 decode failed for {file_path}, falling back to latin-1")
                     return file_path.read_text(encoding="latin-1")
             except PermissionError:
                 logger.warning(f"Permission denied reading file: {file_path}")

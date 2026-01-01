@@ -8,7 +8,6 @@ piping to other tools.
 from __future__ import annotations
 
 import asyncio
-import json
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, TextIO
 
@@ -209,7 +208,7 @@ class NDJSONStreamWriter:
         self._lock = asyncio.Lock()
         self._closed = False
 
-    async def __aenter__(self) -> "NDJSONStreamWriter":
+    async def __aenter__(self) -> NDJSONStreamWriter:
         """Enter the async context manager."""
         return self
 

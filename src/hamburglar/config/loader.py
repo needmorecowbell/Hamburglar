@@ -7,11 +7,13 @@ locations and formats (YAML, TOML, JSON).
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from hamburglar.core.exceptions import ConfigError
+
+if TYPE_CHECKING:
+    from hamburglar.config.schema import HamburglarConfig
 
 # Try to import YAML and TOML parsers
 try:
@@ -23,10 +25,12 @@ except ImportError:
 
 try:
     import tomllib  # Python 3.11+
+
     HAS_TOML = True
 except ImportError:
     try:
         import tomli as tomllib  # type: ignore[import-not-found]
+
         HAS_TOML = True
     except ImportError:
         HAS_TOML = False
@@ -115,7 +119,7 @@ class ConfigLoader:
 
         return None
 
-    def load(self, path: Path | str) -> "HamburglarConfig":
+    def load(self, path: Path | str) -> HamburglarConfig:
         """Load configuration from a file.
 
         Args:
@@ -278,11 +282,10 @@ class ConfigLoader:
                 pass
 
         raise ConfigError(
-            f"Could not detect format of {path}. "
-            "Ensure it is valid YAML, TOML, or JSON."
+            f"Could not detect format of {path}. Ensure it is valid YAML, TOML, or JSON."
         )
 
-    def _parse_config(self, data: dict[str, Any], path: Path) -> "HamburglarConfig":
+    def _parse_config(self, data: dict[str, Any], path: Path) -> HamburglarConfig:
         """Parse configuration dictionary into HamburglarConfig.
 
         Args:
@@ -329,8 +332,9 @@ class ConfigLoader:
             return [str(e)]
 
         # Validate against schema
-        from hamburglar.config.schema import HamburglarConfig
         from pydantic import ValidationError
+
+        from hamburglar.config.schema import HamburglarConfig
 
         try:
             HamburglarConfig.model_validate(data)
@@ -364,7 +368,7 @@ def get_default_config_content(format: str = "yaml") -> str:
 
 def _get_yaml_config() -> str:
     """Generate default YAML configuration."""
-    return '''# Hamburglar Configuration
+    return """# Hamburglar Configuration
 # See https://github.com/needmorecowbell/Hamburglar for documentation
 
 # Scan settings
@@ -435,12 +439,12 @@ yara:
 
 # Logging level (debug, info, warning, error, critical)
 log_level: info
-'''
+"""
 
 
 def _get_toml_config() -> str:
     """Generate default TOML configuration."""
-    return '''# Hamburglar Configuration
+    return """# Hamburglar Configuration
 # See https://github.com/needmorecowbell/Hamburglar for documentation
 
 [scan]
@@ -505,7 +509,7 @@ timeout = 30
 
 # Logging level (debug, info, warning, error, critical)
 log_level = "info"
-'''
+"""
 
 
 def _get_json_config() -> str:

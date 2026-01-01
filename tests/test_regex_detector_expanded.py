@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from hamburglar.core.models import Severity
-from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
+from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import (
     ALL_PATTERN_CATEGORIES,
     RegexDetector,
@@ -196,9 +196,7 @@ class TestCustomPatternFiles:
             ]
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(pattern_data, f)
             temp_path = f.name
 
@@ -228,9 +226,7 @@ class TestCustomPatternFiles:
             ]
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(pattern_data, f)
             temp_path = f.name
 
@@ -256,9 +252,7 @@ class TestCustomPatternFiles:
             ]
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(pattern_data, f)
             temp_path = f.name
 
@@ -282,9 +276,7 @@ class TestCustomPatternFiles:
 
     def test_invalid_pattern_file_format(self) -> None:
         """Test that invalid file format raises ValueError."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("not a pattern file")
             temp_path = f.name
 
@@ -296,9 +288,7 @@ class TestCustomPatternFiles:
 
     def test_invalid_json_structure(self) -> None:
         """Test that invalid JSON structure raises ValueError."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({"not_patterns": []}, f)
             temp_path = f.name
 
@@ -431,7 +421,11 @@ class TestExpandedPatternsDetection:
         detector = RegexDetector(use_expanded_patterns=True)
         content = "DATABASE_URL=postgres://user:password@localhost/db"
         findings = detector.detect(content, ".env")
-        db_findings = [f for f in findings if "postgres" in f.detector_name.lower() or "url" in f.detector_name.lower()]
+        db_findings = [
+            f
+            for f in findings
+            if "postgres" in f.detector_name.lower() or "url" in f.detector_name.lower()
+        ]
         assert len(db_findings) >= 1
 
 

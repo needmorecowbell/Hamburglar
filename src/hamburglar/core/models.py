@@ -93,9 +93,7 @@ class WebFinding(Finding):
     """
 
     url: str = Field(..., description="URL where the finding was detected")
-    element_type: ElementType = Field(
-        ..., description="Type of element containing the finding"
-    )
+    element_type: ElementType = Field(..., description="Type of element containing the finding")
 
 
 class SecretOccurrence(BaseModel):
@@ -117,9 +115,7 @@ class SecretOccurrence(BaseModel):
     author: str = Field(..., description="The author of the commit")
     date: str = Field(..., description="The ISO format date of the commit")
     file_path: str = Field(..., description="The file path at the time of the commit")
-    line_type: str = Field(
-        ..., description="Whether this was an addition ('+') or removal ('-')"
-    )
+    line_type: str = Field(..., description="Whether this was an addition ('+') or removal ('-')")
     line_number: int | None = Field(default=None, description="Optional line number in the diff")
 
     @field_validator("line_type")
@@ -152,13 +148,9 @@ class SecretTimeline(BaseModel):
     """
 
     secret_hash: str = Field(..., description="Hash of the secret value for grouping")
-    secret_preview: str = Field(
-        ..., description="Preview of the secret (first and last few chars)"
-    )
+    secret_preview: str = Field(..., description="Preview of the secret (first and last few chars)")
     detector_name: str = Field(..., description="Name of the detector that found this secret")
-    severity: Severity = Field(
-        default=Severity.MEDIUM, description="Severity level of the finding"
-    )
+    severity: Severity = Field(default=Severity.MEDIUM, description="Severity level of the finding")
     first_seen: SecretOccurrence | None = Field(
         default=None, description="First occurrence where this secret was introduced"
     )
@@ -209,12 +201,8 @@ class SecretTimeline(BaseModel):
             return
 
         try:
-            first_dt = datetime.fromisoformat(
-                self.first_seen.date.replace("Z", "+00:00")
-            )
-            last_dt = datetime.fromisoformat(
-                self.last_seen.date.replace("Z", "+00:00")
-            )
+            first_dt = datetime.fromisoformat(self.first_seen.date.replace("Z", "+00:00"))
+            last_dt = datetime.fromisoformat(self.last_seen.date.replace("Z", "+00:00"))
             self.exposure_duration = (last_dt - first_dt).total_seconds()
         except (ValueError, TypeError):
             pass

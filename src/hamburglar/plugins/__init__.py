@@ -51,7 +51,6 @@ from hamburglar.detectors import BaseDetector, DetectorRegistry, default_registr
 from hamburglar.outputs import BaseOutput, OutputRegistry
 from hamburglar.outputs import default_registry as output_default_registry
 
-
 # Entry point group names for plugin discovery
 DETECTOR_ENTRY_POINT = "hamburglar.plugins.detectors"
 OUTPUT_ENTRY_POINT = "hamburglar.plugins.outputs"
@@ -67,9 +66,7 @@ class PluginError(HamburglarError):
         >>> raise PluginError("Plugin failed to load", context={"plugin": "my_plugin"})
     """
 
-    def __init__(
-        self, message: str, plugin_name: str | None = None, context: dict | None = None
-    ):
+    def __init__(self, message: str, plugin_name: str | None = None, context: dict | None = None):
         """Initialize the plugin error.
 
         Args:
@@ -152,7 +149,7 @@ def detector_plugin(
 
     def decorator(cls: T) -> T:
         # Validate the class implements required interface
-        if not hasattr(cls, "detect") or not callable(getattr(cls, "detect")):
+        if not hasattr(cls, "detect") or not callable(cls.detect):
             raise PluginError(
                 f"Detector plugin '{name}' must implement detect() method",
                 plugin_name=name,
@@ -215,7 +212,7 @@ def output_plugin(
 
     def decorator(cls: T) -> T:
         # Validate the class implements required interface
-        if not hasattr(cls, "format") or not callable(getattr(cls, "format")):
+        if not hasattr(cls, "format") or not callable(cls.format):
             raise PluginError(
                 f"Output plugin '{name}' must implement format() method",
                 plugin_name=name,
@@ -383,14 +380,10 @@ class PluginManager:
             for ep in detector_eps:
                 try:
                     plugin_cls = ep.load()
-                    self._register_detector_from_class(
-                        ep.name, plugin_cls, source="entry_point"
-                    )
+                    self._register_detector_from_class(ep.name, plugin_cls, source="entry_point")
                     count += 1
                 except Exception as e:
-                    self._logger.warning(
-                        "Failed to load detector plugin '%s': %s", ep.name, e
-                    )
+                    self._logger.warning("Failed to load detector plugin '%s': %s", ep.name, e)
         except Exception as e:
             self._logger.debug("Error discovering detector entry points: %s", e)
 
@@ -405,14 +398,10 @@ class PluginManager:
             for ep in output_eps:
                 try:
                     plugin_cls = ep.load()
-                    self._register_output_from_class(
-                        ep.name, plugin_cls, source="entry_point"
-                    )
+                    self._register_output_from_class(ep.name, plugin_cls, source="entry_point")
                     count += 1
                 except Exception as e:
-                    self._logger.warning(
-                        "Failed to load output plugin '%s': %s", ep.name, e
-                    )
+                    self._logger.warning("Failed to load output plugin '%s': %s", ep.name, e)
         except Exception as e:
             self._logger.debug("Error discovering output entry points: %s", e)
 
@@ -486,9 +475,7 @@ class PluginManager:
                     self._register_detector_from_class(name, attr, source="directory")
                     count += 1
                 except Exception as e:
-                    self._logger.warning(
-                        "Failed to register detector '%s': %s", attr_name, e
-                    )
+                    self._logger.warning("Failed to register detector '%s': %s", attr_name, e)
 
             # Check for output plugins
             if (
@@ -502,9 +489,7 @@ class PluginManager:
                     self._register_output_from_class(name, attr, source="directory")
                     count += 1
                 except Exception as e:
-                    self._logger.warning(
-                        "Failed to register output '%s': %s", attr_name, e
-                    )
+                    self._logger.warning("Failed to register output '%s': %s", attr_name, e)
 
         return count
 
@@ -603,9 +588,7 @@ class PluginManager:
         """
         name = detector.name
         if name in self._detector_plugins:
-            raise PluginError(
-                f"Detector plugin '{name}' is already registered", plugin_name=name
-            )
+            raise PluginError(f"Detector plugin '{name}' is already registered", plugin_name=name)
 
         info = PluginInfo(
             name=name,
@@ -642,9 +625,7 @@ class PluginManager:
         """
         name = output.name
         if name in self._output_plugins:
-            raise PluginError(
-                f"Output plugin '{name}' is already registered", plugin_name=name
-            )
+            raise PluginError(f"Output plugin '{name}' is already registered", plugin_name=name)
 
         info = PluginInfo(
             name=name,
@@ -684,9 +665,7 @@ class PluginManager:
         instance = info.instance
 
         if instance is None:
-            raise PluginError(
-                f"Detector plugin '{name}' has no instance", plugin_name=name
-            )
+            raise PluginError(f"Detector plugin '{name}' has no instance", plugin_name=name)
 
         # If it's a class, instantiate it
         if isinstance(instance, type):
@@ -720,9 +699,7 @@ class PluginManager:
         instance = info.instance
 
         if instance is None:
-            raise PluginError(
-                f"Output plugin '{name}' has no instance", plugin_name=name
-            )
+            raise PluginError(f"Output plugin '{name}' has no instance", plugin_name=name)
 
         # If it's a class, instantiate it
         if isinstance(instance, type):

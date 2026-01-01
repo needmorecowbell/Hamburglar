@@ -15,9 +15,10 @@ from typing import Any
 from hamburglar.core.models import Finding, ScanResult, Severity
 from hamburglar.outputs import BaseOutput
 
-
 # SARIF 2.1.0 schema URI
-SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+SARIF_SCHEMA = (
+    "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+)
 
 # Hamburglar tool information
 TOOL_NAME = "Hamburglar"
@@ -127,7 +128,7 @@ class SarifOutput(BaseOutput):
         Returns:
             Sorted list of unique detector names.
         """
-        return sorted(set(f.detector_name for f in findings))
+        return sorted({f.detector_name for f in findings})
 
     def _build_rule(self, detector_name: str) -> dict[str, Any]:
         """Build a SARIF rule definition for a detector.
@@ -159,9 +160,7 @@ class SarifOutput(BaseOutput):
             },
         }
 
-    def _build_result(
-        self, finding: Finding, detector_names: list[str]
-    ) -> dict[str, Any]:
+    def _build_result(self, finding: Finding, detector_names: list[str]) -> dict[str, Any]:
         """Build a SARIF result object from a finding.
 
         Args:
@@ -229,9 +228,7 @@ class SarifOutput(BaseOutput):
         }
 
         # Add region if line number is available in metadata
-        line_number = finding.metadata.get("line") or finding.metadata.get(
-            "line_number"
-        )
+        line_number = finding.metadata.get("line") or finding.metadata.get("line_number")
         if line_number is not None:
             physical_location["region"] = {
                 "startLine": int(line_number),

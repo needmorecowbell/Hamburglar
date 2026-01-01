@@ -24,7 +24,7 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.cli.main import app, DEFAULT_CONCURRENCY
+from hamburglar.cli.main import DEFAULT_CONCURRENCY, app
 
 runner = CliRunner()
 
@@ -49,18 +49,14 @@ class TestConcurrencyOption:
         assert result.exit_code == 0
         assert "-j" in result.output
 
-    def test_scan_with_default_concurrency(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_with_default_concurrency(self, temp_directory: Path) -> None:
         """Test that scan works with default concurrency."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "findings" in data
 
-    def test_scan_with_custom_concurrency(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_with_custom_concurrency(self, temp_directory: Path) -> None:
         """Test that scan works with custom concurrency value."""
         result = runner.invoke(
             app, ["scan", str(temp_directory), "--concurrency", "10", "--format", "json"]
@@ -69,64 +65,40 @@ class TestConcurrencyOption:
         data = json.loads(result.output)
         assert "findings" in data
 
-    def test_scan_with_short_concurrency_flag(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_with_short_concurrency_flag(self, temp_directory: Path) -> None:
         """Test that -j works the same as --concurrency."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-j", "25", "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-j", "25", "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "findings" in data
 
-    def test_concurrency_with_verbose_shows_value(
-        self, temp_directory: Path
-    ) -> None:
+    def test_concurrency_with_verbose_shows_value(self, temp_directory: Path) -> None:
         """Test that verbose mode shows the concurrency value."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-j", "15", "--verbose"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-j", "15", "--verbose"])
         assert result.exit_code == 0
         assert "Concurrency" in result.output
         assert "15" in result.output
 
-    def test_concurrency_minimum_value(
-        self, temp_directory: Path
-    ) -> None:
+    def test_concurrency_minimum_value(self, temp_directory: Path) -> None:
         """Test that concurrency accepts minimum value of 1."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-j", "1", "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-j", "1", "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "findings" in data
 
-    def test_concurrency_invalid_value_zero(
-        self, temp_directory: Path
-    ) -> None:
+    def test_concurrency_invalid_value_zero(self, temp_directory: Path) -> None:
         """Test that concurrency rejects 0."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-j", "0"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-j", "0"])
         assert result.exit_code != 0
 
-    def test_concurrency_invalid_value_negative(
-        self, temp_directory: Path
-    ) -> None:
+    def test_concurrency_invalid_value_negative(self, temp_directory: Path) -> None:
         """Test that concurrency rejects negative values."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-j", "-5"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-j", "-5"])
         assert result.exit_code != 0
 
-    def test_concurrency_invalid_value_too_high(
-        self, temp_directory: Path
-    ) -> None:
+    def test_concurrency_invalid_value_too_high(self, temp_directory: Path) -> None:
         """Test that concurrency rejects values above 1000."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-j", "1001"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-j", "1001"])
         assert result.exit_code != 0
 
 
@@ -140,9 +112,7 @@ class TestStreamingOption:
         assert "--stream" in result.output
         assert "NDJSON" in result.output
 
-    def test_stream_produces_ndjson_output(
-        self, temp_directory: Path
-    ) -> None:
+    def test_stream_produces_ndjson_output(self, temp_directory: Path) -> None:
         """Test that --stream produces NDJSON (one JSON per line)."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--stream"])
         assert result.exit_code == 0
@@ -161,20 +131,18 @@ class TestStreamingOption:
             except json.JSONDecodeError:
                 pytest.fail(f"Line is not valid JSON: {line}")
 
-    def test_stream_with_verbose_shows_mode(
-        self, temp_directory: Path
-    ) -> None:
+    def test_stream_with_verbose_shows_mode(self, temp_directory: Path) -> None:
         """Test that verbose mode shows streaming mode indicator."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--stream", "--verbose"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--stream", "--verbose"])
         assert result.exit_code == 0
         # The verbose output goes to stderr, but the mode should be indicated
-        assert "Streaming" in result.output or "NDJSON" in result.output or len(result.output.strip()) > 0
+        assert (
+            "Streaming" in result.output
+            or "NDJSON" in result.output
+            or len(result.output.strip()) > 0
+        )
 
-    def test_stream_with_output_file(
-        self, temp_directory: Path, tmp_path: Path
-    ) -> None:
+    def test_stream_with_output_file(self, temp_directory: Path, tmp_path: Path) -> None:
         """Test that --stream can write to an output file."""
         output_file = tmp_path / "stream_output.ndjson"
         result = runner.invoke(
@@ -192,20 +160,14 @@ class TestStreamingOption:
             finding = json.loads(line)
             assert "file_path" in finding
 
-    def test_stream_empty_directory_exit_code(
-        self, tmp_path: Path
-    ) -> None:
+    def test_stream_empty_directory_exit_code(self, tmp_path: Path) -> None:
         """Test that --stream returns exit code 2 for empty directory."""
         result = runner.invoke(app, ["scan", str(tmp_path), "--stream"])
         assert result.exit_code == 2
 
-    def test_stream_with_quiet(
-        self, temp_directory: Path
-    ) -> None:
+    def test_stream_with_quiet(self, temp_directory: Path) -> None:
         """Test that --stream with --quiet outputs only NDJSON."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--stream", "--quiet"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--stream", "--quiet"])
         # exit code 0 for findings, output should only be NDJSON
         if result.exit_code == 0:
             # All output should be JSON lines
@@ -213,13 +175,9 @@ class TestStreamingOption:
             for line in lines:
                 json.loads(line)  # Should not raise
 
-    def test_stream_with_concurrency(
-        self, temp_directory: Path
-    ) -> None:
+    def test_stream_with_concurrency(self, temp_directory: Path) -> None:
         """Test that --stream works with --concurrency."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--stream", "-j", "5"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--stream", "-j", "5"])
         assert result.exit_code == 0
 
         lines = [line for line in result.output.strip().split("\n") if line.strip()]
@@ -229,9 +187,7 @@ class TestStreamingOption:
 class TestProgressBar:
     """Tests for the rich progress bar functionality."""
 
-    def test_scan_without_quiet_produces_output(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_without_quiet_produces_output(self, temp_directory: Path) -> None:
         """Test that scan without --quiet produces visible output."""
         # This test verifies the progress bar path is taken
         result = runner.invoke(app, ["scan", str(temp_directory)])
@@ -239,18 +195,14 @@ class TestProgressBar:
         # Should have table output (progress bar is transient by default)
         assert len(result.output) > 0
 
-    def test_scan_with_verbose_shows_stats(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_with_verbose_shows_stats(self, temp_directory: Path) -> None:
         """Test that verbose mode shows scan statistics."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--verbose"])
         assert result.exit_code == 0
         # Verbose mode should show scanning information
         assert "Scanning" in result.output or "files" in result.output.lower()
 
-    def test_quiet_mode_no_table_output(
-        self, temp_directory: Path
-    ) -> None:
+    def test_quiet_mode_no_table_output(self, temp_directory: Path) -> None:
         """Test that quiet mode does not produce table output.
 
         Note: The CLI uses logging which may still produce output when
@@ -268,13 +220,9 @@ class TestProgressBar:
 class TestAsyncScannerIntegration:
     """Tests for AsyncScanner integration with CLI."""
 
-    def test_scan_produces_valid_stats(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_produces_valid_stats(self, temp_directory: Path) -> None:
         """Test that scan produces valid stats from AsyncScanner."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
 
         data = json.loads(result.output)
@@ -284,26 +232,19 @@ class TestAsyncScannerIntegration:
         assert data["stats"]["files_scanned"] >= 0
         assert data["stats"]["files_discovered"] >= 0
 
-    def test_scan_duration_is_recorded(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_duration_is_recorded(self, temp_directory: Path) -> None:
         """Test that scan duration is recorded correctly."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
 
         data = json.loads(result.output)
         assert "scan_duration" in data
         assert data["scan_duration"] >= 0
 
-    def test_scan_with_categories_filter(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_with_categories_filter(self, temp_directory: Path) -> None:
         """Test that scan with categories filter works with async scanner."""
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--format", "json", "--categories", "api_keys"]
+            app, ["scan", str(temp_directory), "--format", "json", "--categories", "api_keys"]
         )
         # Should work regardless of findings
         assert result.exit_code in (0, 2)
@@ -315,13 +256,9 @@ class TestAsyncScannerIntegration:
 class TestCombinedOptions:
     """Tests for combinations of CLI options."""
 
-    def test_stream_and_json_format(
-        self, temp_directory: Path
-    ) -> None:
+    def test_stream_and_json_format(self, temp_directory: Path) -> None:
         """Test that --stream takes precedence over --format json."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--stream", "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--stream", "--format", "json"])
         assert result.exit_code == 0
 
         # Output should be NDJSON (multiple JSON objects, one per line)
@@ -332,25 +269,19 @@ class TestCombinedOptions:
             first = json.loads(lines[0])
             assert "file_path" in first
 
-    def test_verbose_with_concurrency_shows_both(
-        self, temp_directory: Path
-    ) -> None:
+    def test_verbose_with_concurrency_shows_both(self, temp_directory: Path) -> None:
         """Test that verbose mode shows concurrency setting."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--verbose", "-j", "20"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--verbose", "-j", "20"])
         assert result.exit_code == 0
         assert "Concurrency" in result.output
         assert "20" in result.output
 
-    def test_quiet_with_output_file(
-        self, temp_directory: Path, tmp_path: Path
-    ) -> None:
+    def test_quiet_with_output_file(self, temp_directory: Path, tmp_path: Path) -> None:
         """Test that quiet mode with output file works correctly."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--quiet", "--format", "json", "-o", str(output_file)]
+            ["scan", str(temp_directory), "--quiet", "--format", "json", "-o", str(output_file)],
         )
         assert result.exit_code == 0
         # Output file should exist and contain valid JSON
@@ -372,9 +303,7 @@ class TestBenchmarkOption:
         assert "--benchmark" in result.output
         assert "performance" in result.output.lower()
 
-    def test_benchmark_produces_results_panel(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_produces_results_panel(self, temp_directory: Path) -> None:
         """Test that --benchmark produces a results panel with throughput."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
@@ -382,33 +311,25 @@ class TestBenchmarkOption:
         assert "Benchmark Results" in result.output
         assert "files/second" in result.output
 
-    def test_benchmark_shows_files_scanned(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_files_scanned(self, temp_directory: Path) -> None:
         """Test that --benchmark shows files scanned count."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
         assert "Files Scanned" in result.output
 
-    def test_benchmark_shows_bytes_processed(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_bytes_processed(self, temp_directory: Path) -> None:
         """Test that --benchmark shows bytes processed."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
         assert "Bytes Processed" in result.output
 
-    def test_benchmark_shows_duration(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_duration(self, temp_directory: Path) -> None:
         """Test that --benchmark shows duration."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
         assert "Duration" in result.output
 
-    def test_benchmark_shows_throughput(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_throughput(self, temp_directory: Path) -> None:
         """Test that --benchmark shows throughput metrics."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
@@ -418,44 +339,32 @@ class TestBenchmarkOption:
         # Check for bytes/second metric (should show KB/s, MB/s, etc.)
         assert "/second" in result.output
 
-    def test_benchmark_shows_findings_count(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_findings_count(self, temp_directory: Path) -> None:
         """Test that --benchmark shows findings count."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
         assert "Findings" in result.output
 
-    def test_benchmark_shows_concurrency(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_concurrency(self, temp_directory: Path) -> None:
         """Test that --benchmark shows concurrency setting."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
         assert "Concurrency" in result.output
 
-    def test_benchmark_with_custom_concurrency(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_with_custom_concurrency(self, temp_directory: Path) -> None:
         """Test that --benchmark works with custom concurrency."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--benchmark", "-j", "10"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark", "-j", "10"])
         assert result.exit_code == 0
         assert "Benchmark Results" in result.output
         assert "10" in result.output  # Concurrency value should be shown
 
-    def test_benchmark_shows_running_message(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_shows_running_message(self, temp_directory: Path) -> None:
         """Test that --benchmark shows 'Running performance benchmark' message."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
         assert "Running performance benchmark" in result.output
 
-    def test_benchmark_empty_directory(
-        self, tmp_path: Path
-    ) -> None:
+    def test_benchmark_empty_directory(self, tmp_path: Path) -> None:
         """Test that --benchmark handles empty directory correctly."""
         result = runner.invoke(app, ["scan", str(tmp_path), "--benchmark"])
         # Should still succeed even with no files
@@ -463,17 +372,13 @@ class TestBenchmarkOption:
         assert "Files Scanned" in result.output
         assert "0" in result.output  # Zero files scanned
 
-    def test_benchmark_exit_code_always_success(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_exit_code_always_success(self, temp_directory: Path) -> None:
         """Test that --benchmark always returns exit code 0 (unlike normal scan)."""
         # Benchmark should return 0 even if there are no findings
         result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
         assert result.exit_code == 0
 
-    def test_benchmark_no_json_output(
-        self, temp_directory: Path
-    ) -> None:
+    def test_benchmark_no_json_output(self, temp_directory: Path) -> None:
         """Test that --benchmark doesn't produce JSON findings output."""
         result = runner.invoke(
             app, ["scan", str(temp_directory), "--benchmark", "--format", "json"]

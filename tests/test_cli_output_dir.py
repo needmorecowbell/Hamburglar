@@ -129,7 +129,9 @@ class TestGenerateOutputFilename:
         )
         # Should not contain special characters except alphanumeric, dash, underscore
         name_part = filename.replace("hamburglar_scan_", "").split("_20")[0]
-        assert re.match(r"^[a-zA-Z0-9_-]+$", name_part), f"Name part '{name_part}' should be sanitized"
+        assert re.match(r"^[a-zA-Z0-9_-]+$", name_part), (
+            f"Name part '{name_part}' should be sanitized"
+        )
 
     def test_removes_consecutive_underscores(self) -> None:
         """Test that consecutive underscores are collapsed."""
@@ -267,14 +269,17 @@ class TestScanOutputDir:
         output_dir.mkdir()
 
         result = runner.invoke(
-            app, ["scan", str(temp_directory), "--output-dir", str(output_dir), "--format", "markdown"]
+            app,
+            ["scan", str(temp_directory), "--output-dir", str(output_dir), "--format", "markdown"],
         )
         assert result.exit_code == 0
 
         files = list(output_dir.glob("*.md"))
         assert len(files) == 1
 
-    def test_output_dir_creates_nested_directories(self, temp_directory: Path, tmp_path: Path) -> None:
+    def test_output_dir_creates_nested_directories(
+        self, temp_directory: Path, tmp_path: Path
+    ) -> None:
         """Test that --output-dir creates nested directories."""
         output_dir = tmp_path / "nested" / "output" / "dir"
         assert not output_dir.exists()
@@ -312,7 +317,15 @@ class TestScanOutputDir:
 
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--output-dir", str(output_dir), "--format", "json", "--quiet"],
+            [
+                "scan",
+                str(temp_directory),
+                "--output-dir",
+                str(output_dir),
+                "--format",
+                "json",
+                "--quiet",
+            ],
         )
         assert result.exit_code == 0
         assert result.output == ""
@@ -327,12 +340,22 @@ class TestScanOutputDir:
 
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--output-dir", str(output_dir), "--format", "json", "--verbose"],
+            [
+                "scan",
+                str(temp_directory),
+                "--output-dir",
+                str(output_dir),
+                "--format",
+                "json",
+                "--verbose",
+            ],
         )
         assert result.exit_code == 0
         assert "Output file:" in result.output
 
-    def test_output_dir_file_contains_valid_json(self, temp_directory: Path, tmp_path: Path) -> None:
+    def test_output_dir_file_contains_valid_json(
+        self, temp_directory: Path, tmp_path: Path
+    ) -> None:
         """Test that the output file contains valid JSON."""
         output_dir = tmp_path / "output"
         output_dir.mkdir()

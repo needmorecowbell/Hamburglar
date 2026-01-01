@@ -6,12 +6,10 @@ edge cases, and streaming functionality in the CLI.
 
 from __future__ import annotations
 
-import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -43,16 +41,11 @@ from hamburglar.cli.main import (
     parse_date,
     parse_severities,
 )
-from hamburglar.core.models import Finding, ScanResult, Severity
 from hamburglar.core.exceptions import (
-    ConfigError,
-    DetectorError,
     HamburglarError,
-    OutputError,
     ScanError,
-    YaraCompilationError,
 )
-from hamburglar.storage import ScanStatistics, StorageError
+from hamburglar.core.models import ScanResult, Severity
 
 runner = CliRunner()
 
@@ -97,9 +90,7 @@ class TestGenerateOutputFilename:
     def test_git_remote_url_with_git_suffix(self) -> None:
         """Test extracting repo name from remote URL with .git suffix."""
         filename = generate_output_filename(
-            "https://github.com/user/repo.git",
-            OutputFormat.JSON,
-            scan_type="git"
+            "https://github.com/user/repo.git", OutputFormat.JSON, scan_type="git"
         )
         assert "repo" in filename
         assert filename.endswith(".json")
@@ -107,36 +98,28 @@ class TestGenerateOutputFilename:
     def test_git_remote_url_without_git_suffix(self) -> None:
         """Test extracting repo name from remote URL without .git suffix."""
         filename = generate_output_filename(
-            "https://github.com/user/myrepo",
-            OutputFormat.JSON,
-            scan_type="git"
+            "https://github.com/user/myrepo", OutputFormat.JSON, scan_type="git"
         )
         assert "myrepo" in filename
 
     def test_git_ssh_url(self) -> None:
         """Test extracting repo name from SSH URL."""
         filename = generate_output_filename(
-            "git@github.com:user/repo.git",
-            OutputFormat.JSON,
-            scan_type="git"
+            "git@github.com:user/repo.git", OutputFormat.JSON, scan_type="git"
         )
         assert "repo" in filename
 
     def test_git_local_path(self) -> None:
         """Test extracting repo name from local path."""
         filename = generate_output_filename(
-            "/home/user/projects/myproject",
-            OutputFormat.JSON,
-            scan_type="git"
+            "/home/user/projects/myproject", OutputFormat.JSON, scan_type="git"
         )
         assert "myproject" in filename
 
     def test_web_url_with_port(self) -> None:
         """Test extracting domain from URL with port."""
         filename = generate_output_filename(
-            "https://example.com:8080/path",
-            OutputFormat.HTML,
-            scan_type="web"
+            "https://example.com:8080/path", OutputFormat.HTML, scan_type="web"
         )
         # Domain gets sanitized - dots become underscores
         assert "example" in filename
@@ -146,9 +129,7 @@ class TestGenerateOutputFilename:
     def test_web_url_no_domain(self) -> None:
         """Test handling URL with no domain."""
         filename = generate_output_filename(
-            "file:///path/to/file",
-            OutputFormat.CSV,
-            scan_type="web"
+            "file:///path/to/file", OutputFormat.CSV, scan_type="web"
         )
         # Should default to "url" when no netloc
         assert "url" in filename or "hamburglar" in filename
@@ -156,9 +137,7 @@ class TestGenerateOutputFilename:
     def test_local_scan_type(self) -> None:
         """Test local scan type filename generation."""
         filename = generate_output_filename(
-            "/some/local/path",
-            OutputFormat.TABLE,
-            scan_type="scan"
+            "/some/local/path", OutputFormat.TABLE, scan_type="scan"
         )
         assert "path" in filename or "hamburglar" in filename
         assert filename.endswith(".txt")
@@ -291,17 +270,14 @@ class TestScanCommandErrorHandling:
     def test_scan_with_storage_error(self, tmp_path: Path) -> None:
         """Test that storage errors are handled gracefully by save_to_database."""
         # Import locally to ensure proper module loading
-        from hamburglar.cli.main import save_to_database, SqliteStorage
-        from hamburglar.core.models import ScanResult
         import hamburglar.cli.main as cli_module
+        from hamburglar.cli.main import save_to_database
+        from hamburglar.core.models import ScanResult
         from hamburglar.storage import StorageError as StorageErrorCls
 
         # Create a mock scan result
         result = ScanResult(
-            target_path=str(tmp_path),
-            findings=[],
-            scan_duration=1.0,
-            stats={"total_findings": 0}
+            target_path=str(tmp_path), findings=[], scan_duration=1.0, stats={"total_findings": 0}
         )
 
         import click.exceptions
@@ -331,15 +307,12 @@ class TestScanCommandErrorHandling:
 
     def test_save_to_database_permission_error(self, tmp_path: Path) -> None:
         """Test that permission errors during database save are handled."""
+        import hamburglar.cli.main as cli_module
         from hamburglar.cli.main import save_to_database
         from hamburglar.core.models import ScanResult
-        import hamburglar.cli.main as cli_module
 
         result = ScanResult(
-            target_path=str(tmp_path),
-            findings=[],
-            scan_duration=1.0,
-            stats={"total_findings": 0}
+            target_path=str(tmp_path), findings=[], scan_duration=1.0, stats={"total_findings": 0}
         )
 
         class MockStorageRaisesPermission:
@@ -356,6 +329,7 @@ class TestScanCommandErrorHandling:
                 raise PermissionError("Permission denied")
 
         import click.exceptions
+
         original_storage = cli_module.SqliteStorage
         try:
             cli_module.SqliteStorage = MockStorageRaisesPermission
@@ -367,15 +341,12 @@ class TestScanCommandErrorHandling:
 
     def test_save_to_database_oserror(self, tmp_path: Path) -> None:
         """Test that OSError during database save is handled."""
+        import hamburglar.cli.main as cli_module
         from hamburglar.cli.main import save_to_database
         from hamburglar.core.models import ScanResult
-        import hamburglar.cli.main as cli_module
 
         result = ScanResult(
-            target_path=str(tmp_path),
-            findings=[],
-            scan_duration=1.0,
-            stats={"total_findings": 0}
+            target_path=str(tmp_path), findings=[], scan_duration=1.0, stats={"total_findings": 0}
         )
 
         class MockStorageRaisesOS:
@@ -392,6 +363,7 @@ class TestScanCommandErrorHandling:
                 raise OSError("Disk full")
 
         import click.exceptions
+
         original_storage = cli_module.SqliteStorage
         try:
             cli_module.SqliteStorage = MockStorageRaisesOS
@@ -408,10 +380,9 @@ class TestScanCommandErrorHandling:
 
         with patch("pathlib.Path.write_text") as mock_write:
             mock_write.side_effect = PermissionError("Permission denied")
-            result = runner.invoke(app, [
-                "scan", str(test_file),
-                "--output", "/forbidden/output.json"
-            ])
+            result = runner.invoke(
+                app, ["scan", str(test_file), "--output", "/forbidden/output.json"]
+            )
             # Expect error due to permission
             assert result.exit_code != 0
 
@@ -424,10 +395,7 @@ class TestScanCommandErrorHandling:
         output_file = tmp_path / "output.json"
 
         with patch.object(Path, "write_text", side_effect=OSError("Disk full")):
-            result = runner.invoke(app, [
-                "scan", str(test_file),
-                "--output", str(output_file)
-            ])
+            result = runner.invoke(app, ["scan", str(test_file), "--output", str(output_file)])
             # Expect error
             assert result.exit_code != 0
 
@@ -439,27 +407,21 @@ class TestScanGitCommandErrorHandling:
         """Test that permission errors during git scan are handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = PermissionError("Permission denied")
-            result = runner.invoke(app, [
-                "scan-git", "https://github.com/test/repo"
-            ])
+            result = runner.invoke(app, ["scan-git", "https://github.com/test/repo"])
             assert result.exit_code == EXIT_ERROR
 
     def test_scan_git_hamburglar_error(self, tmp_path: Path) -> None:
         """Test that HamburglarError during git scan is handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = HamburglarError("Git error occurred")
-            result = runner.invoke(app, [
-                "scan-git", "https://github.com/test/repo"
-            ])
+            result = runner.invoke(app, ["scan-git", "https://github.com/test/repo"])
             assert result.exit_code == EXIT_ERROR
 
     def test_scan_git_unexpected_error(self, tmp_path: Path) -> None:
         """Test that unexpected errors during git scan are handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = RuntimeError("Unexpected error")
-            result = runner.invoke(app, [
-                "scan-git", "https://github.com/test/repo"
-            ])
+            result = runner.invoke(app, ["scan-git", "https://github.com/test/repo"])
             assert result.exit_code == EXIT_ERROR
 
 
@@ -470,36 +432,28 @@ class TestScanWebCommandErrorHandling:
         """Test that ScanError during web scan is handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = ScanError("Connection failed")
-            result = runner.invoke(app, [
-                "scan-web", "https://example.com"
-            ])
+            result = runner.invoke(app, ["scan-web", "https://example.com"])
             assert result.exit_code == EXIT_ERROR
 
     def test_scan_web_permission_error(self) -> None:
         """Test that permission errors during web scan are handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = PermissionError("Access denied")
-            result = runner.invoke(app, [
-                "scan-web", "https://example.com"
-            ])
+            result = runner.invoke(app, ["scan-web", "https://example.com"])
             assert result.exit_code == EXIT_ERROR
 
     def test_scan_web_hamburglar_error(self) -> None:
         """Test that HamburglarError during web scan is handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = HamburglarError("Web scan failed")
-            result = runner.invoke(app, [
-                "scan-web", "https://example.com"
-            ])
+            result = runner.invoke(app, ["scan-web", "https://example.com"])
             assert result.exit_code == EXIT_ERROR
 
     def test_scan_web_unexpected_error(self) -> None:
         """Test that unexpected errors during web scan are handled."""
         with patch("hamburglar.cli.main.asyncio.run") as mock_run:
             mock_run.side_effect = RuntimeError("Something went wrong")
-            result = runner.invoke(app, [
-                "scan-web", "https://example.com"
-            ])
+            result = runner.invoke(app, ["scan-web", "https://example.com"])
             assert result.exit_code == EXIT_ERROR
 
 
@@ -511,9 +465,7 @@ class TestStreamingMode:
         test_file = tmp_path / "test.txt"
         test_file.write_text("api_key = sk_live_1234567890abcdef")
 
-        result = runner.invoke(app, [
-            "scan", str(test_file), "--stream"
-        ])
+        result = runner.invoke(app, ["scan", str(test_file), "--stream"])
         # Streaming mode should work
         assert result.exit_code in (EXIT_SUCCESS, EXIT_NO_FINDINGS, EXIT_ERROR)
 
@@ -524,13 +476,11 @@ class TestStreamingMode:
             target_path="https://github.com/test/repo",
             findings=[],
             scan_duration=1.0,
-            stats={"total_findings": 0}
+            stats={"total_findings": 0},
         )
 
         with patch("hamburglar.cli.main.asyncio.run", return_value=None):
-            result = runner.invoke(app, [
-                "scan-git", "https://github.com/test/repo", "--stream"
-            ])
+            result = runner.invoke(app, ["scan-git", "https://github.com/test/repo", "--stream"])
             # Streaming mode returns via asyncio.run
             assert result.exit_code in (0, EXIT_ERROR, EXIT_NO_FINDINGS)
 
@@ -545,9 +495,7 @@ class TestBenchmarkMode:
         for i in range(5):
             (test_dir / f"file{i}.txt").write_text(f"content {i}")
 
-        result = runner.invoke(app, [
-            "scan", str(test_dir), "--benchmark"
-        ])
+        result = runner.invoke(app, ["scan", str(test_dir), "--benchmark"])
         # Benchmark mode should complete
         assert result.exit_code in (EXIT_SUCCESS, EXIT_NO_FINDINGS, EXIT_ERROR)
 
@@ -561,14 +509,13 @@ class TestVerboseOutput:
             target_path="https://github.com/test/repo",
             findings=[],
             scan_duration=1.0,
-            stats={"total_findings": 0}
+            stats={"total_findings": 0},
         )
 
         with patch("hamburglar.cli.main.asyncio.run", return_value=mock_result):
-            result = runner.invoke(app, [
-                "scan-git", "https://github.com/test/repo",
-                "--verbose", "--depth", "10"
-            ])
+            result = runner.invoke(
+                app, ["scan-git", "https://github.com/test/repo", "--verbose", "--depth", "10"]
+            )
             assert "Depth" in result.output or result.exit_code in (0, 2)
 
     def test_scan_verbose_shows_branch(self, tmp_path: Path) -> None:
@@ -577,14 +524,14 @@ class TestVerboseOutput:
             target_path="https://github.com/test/repo",
             findings=[],
             scan_duration=1.0,
-            stats={"total_findings": 0}
+            stats={"total_findings": 0},
         )
 
         with patch("hamburglar.cli.main.asyncio.run", return_value=mock_result):
-            result = runner.invoke(app, [
-                "scan-git", "https://github.com/test/repo",
-                "--verbose", "--branch", "develop"
-            ])
+            result = runner.invoke(
+                app,
+                ["scan-git", "https://github.com/test/repo", "--verbose", "--branch", "develop"],
+            )
             assert "Branch" in result.output or result.exit_code in (0, 2)
 
 
@@ -596,10 +543,7 @@ class TestYaraRuleErrors:
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
 
-        result = runner.invoke(app, [
-            "scan", str(test_file),
-            "--yara", "/nonexistent/rules.yar"
-        ])
+        result = runner.invoke(app, ["scan", str(test_file), "--yara", "/nonexistent/rules.yar"])
         # Typer exits with code 2 for validation errors (file doesn't exist)
         assert result.exit_code in (EXIT_ERROR, 2)
 
@@ -616,10 +560,7 @@ class TestYaraRuleErrors:
         if os.name != "nt":
             yara_file.chmod(0o000)
             try:
-                result = runner.invoke(app, [
-                    "scan", str(test_file),
-                    "--yara", str(yara_file)
-                ])
+                result = runner.invoke(app, ["scan", str(test_file), "--yara", str(yara_file)])
                 # May exit with 1 or 2 depending on error type
                 assert result.exit_code in (EXIT_ERROR, 2)
             finally:
@@ -633,22 +574,16 @@ class TestHistoryCommandAdditional:
         """Test history command with invalid severity."""
         db_path = tmp_path / "test.db"
 
-        result = runner.invoke(app, [
-            "history",
-            "--severity", "invalid_severity",
-            "--db-path", str(db_path)
-        ])
+        result = runner.invoke(
+            app, ["history", "--severity", "invalid_severity", "--db-path", str(db_path)]
+        )
         assert result.exit_code != 0
 
     def test_history_with_invalid_date_format(self, tmp_path: Path) -> None:
         """Test history command with invalid date format."""
         db_path = tmp_path / "test.db"
 
-        result = runner.invoke(app, [
-            "history",
-            "--since", "not-a-date",
-            "--db-path", str(db_path)
-        ])
+        result = runner.invoke(app, ["history", "--since", "not-a-date", "--db-path", str(db_path)])
         assert result.exit_code != 0
 
 
@@ -659,11 +594,7 @@ class TestReportCommandAdditional:
         """Test report command with invalid --top value."""
         db_path = tmp_path / "test.db"
 
-        result = runner.invoke(app, [
-            "report",
-            "--top", "0",
-            "--db-path", str(db_path)
-        ])
+        result = runner.invoke(app, ["report", "--top", "0", "--db-path", str(db_path)])
         # Should fail validation
         assert result.exit_code != 0
 
@@ -673,8 +604,9 @@ class TestEnsureOutputDirErrors:
 
     def test_ensure_output_dir_permission_error(self, tmp_path: Path) -> None:
         """Test that PermissionError during output dir creation is handled."""
-        from hamburglar.cli.main import ensure_output_dir
         import click.exceptions
+
+        from hamburglar.cli.main import ensure_output_dir
 
         with patch("pathlib.Path.mkdir", side_effect=PermissionError("Permission denied")):
             with pytest.raises(click.exceptions.Exit) as exc_info:
@@ -683,8 +615,9 @@ class TestEnsureOutputDirErrors:
 
     def test_ensure_output_dir_oserror(self, tmp_path: Path) -> None:
         """Test that OSError during output dir creation is handled."""
-        from hamburglar.cli.main import ensure_output_dir
         import click.exceptions
+
+        from hamburglar.cli.main import ensure_output_dir
 
         with patch("pathlib.Path.mkdir", side_effect=OSError("Disk full")):
             with pytest.raises(click.exceptions.Exit) as exc_info:
@@ -716,10 +649,9 @@ class TestOutputDirErrorHandling:
             forbidden_dir.chmod(0o000)
 
             try:
-                result = runner.invoke(app, [
-                    "scan", str(test_file),
-                    "--output-dir", str(forbidden_dir / "subdir")
-                ])
+                result = runner.invoke(
+                    app, ["scan", str(test_file), "--output-dir", str(forbidden_dir / "subdir")]
+                )
                 # Should fail with permission error
                 assert result.exit_code == EXIT_ERROR
             finally:
@@ -748,9 +680,7 @@ class TestQuietModeConsistency:
         test_file = tmp_path / "test.txt"
         test_file.write_text("just some normal content")
 
-        result = runner.invoke(app, [
-            "scan", str(test_file), "--quiet"
-        ])
+        result = runner.invoke(app, ["scan", str(test_file), "--quiet"])
         # Quiet mode should produce minimal output
         assert len(result.output.strip()) == 0 or result.exit_code == EXIT_NO_FINDINGS
 
@@ -760,13 +690,11 @@ class TestQuietModeConsistency:
 
         # Create empty database
         from hamburglar.storage.sqlite import SqliteStorage
+
         with SqliteStorage(db_path) as storage:
             pass
 
-        result = runner.invoke(app, [
-            "history", "--quiet",
-            "--db-path", str(db_path)
-        ])
+        result = runner.invoke(app, ["history", "--quiet", "--db-path", str(db_path)])
         # Should produce no output for empty database
         assert len(result.output.strip()) == 0 or result.exit_code == EXIT_NO_FINDINGS
 
@@ -780,14 +708,12 @@ class TestAuthOption:
             target_path="https://example.com",
             findings=[],
             scan_duration=1.0,
-            stats={"total_findings": 0}
+            stats={"total_findings": 0},
         )
 
         with patch("hamburglar.cli.main.asyncio.run", return_value=mock_result):
-            result = runner.invoke(app, [
-                "scan-web", "https://example.com",
-                "--auth", "user:password",
-                "--verbose"
-            ])
+            result = runner.invoke(
+                app, ["scan-web", "https://example.com", "--auth", "user:password", "--verbose"]
+            )
             # Auth should be accepted
             assert result.exit_code in (0, 2)

@@ -9,7 +9,6 @@ lower confidence than service-specific patterns.
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # Generic API Key Patterns
 GENERIC_API_KEY = Pattern(
     name="generic_api_key",

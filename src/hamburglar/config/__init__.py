@@ -29,6 +29,21 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, TypeVar
 
+# Re-export environment variable utilities
+from hamburglar.config.env import (
+    ENV_CATEGORIES,
+    ENV_CONCURRENCY,
+    ENV_CONFIG_PATH,
+    ENV_DB_PATH,
+    ENV_LOG_LEVEL,
+    ENV_OUTPUT_FORMAT,
+    ENV_YARA_RULES,
+    get_env_overrides,
+)
+
+# Re-export loader classes
+from hamburglar.config.loader import ConfigLoader
+
 # Re-export schema classes
 from hamburglar.config.schema import (
     DetectorSettings,
@@ -36,21 +51,6 @@ from hamburglar.config.schema import (
     OutputSettings,
     ScanSettings,
     YaraSettings,
-)
-
-# Re-export loader classes
-from hamburglar.config.loader import ConfigLoader
-
-# Re-export environment variable utilities
-from hamburglar.config.env import (
-    ENV_CONFIG_PATH,
-    ENV_YARA_RULES,
-    ENV_OUTPUT_FORMAT,
-    ENV_DB_PATH,
-    ENV_CONCURRENCY,
-    ENV_LOG_LEVEL,
-    ENV_CATEGORIES,
-    get_env_overrides,
 )
 
 __all__ = [
@@ -191,9 +191,7 @@ def load_config(
     # Layer 4: CLI arguments (highest priority)
     if cli_args:
         cli_dict = _normalize_cli_args(cli_args)
-        config_dict, cli_sources = _merge_configs(
-            config_dict, cli_dict, ConfigPriority.CLI
-        )
+        config_dict, cli_sources = _merge_configs(config_dict, cli_dict, ConfigPriority.CLI)
         sources.update(cli_sources)
 
     # Create the final config

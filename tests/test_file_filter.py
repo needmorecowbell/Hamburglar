@@ -9,7 +9,6 @@ This module tests the file filtering functionality including:
 
 from __future__ import annotations
 
-import asyncio
 import sys
 from pathlib import Path
 
@@ -27,7 +26,6 @@ for key in list(sys.modules.keys()):
         del sys.modules[key]
 
 from hamburglar.core.file_filter import (  # noqa: E402
-    CompiledPattern,
     FileFilter,
     FilterResult,
 )
@@ -681,11 +679,13 @@ class TestMultiplePatternInteraction:
 
     def test_later_patterns_override_earlier(self, tmp_path: Path) -> None:
         """Test that later patterns can override earlier ones."""
-        file_filter = FileFilter(exclude=[
-            "*.log",
-            "!important.log",
-            "*.tmp",
-        ])
+        file_filter = FileFilter(
+            exclude=[
+                "*.log",
+                "!important.log",
+                "*.tmp",
+            ]
+        )
 
         debug_log = tmp_path / "debug.log"
         debug_log.touch()
@@ -700,11 +700,13 @@ class TestMultiplePatternInteraction:
 
     def test_multiple_star_star_patterns(self, tmp_path: Path) -> None:
         """Test multiple ** patterns."""
-        file_filter = FileFilter(exclude=[
-            "**/node_modules/**",
-            "**/__pycache__/**",
-            "**/dist/**",
-        ])
+        file_filter = FileFilter(
+            exclude=[
+                "**/node_modules/**",
+                "**/__pycache__/**",
+                "**/dist/**",
+            ]
+        )
 
         # Create nested structures
         nm = tmp_path / "frontend" / "node_modules" / "pkg"

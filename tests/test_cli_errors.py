@@ -8,11 +8,9 @@ interruption handling.
 from __future__ import annotations
 
 import os
-import signal
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -95,7 +93,11 @@ class TestPermissionDenied:
             result = runner.invoke(app, ["scan", str(unreadable_dir)])
             # Should either show an error panel or exit with error code
             # The behavior depends on whether Typer validates access before passing to scan
-            assert result.exit_code != 0 or "permission" in result.output.lower() or len(result.output) > 0
+            assert (
+                result.exit_code != 0
+                or "permission" in result.output.lower()
+                or len(result.output) > 0
+            )
         finally:
             # Restore permissions for cleanup
             unreadable_dir.chmod(0o755)
@@ -157,8 +159,7 @@ class TestPermissionDenied:
 
         try:
             result = runner.invoke(
-                app,
-                ["scan", str(test_dir), "--format", "json", "--output", str(output_file)]
+                app, ["scan", str(test_dir), "--format", "json", "--output", str(output_file)]
             )
             # Should fail with permission error
             assert result.exit_code == 1 or "permission" in result.output.lower()
@@ -208,23 +209,19 @@ class TestInvalidFormatOption:
 class TestInvalidYaraPath:
     """Test error handling for invalid --yara paths."""
 
-    def test_nonexistent_yara_path_returns_exit_2(self, temp_directory: Path, tmp_path: Path) -> None:
+    def test_nonexistent_yara_path_returns_exit_2(
+        self, temp_directory: Path, tmp_path: Path
+    ) -> None:
         """Test that nonexistent YARA path returns exit code 2 (Typer validation)."""
         nonexistent_yara = tmp_path / "rules" / "nonexistent.yar"
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(nonexistent_yara)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(nonexistent_yara)])
         # Typer's exists=True validation returns exit code 2
         assert result.exit_code == 2
 
     def test_nonexistent_yara_path_shows_error(self, temp_directory: Path, tmp_path: Path) -> None:
         """Test that nonexistent YARA path shows an error message."""
         nonexistent_yara = tmp_path / "missing_rules.yar"
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(nonexistent_yara)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(nonexistent_yara)])
         assert "does not exist" in result.output.lower() or "error" in result.output.lower()
 
     def test_invalid_yara_rules_syntax(self, temp_directory: Path, tmp_path: Path) -> None:
@@ -237,10 +234,7 @@ rule invalid_rule {
         $a = "test"  // Missing 'condition' section
 }
 """)
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(bad_yara)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(bad_yara)])
         # Should show YARA compilation error
         assert result.exit_code == 1
         assert "yara" in result.output.lower() or "error" in result.output.lower()
@@ -249,10 +243,7 @@ rule invalid_rule {
         """Test that empty YARA file is handled."""
         empty_yara = tmp_path / "empty.yar"
         empty_yara.write_text("")
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(empty_yara)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(empty_yara)])
         # Empty file should either work (no rules) or show a meaningful message
         # Exit code 0, 1, or 2 are all acceptable depending on implementation
         assert result.exit_code in (0, 1, 2)
@@ -265,10 +256,7 @@ rule invalid_rule {
 /* Block comment */
 // No actual rules here
 """)
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(comments_only)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(comments_only)])
         # Should work but find nothing, or show that no rules loaded
         assert result.exit_code in (0, 1, 2)
 
@@ -286,12 +274,15 @@ rule invalid_rule {
 
         try:
             result = runner.invoke(
-                app,
-                ["scan", str(temp_directory), "--yara", str(unreadable_yara)]
+                app, ["scan", str(temp_directory), "--yara", str(unreadable_yara)]
             )
             # Exit code 1 (our error) or 2 (Typer validation) are both acceptable
             assert result.exit_code in (1, 2)
-            assert "permission" in result.output.lower() or "error" in result.output.lower() or "does not exist" in result.output.lower()
+            assert (
+                "permission" in result.output.lower()
+                or "error" in result.output.lower()
+                or "does not exist" in result.output.lower()
+            )
         finally:
             unreadable_yara.chmod(0o644)
 
@@ -302,10 +293,7 @@ rule invalid_rule {
         # Create a non-yar file
         (empty_dir / "readme.txt").write_text("This is not a YARA file")
 
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(empty_dir)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(empty_dir)])
         # Should either show error about no rules or handle gracefully
         assert result.exit_code in (0, 1, 2)
 
@@ -386,8 +374,7 @@ class TestOutputFileErrors:
         """Test writing output to an invalid path."""
         invalid_output = tmp_path / "nonexistent_dir" / "output.json"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--output", str(invalid_output), "--format", "json"]
+            app, ["scan", str(temp_directory), "--output", str(invalid_output), "--format", "json"]
         )
         # Should fail with an error about the output path
         assert result.exit_code == 1
@@ -397,8 +384,7 @@ class TestOutputFileErrors:
         # Try to write to a path that will fail
         invalid_output = tmp_path / "missing" / "deep" / "path" / "output.json"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--output", str(invalid_output), "--format", "json"]
+            app, ["scan", str(temp_directory), "--output", str(invalid_output), "--format", "json"]
         )
         assert result.exit_code == 1
 
@@ -409,10 +395,7 @@ class TestCombinedErrorScenarios:
     def test_nonexistent_path_with_invalid_format(self, tmp_path: Path) -> None:
         """Test nonexistent path combined with invalid format."""
         nonexistent = tmp_path / "does_not_exist"
-        result = runner.invoke(
-            app,
-            ["scan", str(nonexistent), "--format", "xml"]
-        )
+        result = runner.invoke(app, ["scan", str(nonexistent), "--format", "xml"])
         # Typer should catch the path issue first
         assert result.exit_code != 0
 

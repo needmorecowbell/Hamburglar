@@ -17,10 +17,10 @@ The scanner supports:
 
 import asyncio
 import logging
-import re
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, AsyncIterator
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse
 
 try:
@@ -596,9 +596,7 @@ class WebScanner(BaseScanner):
                 for script_url in script_urls:
                     if self.is_cancelled:
                         break
-                    script_findings = await self._scan_script(
-                        script_url, client, robots
-                    )
+                    script_findings = await self._scan_script(script_url, client, robots)
                     findings.extend(script_findings)
 
             # Extract links for following (if we haven't reached max depth)
@@ -826,8 +824,7 @@ class WebScanner(BaseScanner):
                     await asyncio.sleep(robots.crawl_delay)
 
         logger.info(
-            f"Web stream scan complete: {self._urls_scanned} URLs, "
-            f"{self._scripts_scanned} scripts"
+            f"Web stream scan complete: {self._urls_scanned} URLs, {self._scripts_scanned} scripts"
         )
 
     def get_stats(self) -> dict:

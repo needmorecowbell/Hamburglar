@@ -15,10 +15,11 @@ import asyncio
 import logging
 import re
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, AsyncIterator
+from typing import TYPE_CHECKING
 
 from hamburglar.core.exceptions import ScanError
 from hamburglar.core.models import Finding, ScanResult, Severity
@@ -99,12 +100,8 @@ class SecretTimeline:
             self.is_removed = True
             if self.first_seen and self.last_seen:
                 try:
-                    first_dt = datetime.fromisoformat(
-                        self.first_seen.date.replace("Z", "+00:00")
-                    )
-                    last_dt = datetime.fromisoformat(
-                        self.last_seen.date.replace("Z", "+00:00")
-                    )
+                    first_dt = datetime.fromisoformat(self.first_seen.date.replace("Z", "+00:00"))
+                    last_dt = datetime.fromisoformat(self.last_seen.date.replace("Z", "+00:00"))
                     self.exposure_duration = (last_dt - first_dt).total_seconds()
                 except (ValueError, TypeError):
                     pass
@@ -369,10 +366,8 @@ class GitHistoryScanner(BaseScanner):
         )
 
         # Get commit body
-        _, body_out, _ = await self._run_git_command(
-            ["show", "-s", "--format=%b", commit_hash]
-        )
-        commit_info.body = [l for l in body_out.strip().split("\n") if l.strip()]
+        _, body_out, _ = await self._run_git_command(["show", "-s", "--format=%b", commit_hash])
+        commit_info.body = [line for line in body_out.strip().split("\n") if line.strip()]
 
         return commit_info
 
@@ -618,9 +613,7 @@ class GitHistoryScanner(BaseScanner):
                             findings.append(finding)
                             self._findings_count += 1
                     except Exception as e:
-                        logger.error(
-                            f"Detector {detector.name} failed on commit message: {e}"
-                        )
+                        logger.error(f"Detector {detector.name} failed on commit message: {e}")
 
             self._commits_parsed += 1
 

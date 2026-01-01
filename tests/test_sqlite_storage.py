@@ -8,10 +8,7 @@ statistics, and concurrent access.
 from __future__ import annotations
 
 import concurrent.futures
-import os
-import sqlite3
 import sys
-import tempfile
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -35,14 +32,11 @@ from hamburglar.storage import (
     BaseStorage,
     FindingFilter,
     ScanFilter,
-    ScanStatistics,
     SqliteStorage,
     StorageError,
     StorageRegistry,
     StoredScan,
-    default_registry,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -206,7 +200,9 @@ class TestDatabaseSchema:
         """Schema should include schema_version table."""
         conn = memory_storage._get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'"
+        )
         assert cursor.fetchone() is not None
         cursor.close()
 
@@ -465,7 +461,7 @@ class TestGetScans:
     ) -> None:
         """get_scans should filter by minimum findings count."""
         memory_storage.save_scan(sample_scan_result)  # 2 findings
-        memory_storage.save_scan(empty_scan_result)   # 0 findings
+        memory_storage.save_scan(empty_scan_result)  # 0 findings
 
         filter = ScanFilter(min_findings=1)
         scans = memory_storage.get_scans(filter)
@@ -481,7 +477,7 @@ class TestGetScans:
     ) -> None:
         """get_scans should filter by maximum findings count."""
         memory_storage.save_scan(sample_scan_result)  # 2 findings
-        memory_storage.save_scan(empty_scan_result)   # 0 findings
+        memory_storage.save_scan(empty_scan_result)  # 0 findings
 
         filter = ScanFilter(max_findings=0)
         scans = memory_storage.get_scans(filter)
@@ -568,9 +564,7 @@ class TestGetFindings:
 
         assert len(findings) == 2
 
-    def test_returns_empty_list_when_no_findings(
-        self, memory_storage: SqliteStorage
-    ) -> None:
+    def test_returns_empty_list_when_no_findings(self, memory_storage: SqliteStorage) -> None:
         """get_findings should return empty list when no findings exist."""
         findings = memory_storage.get_findings()
         assert findings == []
@@ -822,7 +816,7 @@ class TestGetStatistics:
     ) -> None:
         """get_statistics should calculate average findings per scan."""
         memory_storage.save_scan(sample_scan_result)  # 2 findings
-        memory_storage.save_scan(empty_scan_result)   # 0 findings
+        memory_storage.save_scan(empty_scan_result)  # 0 findings
 
         stats = memory_storage.get_statistics()
 
@@ -975,10 +969,9 @@ class TestContextManager:
         """Context manager should close storage even on exception."""
         storage = SqliteStorage(":memory:")
 
-        with pytest.raises(ValueError):
-            with storage:
-                storage.save_scan(sample_scan_result)
-                raise ValueError("Test error")
+        with pytest.raises(ValueError), storage:
+            storage.save_scan(sample_scan_result)
+            raise ValueError("Test error")
 
         with pytest.raises(StorageError, match="closed"):
             storage.get_scans()
@@ -1070,9 +1063,7 @@ class TestConcurrentAccess:
 class TestFileBasedStorage:
     """Tests for file-based SQLite storage."""
 
-    def test_persists_to_file(
-        self, tmp_path: Path, sample_scan_result: ScanResult
-    ) -> None:
+    def test_persists_to_file(self, tmp_path: Path, sample_scan_result: ScanResult) -> None:
         """Data should persist to file."""
         db_path = tmp_path / "test.db"
 
@@ -1122,9 +1113,7 @@ class TestErrorHandling:
         with pytest.raises(StorageError, match="connect"):
             SqliteStorage("/nonexistent/directory/db.sqlite")
 
-    def test_error_includes_backend_name(
-        self, memory_storage: SqliteStorage
-    ) -> None:
+    def test_error_includes_backend_name(self, memory_storage: SqliteStorage) -> None:
         """StorageError should include backend name."""
         memory_storage.close()
 
@@ -1133,9 +1122,7 @@ class TestErrorHandling:
         except StorageError as e:
             assert e.backend == "sqlite"
 
-    def test_error_includes_operation(
-        self, memory_storage: SqliteStorage
-    ) -> None:
+    def test_error_includes_operation(self, memory_storage: SqliteStorage) -> None:
         """StorageError should include operation name."""
         memory_storage.close()
 

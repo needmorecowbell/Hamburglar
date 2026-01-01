@@ -13,7 +13,6 @@ import pytest
 from hamburglar.config import ConfigLoader
 from hamburglar.core.exceptions import ConfigError
 
-
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "configs"
 
 
@@ -71,7 +70,10 @@ class TestValidFullConfigs:
 
         # Detector settings
         assert config.detector.enabled_categories == [
-            "api_keys", "credentials", "crypto", "private_keys"
+            "api_keys",
+            "credentials",
+            "crypto",
+            "private_keys",
         ]
         assert "generic_high_entropy" in config.detector.disabled_patterns
         assert config.detector.min_confidence == "high"
@@ -233,11 +235,27 @@ class TestConfigConsistency:
         json_config = loader.load(FIXTURES_DIR / "valid_basic.json")
 
         # All configs should have identical values
-        assert yml_config.scan.concurrency == toml_config.scan.concurrency == json_config.scan.concurrency
-        assert yml_config.scan.max_file_size == toml_config.scan.max_file_size == json_config.scan.max_file_size
+        assert (
+            yml_config.scan.concurrency
+            == toml_config.scan.concurrency
+            == json_config.scan.concurrency
+        )
+        assert (
+            yml_config.scan.max_file_size
+            == toml_config.scan.max_file_size
+            == json_config.scan.max_file_size
+        )
         assert yml_config.scan.recursive == toml_config.scan.recursive == json_config.scan.recursive
-        assert yml_config.detector.min_confidence == toml_config.detector.min_confidence == json_config.detector.min_confidence
-        assert yml_config.detector.enabled_categories == toml_config.detector.enabled_categories == json_config.detector.enabled_categories
+        assert (
+            yml_config.detector.min_confidence
+            == toml_config.detector.min_confidence
+            == json_config.detector.min_confidence
+        )
+        assert (
+            yml_config.detector.enabled_categories
+            == toml_config.detector.enabled_categories
+            == json_config.detector.enabled_categories
+        )
         assert yml_config.output.format == toml_config.output.format == json_config.output.format
         assert yml_config.yara.enabled == toml_config.yara.enabled == json_config.yara.enabled
         assert yml_config.log_level == toml_config.log_level == json_config.log_level
@@ -252,18 +270,42 @@ class TestConfigConsistency:
 
         # Scan settings
         assert yml_config.scan.recursive == toml_config.scan.recursive == json_config.scan.recursive
-        assert yml_config.scan.max_file_size == toml_config.scan.max_file_size == json_config.scan.max_file_size
-        assert yml_config.scan.concurrency == toml_config.scan.concurrency == json_config.scan.concurrency
+        assert (
+            yml_config.scan.max_file_size
+            == toml_config.scan.max_file_size
+            == json_config.scan.max_file_size
+        )
+        assert (
+            yml_config.scan.concurrency
+            == toml_config.scan.concurrency
+            == json_config.scan.concurrency
+        )
         assert yml_config.scan.timeout == toml_config.scan.timeout == json_config.scan.timeout
 
         # Detector settings
-        assert yml_config.detector.enabled_categories == toml_config.detector.enabled_categories == json_config.detector.enabled_categories
-        assert yml_config.detector.disabled_patterns == toml_config.detector.disabled_patterns == json_config.detector.disabled_patterns
-        assert yml_config.detector.min_confidence == toml_config.detector.min_confidence == json_config.detector.min_confidence
+        assert (
+            yml_config.detector.enabled_categories
+            == toml_config.detector.enabled_categories
+            == json_config.detector.enabled_categories
+        )
+        assert (
+            yml_config.detector.disabled_patterns
+            == toml_config.detector.disabled_patterns
+            == json_config.detector.disabled_patterns
+        )
+        assert (
+            yml_config.detector.min_confidence
+            == toml_config.detector.min_confidence
+            == json_config.detector.min_confidence
+        )
 
         # Output settings
         assert yml_config.output.format == toml_config.output.format == json_config.output.format
-        assert yml_config.output.save_to_db == toml_config.output.save_to_db == json_config.output.save_to_db
+        assert (
+            yml_config.output.save_to_db
+            == toml_config.output.save_to_db
+            == json_config.output.save_to_db
+        )
 
         # YARA settings
         assert yml_config.yara.enabled == toml_config.yara.enabled == json_config.yara.enabled
@@ -280,7 +322,12 @@ class TestConfigConsistency:
         toml_config = loader.load(FIXTURES_DIR / "minimal.toml")
         json_config = loader.load(FIXTURES_DIR / "minimal.json")
 
-        assert yml_config.scan.concurrency == toml_config.scan.concurrency == json_config.scan.concurrency == 10
+        assert (
+            yml_config.scan.concurrency
+            == toml_config.scan.concurrency
+            == json_config.scan.concurrency
+            == 10
+        )
 
     def test_empty_configs_are_equivalent(self) -> None:
         """Empty configs in all formats should produce equivalent configs."""
@@ -291,5 +338,10 @@ class TestConfigConsistency:
         json_config = loader.load(FIXTURES_DIR / "empty.json")
 
         # All should have default values
-        assert yml_config.scan.concurrency == toml_config.scan.concurrency == json_config.scan.concurrency == 50
+        assert (
+            yml_config.scan.concurrency
+            == toml_config.scan.concurrency
+            == json_config.scan.concurrency
+            == 50
+        )
         assert yml_config.output.format == toml_config.output.format == json_config.output.format

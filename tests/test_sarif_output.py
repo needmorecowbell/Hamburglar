@@ -35,7 +35,6 @@ from hamburglar.outputs.sarif import (
     SarifOutput,
 )
 
-
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -133,9 +132,7 @@ class TestSarifOutputValidJson:
         parsed = json.loads(output)
         assert isinstance(parsed, dict)
 
-    def test_single_finding_is_valid_json(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_single_finding_is_valid_json(self, single_finding_result: ScanResult) -> None:
         """Test that a single finding produces valid JSON."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -143,9 +140,7 @@ class TestSarifOutputValidJson:
         parsed = json.loads(output)
         assert isinstance(parsed, dict)
 
-    def test_multiple_findings_is_valid_json(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_multiple_findings_is_valid_json(self, multiple_findings_result: ScanResult) -> None:
         """Test that multiple findings produce valid JSON."""
         formatter = SarifOutput()
         output = formatter.format(multiple_findings_result)
@@ -171,9 +166,7 @@ class TestSarifOutputValidJson:
 class TestSarifSchemaCompliance:
     """Test that SARIF output follows SARIF 2.1.0 schema."""
 
-    def test_sarif_has_schema_reference(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_sarif_has_schema_reference(self, single_finding_result: ScanResult) -> None:
         """Test that SARIF includes the $schema property."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -211,9 +204,7 @@ class TestSarifSchemaCompliance:
         assert "tool" in run
         assert "driver" in run["tool"]
 
-    def test_sarif_tool_driver_properties(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_sarif_tool_driver_properties(self, single_finding_result: ScanResult) -> None:
         """Test that SARIF tool driver has required properties."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -236,9 +227,7 @@ class TestSarifSchemaCompliance:
         assert "results" in run
         assert isinstance(run["results"], list)
 
-    def test_sarif_run_has_invocations(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_sarif_run_has_invocations(self, single_finding_result: ScanResult) -> None:
         """Test that SARIF run includes invocations array."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -258,9 +247,7 @@ class TestSarifSchemaCompliance:
 class TestSarifFindingsMapping:
     """Test that findings are correctly mapped to SARIF results."""
 
-    def test_findings_count_matches(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_findings_count_matches(self, multiple_findings_result: ScanResult) -> None:
         """Test that number of SARIF results matches number of findings."""
         formatter = SarifOutput()
         output = formatter.format(multiple_findings_result)
@@ -351,9 +338,7 @@ class TestSarifRuleDefinitions:
         assert isinstance(rules, list)
         assert len(rules) >= 1
 
-    def test_rule_has_required_properties(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_rule_has_required_properties(self, single_finding_result: ScanResult) -> None:
         """Test that each rule has required properties."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -376,9 +361,7 @@ class TestSarifRuleDefinitions:
         rule = parsed["runs"][0]["tool"]["driver"]["rules"][0]
         assert rule["id"] == "hamburglar/aws_key"
 
-    def test_rule_descriptions_are_text(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_rule_descriptions_are_text(self, single_finding_result: ScanResult) -> None:
         """Test that rule descriptions have text property."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -403,9 +386,7 @@ class TestSarifRuleDefinitions:
         assert "security" in rule["properties"]["tags"]
         assert "secrets" in rule["properties"]["tags"]
 
-    def test_unique_detectors_become_rules(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_unique_detectors_become_rules(self, multiple_findings_result: ScanResult) -> None:
         """Test that unique detectors become separate rules."""
         formatter = SarifOutput()
         output = formatter.format(multiple_findings_result)
@@ -427,9 +408,7 @@ class TestSarifRuleDefinitions:
 class TestSarifFileLocations:
     """Test that file locations are correctly included."""
 
-    def test_location_has_artifact_location(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_location_has_artifact_location(self, single_finding_result: ScanResult) -> None:
         """Test that location has artifactLocation."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -441,9 +420,7 @@ class TestSarifFileLocations:
         assert "artifactLocation" in location["physicalLocation"]
         assert "uri" in location["physicalLocation"]["artifactLocation"]
 
-    def test_location_uri_matches_file_path(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_location_uri_matches_file_path(self, single_finding_result: ScanResult) -> None:
         """Test that location URI matches the file path."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -456,9 +433,7 @@ class TestSarifFileLocations:
         assert artifact["uri"] == "/tmp/test/secrets.txt"
         assert artifact["uriBaseId"] == "%SRCROOT%"
 
-    def test_location_includes_line_number(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_location_includes_line_number(self, single_finding_result: ScanResult) -> None:
         """Test that location includes line number when available."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -494,17 +469,13 @@ class TestSarifFileLocations:
         # Third finding (password) has end_line info
         results = parsed["runs"][0]["results"]
         # Find the password result
-        password_result = next(
-            r for r in results if r["ruleId"] == "hamburglar/password"
-        )
+        password_result = next(r for r in results if r["ruleId"] == "hamburglar/password")
         location = password_result["locations"][0]["physicalLocation"]
 
         assert "region" in location
         assert location["region"]["endLine"] == 15
 
-    def test_location_supports_line_number_key(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_location_supports_line_number_key(self, multiple_findings_result: ScanResult) -> None:
         """Test that location supports 'line_number' metadata key."""
         formatter = SarifOutput()
         output = formatter.format(multiple_findings_result)
@@ -512,9 +483,7 @@ class TestSarifFileLocations:
         parsed = json.loads(output)
         # api_key finding uses 'line_number' instead of 'line'
         results = parsed["runs"][0]["results"]
-        api_key_result = next(
-            r for r in results if r["ruleId"] == "hamburglar/api_key"
-        )
+        api_key_result = next(r for r in results if r["ruleId"] == "hamburglar/api_key")
         location = api_key_result["locations"][0]["physicalLocation"]
 
         assert "region" in location
@@ -592,9 +561,7 @@ class TestSarifSeverityMapping:
             score = SEVERITY_TO_SECURITY_SCORE[severity]
             assert 0.0 <= score <= 10.0
 
-    def test_security_severity_in_properties(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_security_severity_in_properties(self, single_finding_result: ScanResult) -> None:
         """Test that security-severity is included in result properties."""
         formatter = SarifOutput()
         output = formatter.format(single_finding_result)
@@ -616,9 +583,7 @@ class TestSarifSeverityMapping:
 class TestSarifEmptyResults:
     """Test SARIF output with empty or minimal results."""
 
-    def test_empty_findings_produces_valid_sarif(
-        self, empty_scan_result: ScanResult
-    ) -> None:
+    def test_empty_findings_produces_valid_sarif(self, empty_scan_result: ScanResult) -> None:
         """Test that empty findings still produces valid SARIF."""
         formatter = SarifOutput()
         output = formatter.format(empty_scan_result)

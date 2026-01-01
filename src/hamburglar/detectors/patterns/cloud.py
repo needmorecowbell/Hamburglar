@@ -7,7 +7,6 @@ from Azure, GCP, AWS, Firebase, Cloudflare, Alibaba Cloud, IBM Cloud, and Oracle
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # Azure Patterns
 AZURE_STORAGE_KEY = Pattern(
     name="azure_storage_key",

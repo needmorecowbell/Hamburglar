@@ -12,8 +12,7 @@ from __future__ import annotations
 import sys
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -38,7 +37,7 @@ from hamburglar.core.exceptions import (
     ScanError,
     YaraCompilationError,
 )
-from hamburglar.core.models import Finding, ScanConfig, ScanResult, Severity
+from hamburglar.core.models import ScanConfig, Severity
 from hamburglar.core.scanner import Scanner
 from hamburglar.detectors.regex_detector import RegexDetector
 
@@ -154,12 +153,9 @@ class TestCLIYaraErrorHandling:
         """Test that YARA compilation error is displayed properly."""
         # Create an invalid YARA file
         yara_file = tmp_path / "bad.yar"
-        yara_file.write_text("rule invalid { strings: $a = \"test\" }")  # Missing condition
+        yara_file.write_text('rule invalid { strings: $a = "test" }')  # Missing condition
 
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(yara_file)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(yara_file)])
         assert result.exit_code == 1
         assert "yara" in result.output.lower() or "error" in result.output.lower()
 
@@ -167,10 +163,7 @@ class TestCLIYaraErrorHandling:
         """Test that FileNotFoundError for YARA rules shows error."""
         # Typer validates exists=True, so this should fail with exit 2
         nonexistent_yara = tmp_path / "nonexistent.yar"
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(nonexistent_yara)]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--yara", str(nonexistent_yara)])
         # Typer validation returns exit code 2
         assert result.exit_code == 2
 
@@ -204,8 +197,7 @@ class TestCLIVerboseModeWithYara:
         yara_file.write_text("rule test_rule { condition: true }")
 
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--yara", str(yara_file), "--verbose"]
+            app, ["scan", str(temp_directory), "--yara", str(yara_file), "--verbose"]
         )
         # Either success or no findings
         assert result.exit_code in (0, 2)
@@ -218,10 +210,7 @@ class TestCLIHighSeverityWarning:
 
     def test_verbose_shows_high_severity_warning(self, temp_directory: Path) -> None:
         """Test that verbose mode shows warning for high severity findings."""
-        result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--verbose"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--verbose"])
         assert result.exit_code == 0
         # With the secrets in temp_directory, there should be high severity findings
         # The verbose output may include a warning about high/critical findings
@@ -245,7 +234,10 @@ class TestRegexDetectorEdgeCases:
             detector = RegexDetector(patterns=invalid_patterns, use_defaults=False)
             # Should have warned about the invalid pattern
             assert len(w) >= 1
-            assert "invalid regex" in str(w[0].message).lower() or "bad pattern" in str(w[0].message).lower()
+            assert (
+                "invalid regex" in str(w[0].message).lower()
+                or "bad pattern" in str(w[0].message).lower()
+            )
 
     def test_encoding_failure_in_binary_check_returns_true(self) -> None:
         """Test that encoding failure in _is_binary_content returns True."""
@@ -271,7 +263,11 @@ class TestRegexDetectorEdgeCases:
 
         # Inject the mock pattern (5-tuple: compiled, severity, description, category, confidence)
         detector._compiled_patterns["Test Pattern"] = (
-            mock_pattern, Severity.HIGH, "Test", "", "medium"
+            mock_pattern,
+            Severity.HIGH,
+            "Test",
+            "",
+            "medium",
         )
 
         # Should not raise, should return findings from other patterns
@@ -441,6 +437,7 @@ class TestYaraDetectorEdgeCases:
             # Need to reload the module to pick up the patch
             # Actually, we can test by checking the guard directly
             from hamburglar.detectors.yara_detector import YARA_AVAILABLE, is_yara_available
+
             # If YARA is available (which it likely is), we can at least verify the function works
             assert is_yara_available() == YARA_AVAILABLE
 
@@ -456,6 +453,7 @@ class TestYaraDetectorEdgeCases:
         yara_file.write_text("rule test { condition: true }")
 
         from hamburglar.detectors.yara_detector import YaraDetector
+
         detector = YaraDetector(yara_file, timeout=1)
 
         # Create a mock rules object that raises TimeoutError on match
@@ -474,6 +472,7 @@ class TestYaraDetectorEdgeCases:
         yara_file.write_text("rule test { condition: true }")
 
         from hamburglar.detectors.yara_detector import YaraDetector
+
         detector = YaraDetector(yara_file)
 
         # Create a mock rules object that raises Error on match
@@ -490,6 +489,7 @@ class TestYaraDetectorEdgeCases:
         yara_file.write_text("rule test { condition: true }")
 
         from hamburglar.detectors.yara_detector import YaraDetector
+
         detector = YaraDetector(yara_file)
 
         # Create a mock rules object that raises an unexpected error
@@ -513,6 +513,7 @@ rule find_test {
 """)
 
         from hamburglar.detectors.yara_detector import YaraDetector
+
         detector = YaraDetector(yara_file)
 
         # Create mock match with instance that doesn't have matched_data.decode
@@ -577,7 +578,8 @@ class TestYaraNotAvailable:
 
     def test_is_yara_available_returns_boolean(self) -> None:
         """Test that is_yara_available returns a boolean."""
-        from hamburglar.detectors.yara_detector import is_yara_available, YARA_AVAILABLE
+        from hamburglar.detectors.yara_detector import YARA_AVAILABLE, is_yara_available
+
         result = is_yara_available()
         assert isinstance(result, bool)
         assert result == YARA_AVAILABLE
@@ -609,7 +611,7 @@ class TestRegistryUnregister:
 
     def test_detector_registry_unregister(self) -> None:
         """Test that unregister removes a detector from the registry."""
-        from hamburglar.detectors import DetectorRegistry, BaseDetector
+        from hamburglar.detectors import BaseDetector, DetectorRegistry
 
         # Create a registry and mock detector
         registry = DetectorRegistry()
@@ -635,7 +637,7 @@ class TestRegistryUnregister:
 
     def test_output_registry_unregister(self) -> None:
         """Test that unregister removes an output formatter from the registry."""
-        from hamburglar.outputs import OutputRegistry, BaseOutput
+        from hamburglar.outputs import BaseOutput, OutputRegistry
 
         # Create a registry and mock output
         registry = OutputRegistry()

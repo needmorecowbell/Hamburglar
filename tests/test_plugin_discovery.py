@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -24,7 +23,7 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.core.models import Finding, ScanResult, Severity
+from hamburglar.core.models import Finding, ScanResult
 from hamburglar.detectors import BaseDetector
 from hamburglar.outputs import BaseOutput
 from hamburglar.plugins import PluginError, PluginInfo, PluginManager, reset_plugin_manager
@@ -274,7 +273,7 @@ else:
     def test_discover_skips_private_files(self, tmp_path: Path) -> None:
         """Test that private files (starting with _) are skipped."""
         private_file = tmp_path / "_private.py"
-        private_file.write_text('''
+        private_file.write_text("""
 from hamburglar.detectors import BaseDetector
 from hamburglar.core.models import Finding
 
@@ -285,7 +284,7 @@ class PrivateDetector(BaseDetector):
 
     def detect(self, content: str, file_path: str = "") -> list[Finding]:
         return []
-''')
+""")
         plugins = discover_directory(tmp_path)
         names = [name for name, _, _, _ in plugins]
         assert "private" not in names
@@ -782,7 +781,7 @@ class TestDiscoverPluginsAdvanced:
         dir2.mkdir()
 
         # Create plugin in dir1
-        (dir1 / "det1.py").write_text('''
+        (dir1 / "det1.py").write_text("""
 from hamburglar.core.models import Finding
 from hamburglar.detectors import BaseDetector
 
@@ -793,10 +792,10 @@ class Det1Detector(BaseDetector):
 
     def detect(self, content: str, file_path: str = "") -> list[Finding]:
         return []
-''')
+""")
 
         # Create plugin in dir2
-        (dir2 / "det2.py").write_text('''
+        (dir2 / "det2.py").write_text("""
 from hamburglar.core.models import Finding
 from hamburglar.detectors import BaseDetector
 
@@ -807,7 +806,7 @@ class Det2Detector(BaseDetector):
 
     def detect(self, content: str, file_path: str = "") -> list[Finding]:
         return []
-''')
+""")
 
         # Run in subprocess
         test_script = f'''
@@ -850,7 +849,7 @@ else:
         """Test that discovery handles registration errors gracefully."""
         # Create a plugin that might cause registration issues
         plugin_file = tmp_path / "problematic.py"
-        plugin_file.write_text('''
+        plugin_file.write_text("""
 from hamburglar.core.models import Finding
 from hamburglar.detectors import BaseDetector
 
@@ -861,7 +860,7 @@ class ProblematicDetector(BaseDetector):
 
     def detect(self, content: str, file_path: str = "") -> list[Finding]:
         return []
-''')
+""")
         manager = PluginManager()
         # Should not raise, errors should be captured in result
         result = discover_plugins(
@@ -1045,10 +1044,10 @@ class TestDiscoverDirectoryEdgeCases:
     def test_discover_directory_with_import_error(self, tmp_path: Path) -> None:
         """Test handling of files with import errors."""
         bad_import = tmp_path / "bad_import.py"
-        bad_import.write_text('''
+        bad_import.write_text("""
 import nonexistent_module_xyz
 from hamburglar.detectors import BaseDetector
-''')
+""")
         # Should handle gracefully (log warning but not crash)
         plugins = discover_directory(tmp_path)
         # File with import error should be skipped
@@ -1057,9 +1056,9 @@ from hamburglar.detectors import BaseDetector
     def test_discover_directory_with_runtime_error(self, tmp_path: Path) -> None:
         """Test handling of files that raise errors at module level."""
         bad_file = tmp_path / "runtime_error.py"
-        bad_file.write_text('''
+        bad_file.write_text("""
 raise RuntimeError("Module level error")
-''')
+""")
         # Should handle gracefully
         plugins = discover_directory(tmp_path)
         assert isinstance(plugins, list)

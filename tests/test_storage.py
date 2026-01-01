@@ -10,7 +10,6 @@ import sys
 from abc import ABC
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -36,7 +35,6 @@ from hamburglar.storage import (
     StoredScan,
     default_registry,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -106,7 +104,9 @@ class MockStorage(BaseStorage):
 
         if filter is not None:
             if filter.target_path:
-                scans = [s for s in scans if s.scan_result.target_path.startswith(filter.target_path)]
+                scans = [
+                    s for s in scans if s.scan_result.target_path.startswith(filter.target_path)
+                ]
             if filter.min_findings is not None:
                 scans = [s for s in scans if len(s.scan_result.findings) >= filter.min_findings]
             if filter.max_findings is not None:
@@ -116,9 +116,9 @@ class MockStorage(BaseStorage):
             if filter.until:
                 scans = [s for s in scans if s.stored_at <= filter.until]
             if filter.offset:
-                scans = scans[filter.offset:]
+                scans = scans[filter.offset :]
             if filter.limit:
-                scans = scans[:filter.limit]
+                scans = scans[: filter.limit]
 
         return scans
 
@@ -135,9 +135,9 @@ class MockStorage(BaseStorage):
             if filter.severity:
                 findings = [f for f in findings if f.severity in filter.severity]
             if filter.offset:
-                findings = findings[filter.offset:]
+                findings = findings[filter.offset :]
             if filter.limit:
-                findings = findings[:filter.limit]
+                findings = findings[: filter.limit]
 
         return findings
 
@@ -189,6 +189,7 @@ class TestBaseStorageInterface:
         """name should be an abstract property."""
         # Create a class missing name property
         with pytest.raises(TypeError, match="abstract"):
+
             class IncompleteStorage(BaseStorage):
                 def save_scan(self, result: ScanResult) -> str:
                     return "id"
@@ -207,6 +208,7 @@ class TestBaseStorageInterface:
     def test_save_scan_is_abstract(self) -> None:
         """save_scan should be an abstract method."""
         with pytest.raises(TypeError, match="abstract"):
+
             class IncompleteStorage(BaseStorage):
                 @property
                 def name(self) -> str:
@@ -226,6 +228,7 @@ class TestBaseStorageInterface:
     def test_get_scans_is_abstract(self) -> None:
         """get_scans should be an abstract method."""
         with pytest.raises(TypeError, match="abstract"):
+
             class IncompleteStorage(BaseStorage):
                 @property
                 def name(self) -> str:
@@ -245,6 +248,7 @@ class TestBaseStorageInterface:
     def test_get_findings_is_abstract(self) -> None:
         """get_findings should be an abstract method."""
         with pytest.raises(TypeError, match="abstract"):
+
             class IncompleteStorage(BaseStorage):
                 @property
                 def name(self) -> str:
@@ -264,6 +268,7 @@ class TestBaseStorageInterface:
     def test_get_statistics_is_abstract(self) -> None:
         """get_statistics should be an abstract method."""
         with pytest.raises(TypeError, match="abstract"):
+
             class IncompleteStorage(BaseStorage):
                 @property
                 def name(self) -> str:
@@ -310,7 +315,9 @@ class TestBaseStorageInterface:
 class TestMockStorageImplementation:
     """Tests for the MockStorage implementation to verify correct behavior."""
 
-    def test_save_scan_returns_id(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_save_scan_returns_id(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """save_scan should return a unique scan ID."""
         scan_id = mock_storage.save_scan(sample_scan_result)
         assert scan_id == "scan_0"
@@ -318,7 +325,9 @@ class TestMockStorageImplementation:
         scan_id2 = mock_storage.save_scan(sample_scan_result)
         assert scan_id2 == "scan_1"
 
-    def test_get_scans_returns_stored_scans(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_get_scans_returns_stored_scans(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """get_scans should return stored scans."""
         mock_storage.save_scan(sample_scan_result)
         scans = mock_storage.get_scans()
@@ -388,7 +397,9 @@ class TestScanFilter:
         scans = mock_storage.get_scans(filter)
         assert len(scans) == 0
 
-    def test_target_path_filter(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_target_path_filter(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """target_path filter should filter by path prefix."""
         mock_storage.save_scan(sample_scan_result)
         filter = ScanFilter(target_path="/tmp/test")
@@ -400,7 +411,10 @@ class TestScanFilter:
         assert len(scans) == 0
 
     def test_min_findings_filter(
-        self, mock_storage: MockStorage, sample_scan_result: ScanResult, empty_scan_result: ScanResult
+        self,
+        mock_storage: MockStorage,
+        sample_scan_result: ScanResult,
+        empty_scan_result: ScanResult,
     ) -> None:
         """min_findings filter should filter by minimum finding count."""
         mock_storage.save_scan(sample_scan_result)
@@ -412,7 +426,10 @@ class TestScanFilter:
         assert scans[0].scan_result.target_path == "/tmp/test"
 
     def test_max_findings_filter(
-        self, mock_storage: MockStorage, sample_scan_result: ScanResult, empty_scan_result: ScanResult
+        self,
+        mock_storage: MockStorage,
+        sample_scan_result: ScanResult,
+        empty_scan_result: ScanResult,
     ) -> None:
         """max_findings filter should filter by maximum finding count."""
         mock_storage.save_scan(sample_scan_result)
@@ -443,7 +460,9 @@ class TestScanFilter:
         scans = mock_storage.get_scans(filter)
         assert len(scans) == 2
 
-    def test_combined_filters(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_combined_filters(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """Multiple filters should combine with AND logic."""
         mock_storage.save_scan(sample_scan_result)
         mock_storage.save_scan(sample_scan_result)
@@ -473,7 +492,9 @@ class TestFindingFilter:
         assert filter.limit is None
         assert filter.offset == 0
 
-    def test_file_path_filter(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_file_path_filter(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """file_path filter should filter findings by path prefix."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -482,7 +503,9 @@ class TestFindingFilter:
         assert len(findings) == 1
         assert findings[0].detector_name == "aws_key"
 
-    def test_detector_name_filter(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_detector_name_filter(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """detector_name filter should filter by detector."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -491,7 +514,9 @@ class TestFindingFilter:
         assert len(findings) == 1
         assert findings[0].matches == ["admin@example.com"]
 
-    def test_severity_filter(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_severity_filter(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """severity filter should filter by severity levels."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -500,7 +525,9 @@ class TestFindingFilter:
         assert len(findings) == 1
         assert findings[0].detector_name == "aws_key"
 
-    def test_severity_filter_multiple(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_severity_filter_multiple(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """severity filter should support multiple severity levels."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -808,6 +835,7 @@ class TestModuleExports:
     def test_base_storage_importable(self) -> None:
         """BaseStorage should be importable from module."""
         from hamburglar.storage import BaseStorage as BS
+
         # Check by name and structure rather than identity, as module caching
         # can cause different object instances across test sessions
         assert BS.__name__ == "BaseStorage"
@@ -819,12 +847,14 @@ class TestModuleExports:
     def test_filter_classes_importable(self) -> None:
         """Filter classes should be importable."""
         from hamburglar.storage import FindingFilter, ScanFilter
+
         assert ScanFilter is not None
         assert FindingFilter is not None
 
     def test_dataclasses_are_dataclasses(self) -> None:
         """Filter and statistics classes should be dataclasses."""
         import dataclasses
+
         assert dataclasses.is_dataclass(ScanFilter)
         assert dataclasses.is_dataclass(FindingFilter)
         assert dataclasses.is_dataclass(StoredScan)
@@ -839,7 +869,9 @@ class TestModuleExports:
 class TestEdgeCases:
     """Tests for edge cases and boundary conditions."""
 
-    def test_empty_findings_list(self, mock_storage: MockStorage, empty_scan_result: ScanResult) -> None:
+    def test_empty_findings_list(
+        self, mock_storage: MockStorage, empty_scan_result: ScanResult
+    ) -> None:
         """Storage should handle scans with no findings."""
         scan_id = mock_storage.save_scan(empty_scan_result)
         assert scan_id is not None
@@ -850,7 +882,9 @@ class TestEdgeCases:
         stats = mock_storage.get_statistics()
         assert stats.total_findings == 0
 
-    def test_filter_with_all_none(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_filter_with_all_none(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """Filter with all None values should return all results."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -862,7 +896,9 @@ class TestEdgeCases:
         findings = mock_storage.get_findings(finding_filter)
         assert len(findings) == 2
 
-    def test_none_filter_returns_all(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_none_filter_returns_all(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """None filter should return all results."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -872,7 +908,9 @@ class TestEdgeCases:
         findings = mock_storage.get_findings(None)
         assert len(findings) == 2
 
-    def test_offset_beyond_results(self, mock_storage: MockStorage, sample_scan_result: ScanResult) -> None:
+    def test_offset_beyond_results(
+        self, mock_storage: MockStorage, sample_scan_result: ScanResult
+    ) -> None:
         """Offset beyond available results should return empty list."""
         mock_storage.save_scan(sample_scan_result)
 
@@ -893,7 +931,10 @@ class TestEdgeCases:
         assert len(scans) == 1
 
     def test_multiple_scan_storage(
-        self, mock_storage: MockStorage, sample_scan_result: ScanResult, empty_scan_result: ScanResult
+        self,
+        mock_storage: MockStorage,
+        sample_scan_result: ScanResult,
+        empty_scan_result: ScanResult,
     ) -> None:
         """Storage should handle multiple scans correctly."""
         id1 = mock_storage.save_scan(sample_scan_result)

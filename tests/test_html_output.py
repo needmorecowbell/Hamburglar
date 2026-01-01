@@ -7,7 +7,6 @@ and no external dependencies requirement.
 
 from __future__ import annotations
 
-import html
 import re
 import sys
 from pathlib import Path
@@ -32,7 +31,6 @@ from hamburglar.outputs.html_output import (
     SEVERITY_ORDER,
     HtmlOutput,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -210,9 +208,7 @@ class TestHtmlOutputValidStructure:
         assert "<body>" in output
         assert "</body>" in output
 
-    def test_single_finding_is_valid_html(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_single_finding_is_valid_html(self, single_finding_result: ScanResult) -> None:
         """Test that a single finding produces valid HTML."""
         formatter = HtmlOutput()
         output = formatter.format(single_finding_result)
@@ -221,9 +217,7 @@ class TestHtmlOutputValidStructure:
         assert "<html" in output
         assert "</html>" in output
 
-    def test_multiple_findings_is_valid_html(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_multiple_findings_is_valid_html(self, multiple_findings_result: ScanResult) -> None:
         """Test that multiple findings produce valid HTML."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -308,9 +302,7 @@ class TestHtmlOutputNoExternalDeps:
 class TestHtmlOutputSummary:
     """Test that HTML output includes correct summary statistics."""
 
-    def test_shows_total_findings_count(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_total_findings_count(self, multiple_findings_result: ScanResult) -> None:
         """Test that total findings count is displayed."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -341,9 +333,7 @@ class TestHtmlOutputSummary:
 
         assert "/tmp/test" in output
 
-    def test_shows_severity_breakdown(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_severity_breakdown(self, multiple_findings_result: ScanResult) -> None:
         """Test that severity breakdown is shown."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -355,9 +345,7 @@ class TestHtmlOutputSummary:
         assert "LOW" in output
         assert "INFO" in output
 
-    def test_empty_result_shows_no_findings_message(
-        self, empty_scan_result: ScanResult
-    ) -> None:
+    def test_empty_result_shows_no_findings_message(self, empty_scan_result: ScanResult) -> None:
         """Test that empty results show appropriate message."""
         formatter = HtmlOutput()
         output = formatter.format(empty_scan_result)
@@ -374,9 +362,7 @@ class TestHtmlOutputSummary:
 class TestHtmlOutputGrouping:
     """Test that findings are grouped correctly by file."""
 
-    def test_findings_grouped_by_file(
-        self, multi_findings_same_file_result: ScanResult
-    ) -> None:
+    def test_findings_grouped_by_file(self, multi_findings_same_file_result: ScanResult) -> None:
         """Test that multiple findings in same file are grouped together."""
         formatter = HtmlOutput()
         output = formatter.format(multi_findings_same_file_result)
@@ -405,9 +391,7 @@ class TestHtmlOutputGrouping:
         assert "/tmp/test/notes.txt" in output
         assert "/tmp/test/api.js" in output
 
-    def test_uses_collapsible_details_element(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_uses_collapsible_details_element(self, single_finding_result: ScanResult) -> None:
         """Test that file sections use collapsible details element."""
         formatter = HtmlOutput()
         output = formatter.format(single_finding_result)
@@ -426,9 +410,7 @@ class TestHtmlOutputGrouping:
 class TestHtmlOutputSeverityOrdering:
     """Test that findings are sorted by severity."""
 
-    def test_files_sorted_by_highest_severity(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_files_sorted_by_highest_severity(self, multiple_findings_result: ScanResult) -> None:
         """Test that files with critical findings appear first."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -473,9 +455,7 @@ class TestHtmlOutputSeverityColors:
             assert "border" in colors
             assert "text" in colors
 
-    def test_severity_badges_have_colors(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_severity_badges_have_colors(self, multiple_findings_result: ScanResult) -> None:
         """Test that severity badges include color styling."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -485,9 +465,7 @@ class TestHtmlOutputSeverityColors:
         assert "border-color:" in output
         assert "color:" in output
 
-    def test_file_sections_colored_by_severity(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_file_sections_colored_by_severity(self, single_finding_result: ScanResult) -> None:
         """Test that file sections are color-coded by severity."""
         formatter = HtmlOutput()
         output = formatter.format(single_finding_result)
@@ -513,9 +491,7 @@ class TestHtmlOutputMatchHighlighting:
         assert "<code" in output
         assert "AKIAIOSFODNN7EXAMPLE" in output
 
-    def test_context_displayed_in_pre_block(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_context_displayed_in_pre_block(self, multiple_findings_result: ScanResult) -> None:
         """Test that context is displayed in pre-formatted block."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -542,9 +518,7 @@ class TestHtmlOutputLineNumbers:
         # Should show line 5
         assert "Line 5" in output or "line 5" in output.lower()
 
-    def test_line_number_from_line_key(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_line_number_from_line_key(self, multiple_findings_result: ScanResult) -> None:
         """Test that line number works with 'line' metadata key."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -552,9 +526,7 @@ class TestHtmlOutputLineNumbers:
         # One finding has line: 5
         assert "Line 5" in output
 
-    def test_line_number_from_line_number_key(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_line_number_from_line_number_key(self, multiple_findings_result: ScanResult) -> None:
         """Test that line number works with 'line_number' metadata key."""
         formatter = HtmlOutput()
         output = formatter.format(multiple_findings_result)
@@ -583,9 +555,7 @@ class TestHtmlOutputXssPrevention:
         # Should be escaped
         assert "&lt;script&gt;" in output or "&#x" in output
 
-    def test_html_entities_escaped_in_matches(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_html_entities_escaped_in_matches(self, special_characters_result: ScanResult) -> None:
         """Test that HTML entities are escaped in match content."""
         formatter = HtmlOutput()
         output = formatter.format(special_characters_result)
@@ -594,9 +564,7 @@ class TestHtmlOutputXssPrevention:
         # The actual script content should be escaped
         assert "<script>alert('xss')</script>" not in output
 
-    def test_quotes_escaped_in_attributes(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_quotes_escaped_in_attributes(self, special_characters_result: ScanResult) -> None:
         """Test that quotes are properly escaped."""
         formatter = HtmlOutput()
         output = formatter.format(special_characters_result)
@@ -604,9 +572,7 @@ class TestHtmlOutputXssPrevention:
         # Should have proper HTML escaping for quotes
         assert 'value="quoted"' not in output or "&quot;" in output
 
-    def test_ampersands_escaped(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_ampersands_escaped(self, special_characters_result: ScanResult) -> None:
         """Test that ampersands are properly escaped."""
         formatter = HtmlOutput()
         output = formatter.format(special_characters_result)
@@ -670,9 +636,7 @@ class TestHtmlOutputCustomTitle:
         assert custom_title in output
         assert f"<title>{custom_title}</title>" in output
 
-    def test_default_title_includes_target(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_default_title_includes_target(self, single_finding_result: ScanResult) -> None:
         """Test that default title includes target path."""
         formatter = HtmlOutput()
         output = formatter.format(single_finding_result)
@@ -983,7 +947,6 @@ class TestHtmlOutputTimestamp:
         output = formatter.format(single_finding_result)
 
         # Should contain date in YYYY-MM-DD format somewhere
-        import re
 
         date_pattern = r"\d{4}-\d{2}-\d{2}"
         assert re.search(date_pattern, output) is not None
@@ -997,9 +960,7 @@ class TestHtmlOutputTimestamp:
 class TestHtmlOutputFooter:
     """Test that footer includes proper attribution."""
 
-    def test_footer_contains_hamburglar_link(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_footer_contains_hamburglar_link(self, single_finding_result: ScanResult) -> None:
         """Test that footer links to Hamburglar repository."""
         formatter = HtmlOutput()
         output = formatter.format(single_finding_result)

@@ -15,7 +15,6 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -31,7 +30,7 @@ for key in list(sys.modules.keys()):
         del sys.modules[key]
 
 from hamburglar.core.exceptions import ScanError  # noqa: E402
-from hamburglar.core.models import Finding, ScanConfig, Severity  # noqa: E402
+from hamburglar.core.models import Finding, ScanConfig  # noqa: E402
 from hamburglar.core.progress import ScanProgress  # noqa: E402
 from hamburglar.detectors import BaseDetector  # noqa: E402
 from hamburglar.detectors.regex_detector import RegexDetector  # noqa: E402
@@ -171,6 +170,7 @@ class TestConcurrencyLimit:
                 max_concurrent = max(max_concurrent, concurrent_count)
                 # Simulate some work
                 import time
+
                 time.sleep(0.01)
                 concurrent_count -= 1
                 return []
@@ -224,6 +224,7 @@ class TestCancellation:
                 scan_started.set()  # Signal that scan has started
                 # Add a small sleep to make cancellation timing more reliable
                 import time
+
                 time.sleep(0.01)
                 return []
 
@@ -312,7 +313,9 @@ class TestProgressCallback:
             progress_list.append(progress)
 
         config = ScanConfig(target_path=tmp_path, blacklist=[])
-        scanner = DirectoryScanner(config, [], progress_callback=progress_callback, concurrency_limit=1)
+        scanner = DirectoryScanner(
+            config, [], progress_callback=progress_callback, concurrency_limit=1
+        )
 
         await scanner.scan()
 
@@ -803,7 +806,9 @@ class TestDirectoryScannerPermissionErrors:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(os.name == "nt", reason="Permission tests not reliable on Windows")
-    async def test_handles_permission_error_during_recursive_discovery(self, tmp_path: Path) -> None:
+    async def test_handles_permission_error_during_recursive_discovery(
+        self, tmp_path: Path
+    ) -> None:
         """Test that scanner handles permission errors during recursive discovery."""
         # Create a directory structure
         readable_dir = tmp_path / "readable"
@@ -1010,7 +1015,9 @@ class TestDirectoryScannerMockedErrors:
         assert result.stats is not None
 
     @pytest.mark.asyncio
-    async def test_oserror_during_non_recursive_discovery(self, tmp_path: Path, monkeypatch) -> None:
+    async def test_oserror_during_non_recursive_discovery(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         """Test handling OSError during non-recursive directory iteration."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
@@ -1035,10 +1042,14 @@ class TestDirectoryScannerMockedErrors:
         # Should complete without crashing
         assert result is not None
         # Should have recorded the error
-        assert any("stat error" in err or "Error accessing" in err for err in result.stats["errors"])
+        assert any(
+            "stat error" in err or "Error accessing" in err for err in result.stats["errors"]
+        )
 
     @pytest.mark.asyncio
-    async def test_permission_error_during_is_file_recursive(self, tmp_path: Path, monkeypatch) -> None:
+    async def test_permission_error_during_is_file_recursive(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         """Test handling PermissionError during is_file check in recursive mode."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")

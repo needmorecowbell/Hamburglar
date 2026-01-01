@@ -8,10 +8,13 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+if TYPE_CHECKING:
+    from hamburglar.core.models import ScanConfig
 
 
 class LogLevel(str, Enum):
@@ -219,7 +222,7 @@ class YaraSettings(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_rules_path_if_enabled(self) -> "YaraSettings":
+    def validate_rules_path_if_enabled(self) -> YaraSettings:
         """Warn if YARA is enabled but no rules path is set."""
         # Note: We don't raise an error here because rules_path might be
         # set later or use a default location
@@ -277,7 +280,7 @@ class HamburglarConfig(BaseSettings):
             valid = ", ".join(level.value for level in LogLevel)
             raise ValueError(f"log_level must be one of: {valid}")
 
-    def to_scan_config(self, target_path: Path) -> "ScanConfig":
+    def to_scan_config(self, target_path: Path) -> ScanConfig:
         """Convert to a ScanConfig for use with Scanner.
 
         Args:

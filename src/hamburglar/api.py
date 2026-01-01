@@ -25,10 +25,10 @@ Example usage::
 from pathlib import Path
 from typing import Any
 
-from hamburglar.core.models import ScanConfig, ScanResult, Severity
+from hamburglar.core.models import ScanConfig, ScanResult
 from hamburglar.detectors import BaseDetector
-from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.patterns import Confidence, PatternCategory
+from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.scanners.directory import DirectoryScanner
 from hamburglar.scanners.git import GitScanner
 from hamburglar.scanners.web import WebScanner

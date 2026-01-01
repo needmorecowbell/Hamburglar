@@ -7,7 +7,6 @@ tokens, database connection strings, and other sensitive authentication data.
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # Generic Password Assignment Patterns
 PASSWORD_ASSIGNMENT = Pattern(
     name="password_assignment",

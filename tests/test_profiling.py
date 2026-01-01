@@ -2,7 +2,6 @@
 
 import json
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,8 +12,8 @@ from hamburglar.core.profiling import (
     PerformanceProfiler,
     PerformanceReport,
     TimingStats,
-    format_bytes,
     force_gc,
+    format_bytes,
     get_current_memory_rss,
     is_memory_tracking_available,
     timed,
@@ -669,6 +668,7 @@ class TestTimedDecorator:
 
     def test_timed_decorator(self, capsys):
         """Test that timed decorator prints timing."""
+
         @timed
         def slow_function():
             time.sleep(0.01)
@@ -683,6 +683,7 @@ class TestTimedDecorator:
 
     def test_timed_decorator_preserves_function(self):
         """Test that timed decorator preserves function attributes."""
+
         @timed
         def my_function():
             """Docstring."""
@@ -722,9 +723,8 @@ class TestEdgeCases:
         """Test profiler handles exceptions in context."""
         profiler = PerformanceProfiler()
 
-        with pytest.raises(ValueError):
-            with profiler.profile():
-                raise ValueError("test error")
+        with pytest.raises(ValueError), profiler.profile():
+            raise ValueError("test error")
 
         # Profiler should still be stopped
         assert profiler.is_profiling is False
@@ -801,9 +801,7 @@ class TestEdgeCases:
 
     def test_str_with_memory_disabled(self):
         """Test string representation with memory disabled."""
-        report = PerformanceReport(
-            memory_profiler=MemoryProfiler(enabled=False)
-        )
+        report = PerformanceReport(memory_profiler=MemoryProfiler(enabled=False))
         report.start()
         report.total_files = 50
         report.total_bytes = 1024

@@ -320,9 +320,7 @@ class TestPluginsInfoCommand:
             "hamburglar.plugins.discovery.get_plugin_details",
             return_value=mock_plugin,
         ):
-            result = runner.invoke(
-                app, ["plugins", "info", "json_plugin", "--format", "json"]
-            )
+            result = runner.invoke(app, ["plugins", "info", "json_plugin", "--format", "json"])
             assert result.exit_code == 0
             data = json.loads(result.output)
             assert data["name"] == "json_plugin"
@@ -347,9 +345,7 @@ class TestPluginsInfoCommand:
             "hamburglar.plugins.discovery.get_plugin_details",
             return_value=mock_plugin,
         ):
-            result = runner.invoke(
-                app, ["plugins", "info", "plain_plugin", "--format", "plain"]
-            )
+            result = runner.invoke(app, ["plugins", "info", "plain_plugin", "--format", "plain"])
             assert result.exit_code == 0
             output = result.output
             assert "plain_plugin" in output
@@ -376,9 +372,7 @@ class TestPluginsInfoCommand:
             "hamburglar.plugins.discovery.get_plugin_details",
             return_value=mock_plugin,
         ):
-            result = runner.invoke(
-                app, ["plugins", "info", "config_plugin", "--format", "json"]
-            )
+            result = runner.invoke(app, ["plugins", "info", "config_plugin", "--format", "json"])
             assert result.exit_code == 0
             data = json.loads(result.output)
             assert "config" in data
@@ -401,9 +395,7 @@ class TestPluginsInfoCommand:
             "hamburglar.plugins.discovery.get_plugin_details",
             return_value=mock_plugin,
         ):
-            result = runner.invoke(
-                app, ["plugins", "info", "disabled_plugin", "--format", "json"]
-            )
+            result = runner.invoke(app, ["plugins", "info", "disabled_plugin", "--format", "json"])
             assert result.exit_code == 0
             data = json.loads(result.output)
             assert data["enabled"] is False
@@ -440,9 +432,9 @@ class TestPluginsIntegration:
 
     def test_list_after_registering_plugin(self) -> None:
         """Test that manually registered plugins appear in list."""
-        from hamburglar.plugins import PluginInfo, PluginManager, reset_plugin_manager
-        from hamburglar.detectors import BaseDetector
         from hamburglar.core.models import Finding
+        from hamburglar.detectors import BaseDetector
+        from hamburglar.plugins import reset_plugin_manager
 
         # Reset to get a fresh manager
         reset_plugin_manager()
@@ -457,9 +449,7 @@ class TestPluginsIntegration:
             def name(self) -> str:
                 return "integration_test"
 
-            def detect(
-                self, content: str, file_path: str = ""
-            ) -> list[Finding]:
+            def detect(self, content: str, file_path: str = "") -> list[Finding]:
                 return []
 
         # Get the global manager and register our detector
@@ -483,9 +473,9 @@ class TestPluginsIntegration:
 
     def test_info_for_registered_plugin(self) -> None:
         """Test that plugins info works for manually registered plugins."""
-        from hamburglar.plugins import PluginInfo, PluginManager, reset_plugin_manager
-        from hamburglar.detectors import BaseDetector
         from hamburglar.core.models import Finding
+        from hamburglar.detectors import BaseDetector
+        from hamburglar.plugins import reset_plugin_manager
 
         # Reset to get a fresh manager
         reset_plugin_manager()
@@ -500,9 +490,7 @@ class TestPluginsIntegration:
             def name(self) -> str:
                 return "info_test_detector"
 
-            def detect(
-                self, content: str, file_path: str = ""
-            ) -> list[Finding]:
+            def detect(self, content: str, file_path: str = "") -> list[Finding]:
                 return []
 
         from hamburglar.plugins import get_plugin_manager
@@ -515,9 +503,7 @@ class TestPluginsIntegration:
             author="Info Test Author",
         )
 
-        result = runner.invoke(
-            app, ["plugins", "info", "info_test_detector", "--format", "json"]
-        )
+        result = runner.invoke(app, ["plugins", "info", "info_test_detector", "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["name"] == "info_test_detector"

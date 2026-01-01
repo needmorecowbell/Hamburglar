@@ -7,7 +7,6 @@ including detect_async, detect_batch, and detect_batch_async.
 from __future__ import annotations
 
 import asyncio
-import time
 
 import pytest
 
@@ -160,9 +159,7 @@ class TestDetectBatch:
         """
 
         # With stop_on_first_match=True
-        results_early = detector.detect_batch(
-            [(content, "file.txt")], stop_on_first_match=True
-        )
+        results_early = detector.detect_batch([(content, "file.txt")], stop_on_first_match=True)
         assert len(results_early["file.txt"]) == 1
 
         # Without stop_on_first_match
@@ -200,9 +197,7 @@ class TestDetectBatch:
     def test_detect_batch_large_number_of_files(self) -> None:
         """Test batch detection with many files."""
         detector = RegexDetector()
-        contents = [
-            (f"admin{i}@example.com", f"file{i}.txt") for i in range(100)
-        ]
+        contents = [(f"admin{i}@example.com", f"file{i}.txt") for i in range(100)]
 
         results = detector.detect_batch(contents)
 
@@ -465,9 +460,7 @@ class TestAsyncPerformance:
         detector = RegexDetector()
 
         # Create enough files that concurrency matters
-        contents = [
-            (f"admin{i}@example.com " * 10, f"file{i}.txt") for i in range(10)
-        ]
+        contents = [(f"admin{i}@example.com " * 10, f"file{i}.txt") for i in range(10)]
 
         # Verify async batch completes successfully
         results = await detector.detect_batch_async(contents, concurrency_limit=10)

@@ -143,9 +143,7 @@ class TestMinConfidenceOption:
 
     def test_invalid_min_confidence_shows_error(self, temp_directory: Path) -> None:
         """Test that an invalid confidence level shows an error message."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--min-confidence", "invalid"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--min-confidence", "invalid"])
         assert result.exit_code == 1
         assert "invalid" in result.output.lower() or "error" in result.output.lower()
 
@@ -177,9 +175,7 @@ class TestMinConfidenceVerboseOutput:
 
     def test_verbose_shows_min_confidence(self, temp_directory: Path) -> None:
         """Test that verbose mode shows the minimum confidence level."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--min-confidence", "high", "-v"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--min-confidence", "high", "-v"])
         assert result.exit_code in (0, 2)
         # Verbose should show the confidence level
         assert "high" in result.output.lower() or "confidence" in result.output.lower()
@@ -204,9 +200,12 @@ class TestMinConfidenceWithOtherOptions:
             [
                 "scan",
                 str(temp_directory),
-                "--min-confidence", "high",
-                "-c", "api_keys,private_keys",
-                "-f", "json",
+                "--min-confidence",
+                "high",
+                "-c",
+                "api_keys,private_keys",
+                "-f",
+                "json",
             ],
         )
         assert result.exit_code in (0, 2)
@@ -218,33 +217,36 @@ class TestMinConfidenceWithOtherOptions:
             [
                 "scan",
                 str(temp_directory),
-                "--min-confidence", "medium",
-                "--no-categories", "generic",
-                "-f", "json",
+                "--min-confidence",
+                "medium",
+                "--no-categories",
+                "generic",
+                "-f",
+                "json",
             ],
         )
         assert result.exit_code in (0, 2)
 
-    def test_min_confidence_with_categories_and_no_categories(
-        self, temp_directory: Path
-    ) -> None:
+    def test_min_confidence_with_categories_and_no_categories(self, temp_directory: Path) -> None:
         """Test --min-confidence with both --categories and --no-categories."""
         result = runner.invoke(
             app,
             [
                 "scan",
                 str(temp_directory),
-                "--min-confidence", "high",
-                "-c", "api_keys,cloud,credentials",
-                "--no-categories", "cloud",
-                "-f", "json",
+                "--min-confidence",
+                "high",
+                "-c",
+                "api_keys,cloud,credentials",
+                "--no-categories",
+                "cloud",
+                "-f",
+                "json",
             ],
         )
         assert result.exit_code in (0, 2)
 
-    def test_min_confidence_with_output_file(
-        self, temp_directory: Path, tmp_path: Path
-    ) -> None:
+    def test_min_confidence_with_output_file(self, temp_directory: Path, tmp_path: Path) -> None:
         """Test --min-confidence with --output file."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
@@ -252,9 +254,12 @@ class TestMinConfidenceWithOtherOptions:
             [
                 "scan",
                 str(temp_directory),
-                "--min-confidence", "high",
-                "-f", "json",
-                "-o", str(output_file),
+                "--min-confidence",
+                "high",
+                "-f",
+                "json",
+                "-o",
+                str(output_file),
             ],
         )
         assert result.exit_code in (0, 2)
@@ -265,9 +270,7 @@ class TestMinConfidenceWithOtherOptions:
 
     def test_min_confidence_with_quiet(self, temp_directory: Path) -> None:
         """Test --min-confidence with --quiet."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--min-confidence", "high", "-q"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--min-confidence", "high", "-q"])
         assert result.exit_code in (0, 2)
         # Quiet mode should produce no output
         assert result.output == ""
@@ -307,9 +310,7 @@ class TestMinConfidencePatternFiltering:
         # Both should mention patterns in verbose mode
         # The actual pattern count will differ based on the filter
 
-    def test_medium_confidence_between_low_and_high(
-        self, temp_directory: Path
-    ) -> None:
+    def test_medium_confidence_between_low_and_high(self, temp_directory: Path) -> None:
         """Test that medium confidence is between low and high."""
         result_low = runner.invoke(
             app, ["scan", str(temp_directory), "--min-confidence", "low", "-v"]

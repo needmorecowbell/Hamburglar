@@ -18,7 +18,6 @@ from typing import Any
 from hamburglar.core.models import Finding, ScanResult, Severity
 from hamburglar.outputs import BaseOutput
 
-
 # Severity color mapping (CSS colors)
 SEVERITY_COLORS: dict[Severity, dict[str, str]] = {
     Severity.CRITICAL: {"bg": "#fee2e2", "border": "#ef4444", "text": "#991b1b"},
@@ -129,9 +128,7 @@ class HtmlOutput(BaseOutput):
             "errors": result.stats.get("errors", 0),
         }
 
-    def _group_findings_by_file(
-        self, findings: list[Finding]
-    ) -> dict[str, list[Finding]]:
+    def _group_findings_by_file(self, findings: list[Finding]) -> dict[str, list[Finding]]:
         """Group findings by their file path.
 
         Args:
@@ -145,9 +142,7 @@ class HtmlOutput(BaseOutput):
             grouped[finding.file_path].append(finding)
         return dict(grouped)
 
-    def _sort_files_by_severity(
-        self, findings_by_file: dict[str, list[Finding]]
-    ) -> list[str]:
+    def _sort_files_by_severity(self, findings_by_file: dict[str, list[Finding]]) -> list[str]:
         """Sort files by the highest severity finding they contain.
 
         Args:
@@ -186,8 +181,8 @@ class HtmlOutput(BaseOutput):
             if count > 0:
                 colors = SEVERITY_COLORS[severity]
                 severity_badges += f"""
-                    <span class="severity-badge" style="background-color: {colors['bg']};
-                           border-color: {colors['border']}; color: {colors['text']};">
+                    <span class="severity-badge" style="background-color: {colors["bg"]};
+                           border-color: {colors["border"]}; color: {colors["text"]};">
                         {severity.value.upper()}: {count}
                     </span>
                 """
@@ -197,19 +192,19 @@ class HtmlOutput(BaseOutput):
             <h2>Summary</h2>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">{stats['total_findings']}</div>
+                    <div class="stat-value">{stats["total_findings"]}</div>
                     <div class="stat-label">Total Findings</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{stats['total_matches']}</div>
+                    <div class="stat-value">{stats["total_matches"]}</div>
                     <div class="stat-label">Total Matches</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{stats['files_with_findings']}</div>
+                    <div class="stat-value">{stats["files_with_findings"]}</div>
                     <div class="stat-label">Files Affected</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{stats['files_scanned']}</div>
+                    <div class="stat-value">{stats["files_scanned"]}</div>
                     <div class="stat-label">Files Scanned</div>
                 </div>
             </div>
@@ -218,9 +213,9 @@ class HtmlOutput(BaseOutput):
             </div>
             <div class="scan-info">
                 <p><strong>Target:</strong> {html.escape(result.target_path)}</p>
-                <p><strong>Duration:</strong> {stats['scan_duration']:.2f}s</p>
-                <p><strong>Files Skipped:</strong> {stats['files_skipped']} |
-                   <strong>Errors:</strong> {stats['errors']}</p>
+                <p><strong>Duration:</strong> {stats["scan_duration"]:.2f}s</p>
+                <p><strong>Files Skipped:</strong> {stats["files_skipped"]} |
+                   <strong>Errors:</strong> {stats["errors"]}</p>
             </div>
         </div>
         """
@@ -264,9 +259,7 @@ class HtmlOutput(BaseOutput):
             HTML string for the file section.
         """
         # Sort findings by severity
-        sorted_findings = sorted(
-            findings, key=lambda f: SEVERITY_ORDER[f.severity]
-        )
+        sorted_findings = sorted(findings, key=lambda f: SEVERITY_ORDER[f.severity])
 
         # Get highest severity for section coloring
         highest_severity = sorted_findings[0].severity
@@ -281,7 +274,7 @@ class HtmlOutput(BaseOutput):
 
         return f"""
         <details class="file-section" open>
-            <summary class="file-header" style="border-left-color: {colors['border']};">
+            <summary class="file-header" style="border-left-color: {colors["border"]};">
                 <span class="file-path">{html.escape(file_path)}</span>
                 <span class="finding-count">{finding_count} {finding_label}</span>
             </summary>
@@ -306,10 +299,10 @@ class HtmlOutput(BaseOutput):
         metadata_html = self._build_metadata_html(finding)
 
         return f"""
-        <div class="finding-card" style="border-left-color: {colors['border']};">
+        <div class="finding-card" style="border-left-color: {colors["border"]};">
             <div class="finding-header">
-                <span class="severity-badge" style="background-color: {colors['bg']};
-                       border-color: {colors['border']}; color: {colors['text']};">
+                <span class="severity-badge" style="background-color: {colors["bg"]};
+                       border-color: {colors["border"]}; color: {colors["text"]};">
                     {finding.severity.value.upper()}
                 </span>
                 <span class="detector-name">{html.escape(finding.detector_name)}</span>

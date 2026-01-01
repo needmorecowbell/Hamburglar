@@ -8,7 +8,6 @@ references that may expose sensitive infrastructure details.
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # IPv4 Address Patterns
 IPV4_ADDRESS = Pattern(
     name="ipv4_address",

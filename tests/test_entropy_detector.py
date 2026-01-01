@@ -10,8 +10,6 @@ avoid triggering secret scanning.
 
 from __future__ import annotations
 
-import pytest
-
 from hamburglar.core.models import Severity
 from hamburglar.detectors.entropy_detector import (
     DEFAULT_ENTROPY_THRESHOLD,
@@ -371,9 +369,7 @@ class TestEntropyDetectorDetection:
         findings = detector.detect(content_with_context, "test.py")
 
         # Should find the string with password context
-        has_context_finding = any(
-            f.metadata.get("has_secret_context", False) for f in findings
-        )
+        has_context_finding = any(f.metadata.get("has_secret_context", False) for f in findings)
         assert has_context_finding or len(findings) >= 1
 
     def test_short_strings_ignored(self) -> None:
@@ -579,12 +575,12 @@ class TestEntropyDetectorIntegration:
     def test_realistic_config_file(self) -> None:
         """Test with realistic config file content."""
         detector = EntropyDetector()
-        content = '''
+        content = """
         DATABASE_URL=postgres://user:pass@localhost/db
         API_KEY="aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3w"
         DEBUG=true
         LOG_LEVEL=info
-        '''
+        """
         findings = detector.detect(content, ".env")
         # Should detect the high-entropy API key
         assert len(findings) >= 1
@@ -592,13 +588,13 @@ class TestEntropyDetectorIntegration:
     def test_realistic_source_file(self) -> None:
         """Test with realistic source file content."""
         detector = EntropyDetector()
-        content = '''
+        content = """
         const config = {
             apiKey: "aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3w",
             baseUrl: "https://api.example.com",
             timeout: 5000
         };
-        '''
+        """
         findings = detector.detect(content, "config.js")
         # Should detect the high-entropy API key
         assert len(findings) >= 1
@@ -606,12 +602,12 @@ class TestEntropyDetectorIntegration:
     def test_realistic_false_positive_avoidance(self) -> None:
         """Test that common false positives are avoided."""
         detector = EntropyDetector()
-        content = '''
+        content = """
         // Git commit: 550e8400e29b41d4a716446655440000
         const uuid = "550e8400-e29b-41d4-a716-446655440000";
         import { something } from "long_module_name_here";
         const version = "v1.2.3-beta";
-        '''
+        """
         findings = detector.detect(content, "source.js")
         # These should all be excluded as false positives
         all_matches = [m for f in findings for m in f.matches]

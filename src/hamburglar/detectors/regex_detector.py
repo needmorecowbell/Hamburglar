@@ -11,7 +11,6 @@ import json
 import re
 import time
 import warnings
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +52,7 @@ ALL_PATTERN_CATEGORIES: dict[PatternCategory, list[Pattern]] = {
     PatternCategory.PRIVATE_KEYS: PRIVATE_KEY_PATTERNS,
 }
 
+
 # Convenience function to get all patterns
 def get_all_patterns() -> list[Pattern]:
     """Get all patterns from all categories."""
@@ -65,6 +65,7 @@ def get_all_patterns() -> list[Pattern]:
 def get_patterns_by_category(category: PatternCategory) -> list[Pattern]:
     """Get patterns for a specific category."""
     return ALL_PATTERN_CATEGORIES.get(category, [])
+
 
 # Default patterns with severity levels - Top 20 critical patterns
 DEFAULT_PATTERNS: dict[str, dict[str, Any]] = {
@@ -209,8 +210,7 @@ def load_patterns_from_file(file_path: str | Path) -> list[Pattern]:
                 data = yaml.safe_load(f)
         except ImportError as e:
             raise ValueError(
-                "PyYAML is required to load YAML pattern files. "
-                "Install it with: pip install pyyaml"
+                "PyYAML is required to load YAML pattern files. Install it with: pip install pyyaml"
             ) from e
     else:
         raise ValueError(f"Unsupported pattern file format: {suffix}. Use .json or .yaml/.yml")
@@ -223,7 +223,9 @@ def load_patterns_from_file(file_path: str | Path) -> list[Pattern]:
         try:
             # Map string values to enums
             severity_str = pattern_data.get("severity", "MEDIUM").upper()
-            severity = Severity[severity_str] if hasattr(Severity, severity_str) else Severity.MEDIUM
+            severity = (
+                Severity[severity_str] if hasattr(Severity, severity_str) else Severity.MEDIUM
+            )
 
             category_str = pattern_data.get("category", "GENERIC").upper()
             category = (
@@ -368,14 +370,10 @@ class RegexDetector(BaseDetector):
                         if self._should_include_pattern(pattern):
                             self._patterns[pattern.name] = pattern.to_dict()
                 except Exception as e:
-                    self._logger.warning(
-                        "Failed to load pattern file %s: %s", file_path, str(e)
-                    )
+                    self._logger.warning("Failed to load pattern file %s: %s", file_path, str(e))
 
         # Pre-compile all regex patterns for performance
-        self._compiled_patterns: dict[
-            str, tuple[re.Pattern[str], Severity, str, str, str]
-        ] = {}
+        self._compiled_patterns: dict[str, tuple[re.Pattern[str], Severity, str, str, str]] = {}
         for name, config in self._patterns.items():
             try:
                 compiled = re.compile(config["pattern"])

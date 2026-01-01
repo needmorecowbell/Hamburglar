@@ -15,7 +15,6 @@ from hamburglar.core.logging import get_logger
 from hamburglar.core.models import Finding, Severity
 from hamburglar.detectors import BaseDetector
 
-
 # Default entropy thresholds
 DEFAULT_ENTROPY_THRESHOLD = 4.5  # Shannon entropy threshold for secrets
 HIGH_ENTROPY_THRESHOLD = 5.0  # Threshold for high-confidence secrets
@@ -32,9 +31,9 @@ ALPHANUMERIC_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01
 # These patterns match strings that might be secrets in various contexts
 STRING_PATTERNS = [
     # Quoted strings (single or double quotes)
-    re.compile(r'''["']([A-Za-z0-9+/=_\-]{16,256})["']'''),
+    re.compile(r"""["']([A-Za-z0-9+/=_\-]{16,256})["']"""),
     # Assignments with equals sign
-    re.compile(r'''=\s*["']?([A-Za-z0-9+/=_\-]{16,256})["']?'''),
+    re.compile(r"""=\s*["']?([A-Za-z0-9+/=_\-]{16,256})["']?"""),
     # Hex strings (often encryption keys)
     re.compile(r"\b([0-9a-fA-F]{32,128})\b"),
     # Base64 strings (common secret encoding)
@@ -44,9 +43,7 @@ STRING_PATTERNS = [
 # Known false positive patterns to exclude
 FALSE_POSITIVE_PATTERNS = [
     # UUID patterns (version 4 and generic)
-    re.compile(
-        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-    ),
+    re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"),
     # Hashes in comments or documentation
     re.compile(r"^[0-9a-fA-F]{32}$"),  # MD5 is too common for false positives
     # Version strings that look like hex
@@ -197,14 +194,38 @@ def has_secret_context(context: str) -> bool:
 
 
 # Common words to exclude (subset of most common)
-_COMMON_WORDS = frozenset([
-    "function", "return", "import", "export", "const", "class",
-    "interface", "namespace", "module", "package", "string",
-    "number", "boolean", "undefined", "null", "true", "false",
-    "public", "private", "protected", "static", "readonly",
-    "abstract", "extends", "implements", "constructor",
-    "abcdefghijklmnop", "qrstuvwxyzabcdef",  # Common test patterns
-])
+_COMMON_WORDS = frozenset(
+    [
+        "function",
+        "return",
+        "import",
+        "export",
+        "const",
+        "class",
+        "interface",
+        "namespace",
+        "module",
+        "package",
+        "string",
+        "number",
+        "boolean",
+        "undefined",
+        "null",
+        "true",
+        "false",
+        "public",
+        "private",
+        "protected",
+        "static",
+        "readonly",
+        "abstract",
+        "extends",
+        "implements",
+        "constructor",
+        "abcdefghijklmnop",
+        "qrstuvwxyzabcdef",  # Common test patterns
+    ]
+)
 
 
 class EntropyDetector(BaseDetector):

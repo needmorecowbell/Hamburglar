@@ -612,8 +612,6 @@ class TestConfigExtraFields:
 
     def test_nested_extra_fields_ignored(self) -> None:
         """Extra fields in nested settings should be ignored."""
-        config = HamburglarConfig(
-            scan={"concurrency": 50, "unknown": "value"}
-        )
+        config = HamburglarConfig(scan={"concurrency": 50, "unknown": "value"})
         assert config.scan.concurrency == 50
         assert not hasattr(config.scan, "unknown")

@@ -131,3 +131,39 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 fail_under = 90
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E402",   # Module level import not at top of file (intentional for lazy imports)
+    "E501",   # Line too long (handled by formatter)
+    "B008",   # Do not perform function calls in argument defaults (Typer uses this pattern)
+    "B027",   # Empty method in abstract base class without @abstractmethod (intentional optional methods)
+    "B904",   # raise without from in except (intentional for CLI exit patterns)
+    "SIM105", # Use contextlib.suppress (not always clearer)
+    "SIM108", # Use ternary operator (not always clearer)
+    "SIM102", # Use a single if statement (not always clearer)
+    "SIM103", # Return the condition directly (not always clearer)
+    "SIM110", # Use all/any (not always clearer)
+    "SIM115", # Use context manager for opening files (not always applicable)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports in __init__ files are intentional re-exports
+"tests/*" = ["F401", "F811"]  # Tests may have unused imports for fixtures
+
+[tool.ruff.lint.isort]
+known-first-party = ["hamburglar"]

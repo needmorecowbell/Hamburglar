@@ -9,7 +9,8 @@ must implement, including async scan() method and scanner_type property.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncIterator, Callable
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Callable
 
 from hamburglar.core.models import Finding, ScanResult
 from hamburglar.core.progress import ScanProgress

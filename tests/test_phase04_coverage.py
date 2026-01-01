@@ -9,14 +9,10 @@ This module adds tests for uncovered code paths in:
 
 from __future__ import annotations
 
-import asyncio
 import os
-import stat
 import sys
-import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch, PropertyMock, AsyncMock
+from unittest.mock import patch
 
 import pytest
 
@@ -33,8 +29,8 @@ for key in list(sys.modules.keys()):
 
 from hamburglar.core.async_scanner import AsyncScanner
 from hamburglar.core.file_reader import AsyncFileReader, FileType
+from hamburglar.core.models import ScanConfig
 from hamburglar.core.profiling import MemoryProfiler, MemorySnapshot, PerformanceProfiler
-from hamburglar.core.models import ScanConfig, Severity
 from hamburglar.detectors.regex_detector import RegexDetector
 
 
@@ -70,9 +66,7 @@ class TestAsyncScannerErrorPaths:
         assert any("Permission denied" in err for err in scanner._errors)
 
     @pytest.mark.asyncio
-    async def test_os_error_during_file_access_in_recursive_walk(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_os_error_during_file_access_in_recursive_walk(self, tmp_path: Path) -> None:
         """Test that OSErrors during file access are logged and recorded."""
         # Create a directory with files
         subdir = tmp_path / "subdir"
@@ -126,9 +120,7 @@ class TestAsyncScannerErrorPaths:
         assert any("Error during directory walk" in err for err in scanner._errors)
 
     @pytest.mark.asyncio
-    async def test_permission_denied_during_iterdir_non_recursive(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_permission_denied_during_iterdir_non_recursive(self, tmp_path: Path) -> None:
         """Test permission error during non-recursive directory iteration."""
         config = ScanConfig(target_path=tmp_path, recursive=False)
         scanner = AsyncScanner(config)
@@ -214,9 +206,7 @@ class TestAsyncScannerErrorPaths:
         assert any("Unexpected error" in err for err in scanner._errors)
 
     @pytest.mark.asyncio
-    async def test_cancellation_during_file_iteration_recursive(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_cancellation_during_file_iteration_recursive(self, tmp_path: Path) -> None:
         """Test cancellation during recursive file discovery."""
         # Create multiple files
         for i in range(10):
@@ -243,9 +233,7 @@ class TestAsyncScannerErrorPaths:
         assert scanner.is_cancelled
 
     @pytest.mark.asyncio
-    async def test_cancellation_during_file_iteration_non_recursive(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_cancellation_during_file_iteration_non_recursive(self, tmp_path: Path) -> None:
         """Test cancellation during non-recursive file discovery."""
         # Create multiple files
         for i in range(10):
@@ -363,9 +351,7 @@ class TestFileReaderEncodingEdgeCases:
             # The exact behavior depends on the implementation
 
     @pytest.mark.asyncio
-    async def test_charset_normalizer_import_error_fallback(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_charset_normalizer_import_error_fallback(self, tmp_path: Path) -> None:
         """Test fallback when charset_normalizer is not available."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("Hello World", encoding="utf-8")
@@ -397,9 +383,7 @@ class TestFileReaderEncodingEdgeCases:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_binary_with_control_chars_below_threshold(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_binary_with_control_chars_below_threshold(self, tmp_path: Path) -> None:
         """Test file with control chars below 10% threshold."""
         # Create content with some control chars but below threshold
         # 100 chars with 9 control chars = 9%, should not be binary
@@ -419,6 +403,7 @@ class TestMemoryProfilerPaths:
     def test_memory_profiler_start_stop_with_tracking(self) -> None:
         """Test MemoryProfiler start and stop with memory tracking enabled."""
         from hamburglar.core.profiling import PSUTIL_AVAILABLE
+
         if not PSUTIL_AVAILABLE:
             pytest.skip("psutil not available")
 
@@ -445,6 +430,7 @@ class TestMemoryProfilerPaths:
     def test_memory_profiler_snapshot_updates_peak(self) -> None:
         """Test that taking snapshots updates peak memory values."""
         from hamburglar.core.profiling import PSUTIL_AVAILABLE
+
         if not PSUTIL_AVAILABLE:
             pytest.skip("psutil not available")
 
@@ -464,8 +450,9 @@ class TestMemoryProfilerPaths:
 
     def test_memory_profiler_update_peak_with_higher_values(self) -> None:
         """Test _update_peak with values higher than current peaks."""
-        from hamburglar.core.profiling import PSUTIL_AVAILABLE
         import time
+
+        from hamburglar.core.profiling import PSUTIL_AVAILABLE
 
         if not PSUTIL_AVAILABLE:
             pytest.skip("psutil not available")
@@ -552,6 +539,7 @@ class TestCLIYaraErrorPaths:
     def test_yara_file_not_found(self, tmp_path: Path) -> None:
         """Test CLI handles FileNotFoundError for YARA rules."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
 
         runner = CliRunner()
@@ -564,6 +552,7 @@ class TestCLIYaraErrorPaths:
     def test_yara_permission_denied(self, tmp_path: Path) -> None:
         """Test CLI handles PermissionError for YARA rules."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
 
         # Create a file without read permission
@@ -588,6 +577,7 @@ class TestCLIOutputErrorPaths:
     def test_output_formatting_error(self, tmp_path: Path) -> None:
         """Test CLI handles output formatting errors."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
         from hamburglar.outputs.json_output import JsonOutput
 
@@ -609,6 +599,7 @@ class TestCLIOutputErrorPaths:
     def test_output_write_permission_error(self, tmp_path: Path) -> None:
         """Test CLI handles output file permission errors."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
 
         # Create a file to scan
@@ -635,6 +626,7 @@ class TestCLIOutputErrorPaths:
     def test_output_write_os_error(self, tmp_path: Path) -> None:
         """Test CLI handles OS errors when writing output."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
 
         # Create a file to scan
@@ -770,7 +762,7 @@ class TestFileReaderMoreEdgeCases:
         reader = AsyncFileReader(
             small_file,
             mmap_threshold=1024 * 1024 * 100,  # 100 MB
-            use_mmap=False
+            use_mmap=False,
         )
 
         async with reader:
@@ -798,6 +790,7 @@ class TestCLIStreamingErrorPaths:
     def test_streaming_scan_error(self, tmp_path: Path) -> None:
         """Test CLI handles errors during streaming scan."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
 
         # Create files
@@ -821,6 +814,7 @@ class TestCLIBenchmarkErrorPaths:
     def test_benchmark_with_invalid_path(self, tmp_path: Path) -> None:
         """Test CLI handles benchmark on non-existent path."""
         from typer.testing import CliRunner
+
         from hamburglar.cli.main import app
 
         runner = CliRunner()

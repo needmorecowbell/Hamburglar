@@ -10,11 +10,9 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any
 
 from hamburglar.core.models import Finding, ScanResult
 from hamburglar.outputs import BaseOutput
-
 
 # Default CSV headers
 DEFAULT_HEADERS = [

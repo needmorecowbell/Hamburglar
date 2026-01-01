@@ -6,8 +6,7 @@ from the database in HTML or Markdown format.
 
 from __future__ import annotations
 
-import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -220,9 +219,7 @@ class TestGenerateReportHtml:
 
     def test_includes_trend_data(self) -> None:
         """Test that scan activity trend is included."""
-        stats = ScanStatistics(
-            scans_by_date={"2024-01-01": 5, "2024-01-02": 3, "2024-01-03": 7}
-        )
+        stats = ScanStatistics(scans_by_date={"2024-01-01": 5, "2024-01-02": 3, "2024-01-03": 7})
         html = _generate_report_html(stats, [], [])
 
         assert "2024-01-01" in html
@@ -320,16 +317,14 @@ class TestGenerateReportMarkdown:
 
     def test_includes_severity_with_emojis(self) -> None:
         """Test that severity breakdown includes emojis."""
-        stats = ScanStatistics(
-            findings_by_severity={"critical": 5, "high": 10}
-        )
+        stats = ScanStatistics(findings_by_severity={"critical": 5, "high": 10})
         md = _generate_report_markdown(stats, [], [])
 
         # Should have emoji indicators
         assert "CRITICAL" in md
         assert "HIGH" in md
         # Check that Unicode emojis are present
-        assert "\U0001F6A8" in md or "\U0001F534" in md  # 🚨 or 🔴
+        assert "\U0001f6a8" in md or "\U0001f534" in md  # 🚨 or 🔴
 
     def test_includes_detector_table(self) -> None:
         """Test that detector breakdown is included."""
@@ -397,9 +392,7 @@ class TestReportCommandBasic:
 
     def test_report_md_format_alias(self, populated_db: Path) -> None:
         """Test that 'md' works as alias for 'markdown'."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "-f", "md"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "-f", "md"])
         assert result.exit_code == 0
         assert "# Hamburglar Security Report" in result.output
 
@@ -418,17 +411,13 @@ class TestReportCommandBasic:
 
     def test_report_quiet_mode(self, populated_db: Path) -> None:
         """Test report in quiet mode."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--quiet"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--quiet"])
         # In quiet mode, no output to stdout
         assert result.exit_code == 0
 
     def test_report_verbose_mode(self, populated_db: Path) -> None:
         """Test report in verbose mode."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--verbose"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--verbose"])
         assert result.exit_code == 0
         assert "Database:" in result.output
         assert "Format:" in result.output
@@ -448,16 +437,12 @@ class TestReportCommandOptions:
 
     def test_top_n_option(self, populated_db: Path) -> None:
         """Test --top option for limiting items."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--top", "5"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--top", "5"])
         assert result.exit_code == 0
 
     def test_top_n_with_short_option(self, populated_db: Path) -> None:
         """Test -n short option."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "-n", "10"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "-n", "10"])
         assert result.exit_code == 0
 
     def test_invalid_format(self, populated_db: Path) -> None:
@@ -470,9 +455,7 @@ class TestReportCommandOptions:
 
     def test_format_case_insensitive(self, populated_db: Path) -> None:
         """Test that format is case insensitive."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--format", "HTML"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--format", "HTML"])
         assert result.exit_code == 0
         assert "<!DOCTYPE html>" in result.output
 
@@ -488,16 +471,12 @@ class TestReportCommandDateFilters:
 
     def test_since_relative_days(self, populated_db: Path) -> None:
         """Test --since with relative days."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--since", "7d"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--since", "7d"])
         assert result.exit_code == 0
 
     def test_since_relative_hours(self, populated_db: Path) -> None:
         """Test --since with relative hours."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--since", "24h"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--since", "24h"])
         assert result.exit_code == 0
 
     def test_since_iso_date(self, populated_db: Path) -> None:
@@ -643,9 +622,7 @@ class TestReportContent:
 
     def test_markdown_report_contains_all_sections(self, populated_db: Path) -> None:
         """Test that Markdown report contains all required sections."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "-f", "markdown"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "-f", "markdown"])
         assert result.exit_code == 0
 
         output = result.output
@@ -658,9 +635,7 @@ class TestReportContent:
 
     def test_report_shows_correct_detector_counts(self, populated_db: Path) -> None:
         """Test that detector counts are accurate."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "-f", "markdown"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "-f", "markdown"])
         assert result.exit_code == 0
 
         output = result.output
@@ -669,9 +644,7 @@ class TestReportContent:
 
     def test_report_shows_correct_severity_counts(self, populated_db: Path) -> None:
         """Test that severity counts are accurate."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "-f", "markdown"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "-f", "markdown"])
         assert result.exit_code == 0
 
         output = result.output
@@ -704,42 +677,30 @@ class TestReportCommandEdgeCases:
 
     def test_minimum_top_n(self, populated_db: Path) -> None:
         """Test minimum value for --top option."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--top", "1"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--top", "1"])
         assert result.exit_code == 0
 
     def test_maximum_top_n(self, populated_db: Path) -> None:
         """Test maximum value for --top option."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--top", "100"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--top", "100"])
         assert result.exit_code == 0
 
     def test_top_n_below_minimum(self, populated_db: Path) -> None:
         """Test that --top below minimum fails."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--top", "0"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--top", "0"])
         assert result.exit_code != 0
 
     def test_top_n_above_maximum(self, populated_db: Path) -> None:
         """Test that --top above maximum fails."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--top", "101"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--top", "101"])
         assert result.exit_code != 0
 
     def test_relative_weeks(self, populated_db: Path) -> None:
         """Test --since with relative weeks."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--since", "2w"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--since", "2w"])
         assert result.exit_code == 0
 
     def test_relative_months(self, populated_db: Path) -> None:
         """Test --since with relative months."""
-        result = runner.invoke(
-            app, ["report", "--db-path", str(populated_db), "--since", "1m"]
-        )
+        result = runner.invoke(app, ["report", "--db-path", str(populated_db), "--since", "1m"])
         assert result.exit_code == 0

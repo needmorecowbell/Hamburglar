@@ -98,8 +98,7 @@ def git_repo_with_current_secret(tmp_path: Path) -> Path:
     # Create file with secrets
     config_file = repo_path / "config.py"
     config_file.write_text(
-        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n'
-        'API_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"\n'
+        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\nAPI_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"\n'
     )
     _git_commit(repo_path, "Add config with secrets")
 
@@ -208,15 +207,13 @@ def git_repo_full(tmp_path: Path) -> Path:
 
     # Commit 2: Add second secret
     config_file.write_text(
-        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n'
-        'API_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\nAPI_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
     )
     _git_commit(repo_path, "Add API token")
 
     # Commit 3: Remove first secret
     config_file.write_text(
-        '# AWS_KEY removed for security\n'
-        'API_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        '# AWS_KEY removed for security\nAPI_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
     )
     _git_commit(repo_path, "Remove AWS key")
 
@@ -281,15 +278,13 @@ def git_repo_with_history(tmp_path: Path) -> Path:
 
     # Commit 2: Add second secret
     secrets_file.write_text(
-        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n'
-        'API_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\nAPI_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
     )
     _git_commit(repo_path, "Add API token")
 
     # Commit 3: Remove first secret
     secrets_file.write_text(
-        '# AWS_KEY removed for security\n'
-        'API_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        '# AWS_KEY removed for security\nAPI_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
     )
     _git_commit(repo_path, "Remove AWS key")
 

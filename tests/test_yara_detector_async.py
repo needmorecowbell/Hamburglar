@@ -26,9 +26,8 @@ for key in list(sys.modules.keys()):
 
 from hamburglar.core.models import Severity
 from hamburglar.detectors.yara_detector import (
-    YaraDetector,
-    is_yara_available,
     _RULE_CACHE,
+    YaraDetector,
 )
 from hamburglar.rules import get_rules_path
 
@@ -90,9 +89,7 @@ class TestDetectAsync:
         assert "FIND_ME" in findings[0].matches
 
     @pytest.mark.asyncio
-    async def test_detect_async_returns_same_as_sync(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_async_returns_same_as_sync(self, simple_detector: YaraDetector) -> None:
         """Test that detect_async returns the same results as sync detect."""
         content = "Here is FIND_ME and more content"
 
@@ -104,26 +101,20 @@ class TestDetectAsync:
         assert sync_findings[0].matches == async_findings[0].matches
 
     @pytest.mark.asyncio
-    async def test_detect_async_empty_content(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_async_empty_content(self, simple_detector: YaraDetector) -> None:
         """Test detect_async with empty content returns empty list."""
         findings = await simple_detector.detect_async("", "empty.txt")
         assert findings == []
 
     @pytest.mark.asyncio
-    async def test_detect_async_no_matches(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_async_no_matches(self, simple_detector: YaraDetector) -> None:
         """Test detect_async with no matching patterns."""
         content = "Just regular text without any secrets."
         findings = await simple_detector.detect_async(content, "clean.txt")
         assert findings == []
 
     @pytest.mark.asyncio
-    async def test_detect_async_concurrent_calls(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_async_concurrent_calls(self, simple_detector: YaraDetector) -> None:
         """Test that multiple concurrent detect_async calls work correctly."""
         contents = [
             ("FIND_ME in file 1", "file1.txt"),
@@ -131,9 +122,7 @@ class TestDetectAsync:
             ("Also FIND_ME here", "file3.txt"),
         ]
 
-        tasks = [
-            simple_detector.detect_async(content, path) for content, path in contents
-        ]
+        tasks = [simple_detector.detect_async(content, path) for content, path in contents]
         results = await asyncio.gather(*tasks)
 
         assert len(results) == 3
@@ -142,9 +131,7 @@ class TestDetectAsync:
         assert len(results[2]) == 1  # FIND_ME match
 
     @pytest.mark.asyncio
-    async def test_detect_async_preserves_file_path(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_async_preserves_file_path(self, simple_detector: YaraDetector) -> None:
         """Test that file_path is correctly preserved in findings."""
         content = "FIND_ME"
         file_path = "/path/to/important/file.txt"
@@ -158,9 +145,7 @@ class TestDetectBytesAsync:
     """Tests for the detect_bytes_async method."""
 
     @pytest.mark.asyncio
-    async def test_detect_bytes_async_basic(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_bytes_async_basic(self, simple_detector: YaraDetector) -> None:
         """Test that detect_bytes_async finds patterns correctly."""
         content = b"This content contains FIND_ME"
         findings = await simple_detector.detect_bytes_async(content, "test.bin")
@@ -169,9 +154,7 @@ class TestDetectBytesAsync:
         assert "FIND_ME" in findings[0].matches
 
     @pytest.mark.asyncio
-    async def test_detect_bytes_async_with_binary_data(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_bytes_async_with_binary_data(self, simple_detector: YaraDetector) -> None:
         """Test detect_bytes_async with binary content."""
         content = b"\x00\x01\x02FIND_ME\x03\x04\x05"
         findings = await simple_detector.detect_bytes_async(content, "binary.bin")
@@ -180,17 +163,13 @@ class TestDetectBytesAsync:
         assert "FIND_ME" in findings[0].matches
 
     @pytest.mark.asyncio
-    async def test_detect_bytes_async_empty_content(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_bytes_async_empty_content(self, simple_detector: YaraDetector) -> None:
         """Test detect_bytes_async with empty bytes."""
         findings = await simple_detector.detect_bytes_async(b"", "empty.bin")
         assert findings == []
 
     @pytest.mark.asyncio
-    async def test_detect_bytes_async_concurrent(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_bytes_async_concurrent(self, simple_detector: YaraDetector) -> None:
         """Test concurrent detect_bytes_async calls."""
         contents = [
             (b"FIND_ME here", "file1.bin"),
@@ -198,10 +177,7 @@ class TestDetectBytesAsync:
             (b"FIND_ME again", "file3.bin"),
         ]
 
-        tasks = [
-            simple_detector.detect_bytes_async(content, path)
-            for content, path in contents
-        ]
+        tasks = [simple_detector.detect_bytes_async(content, path) for content, path in contents]
         results = await asyncio.gather(*tasks)
 
         assert len(results[0]) == 1
@@ -235,9 +211,7 @@ class TestDetectBatch:
         results = simple_detector.detect_batch([])
         assert results == {}
 
-    def test_detect_batch_preserves_order(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    def test_detect_batch_preserves_order(self, simple_detector: YaraDetector) -> None:
         """Test that batch results maintain file order."""
         contents = [
             (b"FIND_ME", "a_file.txt"),
@@ -250,9 +224,7 @@ class TestDetectBatch:
 
         assert keys == ["a_file.txt", "b_file.txt", "c_file.txt"]
 
-    def test_detect_batch_large_number(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    def test_detect_batch_large_number(self, simple_detector: YaraDetector) -> None:
         """Test batch detection with many files."""
         contents = [(f"FIND_ME {i}".encode(), f"file{i}.txt") for i in range(50)]
 
@@ -267,9 +239,7 @@ class TestDetectBatchAsync:
     """Tests for the detect_batch_async method."""
 
     @pytest.mark.asyncio
-    async def test_detect_batch_async_basic(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_batch_async_basic(self, simple_detector: YaraDetector) -> None:
         """Test basic async batch detection."""
         contents = [
             (b"FIND_ME", "file1.txt"),
@@ -309,31 +279,23 @@ class TestDetectBatchAsync:
         contents = [(f"FIND_ME {i}".encode(), f"file{i}.txt") for i in range(20)]
 
         # Should complete without issues with low concurrency
-        results = await simple_detector.detect_batch_async(
-            contents, concurrency_limit=2
-        )
+        results = await simple_detector.detect_batch_async(contents, concurrency_limit=2)
 
         assert len(results) == 20
         for i in range(20):
             assert len(results[f"file{i}.txt"]) == 1
 
     @pytest.mark.asyncio
-    async def test_detect_batch_async_high_concurrency(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_batch_async_high_concurrency(self, simple_detector: YaraDetector) -> None:
         """Test async batch with high concurrency."""
         contents = [(f"FIND_ME {i}".encode(), f"file{i}.txt") for i in range(50)]
 
-        results = await simple_detector.detect_batch_async(
-            contents, concurrency_limit=50
-        )
+        results = await simple_detector.detect_batch_async(contents, concurrency_limit=50)
 
         assert len(results) == 50
 
     @pytest.mark.asyncio
-    async def test_detect_batch_async_empty_list(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_batch_async_empty_list(self, simple_detector: YaraDetector) -> None:
         """Test async batch with empty list."""
         results = await simple_detector.detect_batch_async([])
         assert results == {}
@@ -343,9 +305,7 @@ class TestDetectStream:
     """Tests for the detect_stream async generator."""
 
     @pytest.mark.asyncio
-    async def test_detect_stream_basic(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_stream_basic(self, simple_detector: YaraDetector) -> None:
         """Test basic streaming detection."""
         content = b"FIND_ME in this content"
         findings = []
@@ -357,9 +317,7 @@ class TestDetectStream:
         assert findings[0].detector_name == "yara:test_rule"
 
     @pytest.mark.asyncio
-    async def test_detect_stream_multiple_rules(
-        self, multi_rule_detector: YaraDetector
-    ) -> None:
+    async def test_detect_stream_multiple_rules(self, multi_rule_detector: YaraDetector) -> None:
         """Test streaming with multiple matching rules."""
         content = b"PATTERN_ONE and PATTERN_TWO here"
         findings = []
@@ -373,9 +331,7 @@ class TestDetectStream:
         assert "yara:rule_two" in detector_names
 
     @pytest.mark.asyncio
-    async def test_detect_stream_no_matches(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_stream_no_matches(self, simple_detector: YaraDetector) -> None:
         """Test streaming with no matches."""
         content = b"No matching patterns here"
         findings = []
@@ -386,9 +342,7 @@ class TestDetectStream:
         assert len(findings) == 0
 
     @pytest.mark.asyncio
-    async def test_detect_stream_empty_content(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_stream_empty_content(self, simple_detector: YaraDetector) -> None:
         """Test streaming with empty content."""
         findings = []
 
@@ -398,9 +352,7 @@ class TestDetectStream:
         assert len(findings) == 0
 
     @pytest.mark.asyncio
-    async def test_detect_stream_large_content_skipped(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_detect_stream_large_content_skipped(self, tmp_path: Path) -> None:
         """Test that streaming skips large content."""
         rule_file = tmp_path / "test.yar"
         rule_file.write_text("""
@@ -622,9 +574,7 @@ class TestAsyncPerformance:
     """Tests for async performance characteristics."""
 
     @pytest.mark.asyncio
-    async def test_async_is_non_blocking(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_async_is_non_blocking(self, simple_detector: YaraDetector) -> None:
         """Test that async detection doesn't block the event loop."""
         content = "FIND_ME " * 100
 
@@ -642,15 +592,11 @@ class TestAsyncPerformance:
         assert flag["ran"], "Other task should have run while detection was in progress"
 
     @pytest.mark.asyncio
-    async def test_batch_async_completes_successfully(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_batch_async_completes_successfully(self, simple_detector: YaraDetector) -> None:
         """Test that async batch completes without error for concurrent files."""
         contents = [(f"FIND_ME {i}".encode(), f"file{i}.txt") for i in range(10)]
 
-        results = await simple_detector.detect_batch_async(
-            contents, concurrency_limit=10
-        )
+        results = await simple_detector.detect_batch_async(contents, concurrency_limit=10)
 
         assert len(results) == 10
         for i in range(10):
@@ -661,9 +607,7 @@ class TestEdgeCases:
     """Tests for edge cases in async detection."""
 
     @pytest.mark.asyncio
-    async def test_detect_async_with_unicode(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_async_with_unicode(self, simple_detector: YaraDetector) -> None:
         """Test async detection handles unicode content correctly."""
         content = "日本語テキスト FIND_ME 中文內容"
         findings = await simple_detector.detect_async(content, "unicode.txt")
@@ -672,9 +616,7 @@ class TestEdgeCases:
         assert "FIND_ME" in findings[0].matches
 
     @pytest.mark.asyncio
-    async def test_detect_bytes_async_with_null_bytes(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_detect_bytes_async_with_null_bytes(self, simple_detector: YaraDetector) -> None:
         """Test async detection handles null bytes in content."""
         content = b"\x00\x00FIND_ME\x00\x00"
         findings = await simple_detector.detect_bytes_async(content, "nulls.bin")
@@ -682,9 +624,7 @@ class TestEdgeCases:
         assert len(findings) == 1
 
     @pytest.mark.asyncio
-    async def test_batch_async_with_duplicate_paths(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_batch_async_with_duplicate_paths(self, simple_detector: YaraDetector) -> None:
         """Test batch async with duplicate file paths."""
         contents = [
             (b"FIND_ME", "same.txt"),
@@ -697,22 +637,16 @@ class TestEdgeCases:
         assert "same.txt" in results
 
     @pytest.mark.asyncio
-    async def test_batch_async_very_large_batch(
-        self, simple_detector: YaraDetector
-    ) -> None:
+    async def test_batch_async_very_large_batch(self, simple_detector: YaraDetector) -> None:
         """Test batch async with a large number of files."""
         contents = [(f"FIND_ME {i}".encode(), f"file{i}.txt") for i in range(200)]
 
-        results = await simple_detector.detect_batch_async(
-            contents, concurrency_limit=50
-        )
+        results = await simple_detector.detect_batch_async(contents, concurrency_limit=50)
 
         assert len(results) == 200
 
     @pytest.mark.asyncio
-    async def test_detect_async_with_max_file_size(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_detect_async_with_max_file_size(self, tmp_path: Path) -> None:
         """Test async detection respects max file size."""
         rule_file = tmp_path / "test.yar"
         rule_file.write_text("""
@@ -777,9 +711,7 @@ class TestSeverityMapping:
     """Tests for severity mapping in async methods."""
 
     @pytest.mark.asyncio
-    async def test_detect_async_uses_severity_mapping(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_detect_async_uses_severity_mapping(self, tmp_path: Path) -> None:
         """Test that async detect uses severity mapping correctly."""
         rule_file = tmp_path / "test.yar"
         rule_file.write_text("""

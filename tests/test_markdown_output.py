@@ -32,7 +32,6 @@ from hamburglar.outputs.markdown_output import (
     MarkdownOutput,
 )
 
-
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -203,18 +202,14 @@ class TestMarkdownOutputGFM:
 
         assert output.startswith("# ")
 
-    def test_includes_summary_heading(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_includes_summary_heading(self, single_finding_result: ScanResult) -> None:
         """Test that output includes a Summary heading."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
 
         assert "## Summary" in output
 
-    def test_includes_findings_heading(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_includes_findings_heading(self, single_finding_result: ScanResult) -> None:
         """Test that output includes a Findings heading."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -240,9 +235,7 @@ class TestMarkdownOutputGFM:
         assert "| Metric | Value |" in output
         assert "|--------|-------|" in output
 
-    def test_uses_code_fences(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_uses_code_fences(self, multiple_findings_result: ScanResult) -> None:
         """Test that code blocks use fenced syntax."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -259,18 +252,14 @@ class TestMarkdownOutputGFM:
 class TestMarkdownOutputSummary:
     """Test that Markdown output includes correct summary table."""
 
-    def test_shows_total_findings_count(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_total_findings_count(self, multiple_findings_result: ScanResult) -> None:
         """Test that total findings count is in the table."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
 
         assert "| Total Findings | 5 |" in output
 
-    def test_shows_total_matches(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_total_matches(self, multiple_findings_result: ScanResult) -> None:
         """Test that total matches count is in the table."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -278,27 +267,21 @@ class TestMarkdownOutputSummary:
         # Multiple findings have different match counts
         assert "Total Matches" in output
 
-    def test_shows_files_affected(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_files_affected(self, multiple_findings_result: ScanResult) -> None:
         """Test that files affected count is in the table."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
 
         assert "Files Affected" in output
 
-    def test_shows_files_scanned(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_files_scanned(self, multiple_findings_result: ScanResult) -> None:
         """Test that files scanned count is in the table."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
 
         assert "| Files Scanned | 100 |" in output
 
-    def test_shows_scan_duration(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_scan_duration(self, multiple_findings_result: ScanResult) -> None:
         """Test that scan duration is in the table."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -313,9 +296,7 @@ class TestMarkdownOutputSummary:
         assert "**Target:**" in output
         assert "`/tmp/test`" in output
 
-    def test_shows_severity_breakdown_table(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_shows_severity_breakdown_table(self, multiple_findings_result: ScanResult) -> None:
         """Test that severity breakdown is shown as a table."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -346,9 +327,7 @@ class TestMarkdownOutputSummary:
 class TestMarkdownOutputCollapsible:
     """Test that findings use collapsible details sections."""
 
-    def test_uses_details_element(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_uses_details_element(self, single_finding_result: ScanResult) -> None:
         """Test that file sections use <details> element."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -356,9 +335,7 @@ class TestMarkdownOutputCollapsible:
         assert "<details>" in output
         assert "</details>" in output
 
-    def test_uses_summary_element(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_uses_summary_element(self, single_finding_result: ScanResult) -> None:
         """Test that file sections use <summary> element."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -366,27 +343,21 @@ class TestMarkdownOutputCollapsible:
         assert "<summary>" in output
         assert "</summary>" in output
 
-    def test_summary_shows_finding_count(
-        self, multi_findings_same_file_result: ScanResult
-    ) -> None:
+    def test_summary_shows_finding_count(self, multi_findings_same_file_result: ScanResult) -> None:
         """Test that summary shows the number of findings."""
         formatter = MarkdownOutput()
         output = formatter.format(multi_findings_same_file_result)
 
         assert "3 findings" in output
 
-    def test_singular_finding_label(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_singular_finding_label(self, single_finding_result: ScanResult) -> None:
         """Test that a single finding uses singular 'finding'."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
 
         assert "1 finding)" in output
 
-    def test_empty_result_shows_no_findings_message(
-        self, empty_scan_result: ScanResult
-    ) -> None:
+    def test_empty_result_shows_no_findings_message(self, empty_scan_result: ScanResult) -> None:
         """Test that empty results show appropriate message."""
         formatter = MarkdownOutput()
         output = formatter.format(empty_scan_result)
@@ -402,9 +373,7 @@ class TestMarkdownOutputCollapsible:
 class TestMarkdownOutputGrouping:
     """Test that findings are grouped correctly by file."""
 
-    def test_findings_grouped_by_file(
-        self, multi_findings_same_file_result: ScanResult
-    ) -> None:
+    def test_findings_grouped_by_file(self, multi_findings_same_file_result: ScanResult) -> None:
         """Test that multiple findings in same file are grouped together."""
         formatter = MarkdownOutput()
         output = formatter.format(multi_findings_same_file_result)
@@ -438,9 +407,7 @@ class TestMarkdownOutputGrouping:
 class TestMarkdownOutputSeverityOrdering:
     """Test that findings are sorted by severity."""
 
-    def test_files_sorted_by_highest_severity(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_files_sorted_by_highest_severity(self, multiple_findings_result: ScanResult) -> None:
         """Test that files with critical findings appear first."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -482,9 +449,7 @@ class TestMarkdownOutputSeverityEmoji:
             assert severity in SEVERITY_EMOJI
             assert len(SEVERITY_EMOJI[severity]) > 0
 
-    def test_emojis_appear_in_output(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_emojis_appear_in_output(self, multiple_findings_result: ScanResult) -> None:
         """Test that emoji indicators appear in output."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -493,9 +458,7 @@ class TestMarkdownOutputSeverityEmoji:
         assert ":rotating_light:" in output  # CRITICAL
         assert ":warning:" in output  # HIGH
 
-    def test_finding_headers_include_emoji(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_finding_headers_include_emoji(self, single_finding_result: ScanResult) -> None:
         """Test that finding headers include severity emoji."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -512,16 +475,13 @@ class TestMarkdownOutputSeverityEmoji:
 class TestMarkdownOutputFileLinks:
     """Test that file paths are formatted as links."""
 
-    def test_file_path_is_link(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_file_path_is_link(self, single_finding_result: ScanResult) -> None:
         """Test that file path is rendered as a Markdown link."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
 
         # Should contain a link with the file path
-        assert "](/tmp/test/secrets.txt)" in output or \
-               "](secrets.txt)" in output
+        assert "](/tmp/test/secrets.txt)" in output or "](secrets.txt)" in output
 
     def test_relative_path_with_base_path(self) -> None:
         """Test that base_path creates relative links."""
@@ -578,9 +538,7 @@ class TestMarkdownOutputFileLinks:
 class TestMarkdownOutputMatches:
     """Test that matches are displayed correctly."""
 
-    def test_matches_in_backtick_code(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_matches_in_backtick_code(self, single_finding_result: ScanResult) -> None:
         """Test that matches are displayed in inline code."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -588,9 +546,7 @@ class TestMarkdownOutputMatches:
         # Matches should be in backticks
         assert "`AKIAIOSFODNN7EXAMPLE`" in output
 
-    def test_multiple_matches_as_list(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_multiple_matches_as_list(self, multiple_findings_result: ScanResult) -> None:
         """Test that multiple matches are displayed as a list."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -598,9 +554,7 @@ class TestMarkdownOutputMatches:
         # Should have list items with matches
         assert "- `" in output
 
-    def test_matches_header_present(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_matches_header_present(self, single_finding_result: ScanResult) -> None:
         """Test that Matches: header is present."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -616,9 +570,7 @@ class TestMarkdownOutputMatches:
 class TestMarkdownOutputContext:
     """Test that context is displayed in code blocks."""
 
-    def test_context_in_code_fence(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_context_in_code_fence(self, multiple_findings_result: ScanResult) -> None:
         """Test that context is displayed in fenced code blocks."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -626,9 +578,7 @@ class TestMarkdownOutputContext:
         assert "**Context:**" in output
         assert "```" in output
 
-    def test_context_header_present(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_context_header_present(self, multiple_findings_result: ScanResult) -> None:
         """Test that Context: header is present."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -644,27 +594,21 @@ class TestMarkdownOutputContext:
 class TestMarkdownOutputLineNumbers:
     """Test that line numbers are displayed when available."""
 
-    def test_line_number_displayed(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_line_number_displayed(self, single_finding_result: ScanResult) -> None:
         """Test that line number is displayed when in metadata."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
 
         assert "(Line 5)" in output
 
-    def test_line_number_from_line_key(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_line_number_from_line_key(self, multiple_findings_result: ScanResult) -> None:
         """Test that line number works with 'line' metadata key."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
 
         assert "(Line 5)" in output
 
-    def test_line_number_from_line_number_key(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_line_number_from_line_number_key(self, multiple_findings_result: ScanResult) -> None:
         """Test that line number works with 'line_number' metadata key."""
         formatter = MarkdownOutput()
         output = formatter.format(multiple_findings_result)
@@ -680,9 +624,7 @@ class TestMarkdownOutputLineNumbers:
 class TestMarkdownOutputSpecialChars:
     """Test that special Markdown characters are properly escaped."""
 
-    def test_asterisks_escaped(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_asterisks_escaped(self, special_characters_result: ScanResult) -> None:
         """Test that asterisks are escaped."""
         formatter = MarkdownOutput()
         output = formatter.format(special_characters_result)
@@ -691,9 +633,7 @@ class TestMarkdownOutputSpecialChars:
         # The title should have the asterisks escaped
         assert "test\\_\\*\\_project" in output
 
-    def test_underscores_escaped(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_underscores_escaped(self, special_characters_result: ScanResult) -> None:
         """Test that underscores are escaped in paths."""
         formatter = MarkdownOutput()
         output = formatter.format(special_characters_result)
@@ -701,9 +641,7 @@ class TestMarkdownOutputSpecialChars:
         # Should have escaped underscores
         assert "\\_" in output
 
-    def test_backticks_escaped_in_matches(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_backticks_escaped_in_matches(self, special_characters_result: ScanResult) -> None:
         """Test that backticks are escaped in match content."""
         formatter = MarkdownOutput()
         output = formatter.format(special_characters_result)
@@ -711,9 +649,7 @@ class TestMarkdownOutputSpecialChars:
         # Matches with backticks should be escaped
         assert "\\`" in output
 
-    def test_brackets_escaped(
-        self, special_characters_result: ScanResult
-    ) -> None:
+    def test_brackets_escaped(self, special_characters_result: ScanResult) -> None:
         """Test that brackets are escaped."""
         formatter = MarkdownOutput()
         output = formatter.format(special_characters_result)
@@ -730,18 +666,14 @@ class TestMarkdownOutputSpecialChars:
 class TestMarkdownOutputUnicode:
     """Test that Unicode content is handled correctly."""
 
-    def test_unicode_in_matches_displayed(
-        self, unicode_result: ScanResult
-    ) -> None:
+    def test_unicode_in_matches_displayed(self, unicode_result: ScanResult) -> None:
         """Test that Unicode match content is displayed correctly."""
         formatter = MarkdownOutput()
         output = formatter.format(unicode_result)
 
         assert "secret123" in output
 
-    def test_unicode_context_displayed(
-        self, unicode_result: ScanResult
-    ) -> None:
+    def test_unicode_context_displayed(self, unicode_result: ScanResult) -> None:
         """Test that Unicode context is displayed correctly."""
         formatter = MarkdownOutput()
         output = formatter.format(unicode_result)
@@ -757,9 +689,7 @@ class TestMarkdownOutputUnicode:
 class TestMarkdownOutputCustomTitle:
     """Test custom title functionality."""
 
-    def test_custom_title_in_markdown(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_custom_title_in_markdown(self, single_finding_result: ScanResult) -> None:
         """Test that custom title appears in Markdown."""
         custom_title = "My Custom Security Report"
         formatter = MarkdownOutput(title=custom_title)
@@ -768,9 +698,7 @@ class TestMarkdownOutputCustomTitle:
         # Title should be escaped but recognizable
         assert "My Custom Security Report" in output
 
-    def test_default_title_includes_target(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_default_title_includes_target(self, single_finding_result: ScanResult) -> None:
         """Test that default title includes target path."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -812,9 +740,7 @@ class TestMarkdownOutputInterface:
         assert hasattr(formatter, "format")
         assert callable(formatter.format)
 
-    def test_format_returns_string(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_format_returns_string(self, single_finding_result: ScanResult) -> None:
         """Test that format returns a string."""
         formatter = MarkdownOutput()
         result = formatter.format(single_finding_result)
@@ -1031,9 +957,7 @@ class TestMarkdownOutputConstants:
 class TestMarkdownOutputFooter:
     """Test that footer includes proper attribution."""
 
-    def test_footer_contains_hamburglar_link(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_footer_contains_hamburglar_link(self, single_finding_result: ScanResult) -> None:
         """Test that footer links to Hamburglar repository."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -1041,9 +965,7 @@ class TestMarkdownOutputFooter:
         assert "Hamburglar" in output
         assert "github.com/needmorecowbell/Hamburglar" in output
 
-    def test_footer_has_horizontal_rule(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_footer_has_horizontal_rule(self, single_finding_result: ScanResult) -> None:
         """Test that footer has horizontal rule separator."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -1122,9 +1044,7 @@ class TestMarkdownOutputBasePath:
 class TestMarkdownOutputPRSuitability:
     """Test that output is suitable for PR comments and issues."""
 
-    def test_output_has_no_raw_html_except_details(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_output_has_no_raw_html_except_details(self, single_finding_result: ScanResult) -> None:
         """Test that output uses minimal HTML (only details/summary)."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -1140,9 +1060,7 @@ class TestMarkdownOutputPRSuitability:
         assert "<span>" not in cleaned
         assert "<table>" not in cleaned
 
-    def test_output_is_reasonable_length(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_output_is_reasonable_length(self, single_finding_result: ScanResult) -> None:
         """Test that output for single finding is not excessively long."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)
@@ -1150,9 +1068,7 @@ class TestMarkdownOutputPRSuitability:
         # Single finding shouldn't produce thousands of characters
         assert len(output) < 5000
 
-    def test_output_has_no_excessive_whitespace(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_output_has_no_excessive_whitespace(self, single_finding_result: ScanResult) -> None:
         """Test that output doesn't have excessive blank lines."""
         formatter = MarkdownOutput()
         output = formatter.format(single_finding_result)

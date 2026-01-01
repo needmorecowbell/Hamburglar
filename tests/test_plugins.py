@@ -6,7 +6,6 @@ This module tests the PluginManager, plugin decorators, and plugin discovery.
 from __future__ import annotations
 
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -441,7 +440,7 @@ else:
     def test_discover_skips_private_files(self, tmp_path: Path) -> None:
         """Test that files starting with _ are skipped."""
         plugin_file = tmp_path / "_private_plugin.py"
-        plugin_file.write_text('''
+        plugin_file.write_text("""
 from hamburglar.detectors import BaseDetector
 from hamburglar.core.models import Finding
 
@@ -452,7 +451,7 @@ class PrivateDetector(BaseDetector):
 
     def detect(self, content: str, file_path: str = "") -> list[Finding]:
         return []
-''')
+""")
         manager = PluginManager(plugin_directories=[tmp_path])
         manager.discover()
         assert "private" not in manager
@@ -472,6 +471,7 @@ class TestDecoratorPlugins:
 
     def test_detector_plugin_decorator(self) -> None:
         """Test @detector_plugin decorator."""
+
         @detector_plugin("decorated_detector", description="A decorated detector")
         class DecoratedDetector(BaseDetector):
             @property
@@ -488,6 +488,7 @@ class TestDecoratorPlugins:
 
     def test_output_plugin_decorator(self) -> None:
         """Test @output_plugin decorator."""
+
         @output_plugin("decorated_output", description="A decorated output")
         class DecoratedOutput(BaseOutput):
             @property
@@ -504,6 +505,7 @@ class TestDecoratorPlugins:
     def test_detector_decorator_missing_detect(self) -> None:
         """Test decorator fails without detect method."""
         with pytest.raises(PluginError, match="must implement detect"):
+
             @detector_plugin("bad_detector")
             class BadDetector:
                 @property
@@ -513,6 +515,7 @@ class TestDecoratorPlugins:
     def test_detector_decorator_missing_name(self) -> None:
         """Test decorator fails without name property."""
         with pytest.raises(PluginError, match="must have a name"):
+
             @detector_plugin("no_name_detector")
             class NoNameDetector:
                 def detect(self, content: str, file_path: str = "") -> list[Finding]:
@@ -521,6 +524,7 @@ class TestDecoratorPlugins:
     def test_output_decorator_missing_format(self) -> None:
         """Test decorator fails without format method."""
         with pytest.raises(PluginError, match="must implement format"):
+
             @output_plugin("bad_output")
             class BadOutput:
                 @property
@@ -530,6 +534,7 @@ class TestDecoratorPlugins:
     def test_output_decorator_missing_name(self) -> None:
         """Test decorator fails without name property."""
         with pytest.raises(PluginError, match="must have a name"):
+
             @output_plugin("no_name_output")
             class NoNameOutput:
                 def format(self, result: ScanResult) -> str:
@@ -835,6 +840,7 @@ class TestPluginManagerAdvanced:
 
     def test_import_decorated_plugins(self) -> None:
         """Test _import_decorated_plugins imports from global registries."""
+
         # Define decorated plugins
         @detector_plugin("import_test_det", description="Test")
         class ImportTestDetector(BaseDetector):
@@ -940,6 +946,7 @@ class TestDecoratorValidation:
 
     def test_detector_decorator_with_all_metadata(self) -> None:
         """Test detector decorator with all metadata."""
+
         @detector_plugin(
             "full_meta_det",
             description="Full metadata detector",
@@ -964,6 +971,7 @@ class TestDecoratorValidation:
 
     def test_output_decorator_with_all_metadata(self) -> None:
         """Test output decorator with all metadata."""
+
         @output_plugin(
             "full_meta_out",
             description="Full metadata output",

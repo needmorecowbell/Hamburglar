@@ -4,8 +4,6 @@ These tests verify that the example plugin in examples/plugins/custom_detector.p
 works correctly and demonstrates best practices for plugin development.
 """
 
-import pytest
-
 import sys
 from pathlib import Path
 
@@ -210,7 +208,9 @@ class TestCustomAPIKeyDetector:
         findings = detector.detect(content, "config.py")
 
         # Find the prefix match finding
-        prefix_findings = [f for f in findings if f.metadata.get("detection_method") == "prefix_match"]
+        prefix_findings = [
+            f for f in findings if f.metadata.get("detection_method") == "prefix_match"
+        ]
         if prefix_findings:
             f = prefix_findings[0]
             assert "prefix" in f.metadata
@@ -256,7 +256,9 @@ class TestCustomAPIKeyDetector:
         findings = detector.detect(content, "config.py")
 
         # Should only find uppercase
-        prefix_matches = [f for f in findings if f.metadata.get("detection_method") == "prefix_match"]
+        prefix_matches = [
+            f for f in findings if f.metadata.get("detection_method") == "prefix_match"
+        ]
         if prefix_matches:
             for f in prefix_matches:
                 assert any("ACME_" in m for m in f.matches)
@@ -276,8 +278,6 @@ class TestCustomAPIKeyDetector:
 
     def test_detector_is_detectorplugin_subclass(self):
         """Test that CustomAPIKeyDetector is a proper DetectorPlugin subclass."""
-        from hamburglar.plugins.detector_plugin import DetectorPlugin
-        from hamburglar.detectors import BaseDetector
 
         detector = CustomAPIKeyDetector()
         # Check that the class inherits from DetectorPlugin by checking the MRO

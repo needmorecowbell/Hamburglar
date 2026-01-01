@@ -34,12 +34,10 @@ from hamburglar.storage import (
     FindingFilter,
     JsonFileStorage,
     ScanFilter,
-    ScanStatistics,
     StorageError,
     StorageRegistry,
     StoredScan,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -135,9 +133,7 @@ class TestJsonFileStorageInit:
         with JsonFileStorage(file_path) as storage:
             assert storage.file_path == file_path
 
-    def test_name_property_returns_json_file(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_name_property_returns_json_file(self, json_storage: JsonFileStorage) -> None:
         """name property should return 'json_file'."""
         assert json_storage.name == "json_file"
 
@@ -194,7 +190,7 @@ class TestSaveScan:
         json_storage.save_scan(sample_scan_result)
         json_storage.save_scan(sample_scan_result)
 
-        with open(json_storage.file_path, "r", encoding="utf-8") as f:
+        with open(json_storage.file_path, encoding="utf-8") as f:
             lines = f.readlines()
 
         assert len(lines) == 2
@@ -226,9 +222,7 @@ class TestSaveScan:
         assert scan is not None
         assert len(scan.scan_result.findings) == 2
 
-        aws_finding = next(
-            f for f in scan.scan_result.findings if f.detector_name == "aws_key"
-        )
+        aws_finding = next(f for f in scan.scan_result.findings if f.detector_name == "aws_key")
         assert aws_finding.matches == ["AKIAIOSFODNN7EXAMPLE"]
         assert aws_finding.severity == Severity.HIGH
         assert aws_finding.metadata["line"] == 5
@@ -285,9 +279,7 @@ class TestGetScans:
         scans = json_storage.get_scans()
         assert len(scans) == 2
 
-    def test_returns_empty_list_when_no_file(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_returns_empty_list_when_no_file(self, json_storage: JsonFileStorage) -> None:
         """get_scans should return empty list when file doesn't exist."""
         scans = json_storage.get_scans()
         assert scans == []
@@ -496,9 +488,7 @@ class TestGetFindings:
 
         assert len(findings) == 2
 
-    def test_returns_empty_list_when_no_findings(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_returns_empty_list_when_no_findings(self, json_storage: JsonFileStorage) -> None:
         """get_findings should return empty list when no findings exist."""
         findings = json_storage.get_findings()
         assert findings == []
@@ -806,9 +796,7 @@ class TestGetScanById:
         assert scan.scan_id == scan_id
         assert scan.scan_result.target_path == "/tmp/test"
 
-    def test_returns_none_for_unknown_id(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_returns_none_for_unknown_id(self, json_storage: JsonFileStorage) -> None:
         """get_scan_by_id should return None for unknown IDs."""
         scan = json_storage.get_scan_by_id("nonexistent-id")
         assert scan is None
@@ -889,9 +877,7 @@ class TestClear:
         json_storage.clear()  # Should not raise
         assert not json_storage.file_path.exists()
 
-    def test_raises_error_when_closed(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_raises_error_when_closed(self, json_storage: JsonFileStorage) -> None:
         """clear should raise StorageError when storage is closed."""
         json_storage.close()
 
@@ -923,17 +909,14 @@ class TestContextManager:
         with pytest.raises(StorageError, match="closed"):
             storage.get_scans()
 
-    def test_closes_on_exception(
-        self, tmp_path: Path, sample_scan_result: ScanResult
-    ) -> None:
+    def test_closes_on_exception(self, tmp_path: Path, sample_scan_result: ScanResult) -> None:
         """Context manager should close storage even on exception."""
         file_path = tmp_path / "scans.jsonl"
         storage = JsonFileStorage(file_path)
 
-        with pytest.raises(ValueError):
-            with storage:
-                storage.save_scan(sample_scan_result)
-                raise ValueError("Test error")
+        with pytest.raises(ValueError), storage:
+            storage.save_scan(sample_scan_result)
+            raise ValueError("Test error")
 
         with pytest.raises(StorageError, match="closed"):
             storage.get_scans()
@@ -1047,9 +1030,7 @@ class TestErrorHandling:
             with pytest.raises(StorageError, match="Invalid JSON"):
                 storage.get_scans()
 
-    def test_error_includes_backend_name(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_error_includes_backend_name(self, json_storage: JsonFileStorage) -> None:
         """StorageError should include backend name."""
         json_storage.close()
 
@@ -1058,9 +1039,7 @@ class TestErrorHandling:
         except StorageError as e:
             assert e.backend == "json_file"
 
-    def test_error_includes_operation(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_error_includes_operation(self, json_storage: JsonFileStorage) -> None:
         """StorageError should include operation name."""
         json_storage.close()
 
@@ -1069,9 +1048,7 @@ class TestErrorHandling:
         except StorageError as e:
             assert e.operation == "get_scans"
 
-    def test_handles_empty_lines(
-        self, tmp_path: Path, sample_scan_result: ScanResult
-    ) -> None:
+    def test_handles_empty_lines(self, tmp_path: Path, sample_scan_result: ScanResult) -> None:
         """JsonFileStorage should handle empty lines in file."""
         file_path = tmp_path / "scans.jsonl"
 
@@ -1095,9 +1072,7 @@ class TestErrorHandling:
 class TestRegistryIntegration:
     """Tests for StorageRegistry integration."""
 
-    def test_can_register_with_registry(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_can_register_with_registry(self, json_storage: JsonFileStorage) -> None:
         """JsonFileStorage should be registrable with StorageRegistry."""
         registry = StorageRegistry()
         registry.register(json_storage)
@@ -1105,9 +1080,7 @@ class TestRegistryIntegration:
         assert "json_file" in registry
         assert registry.get("json_file") is json_storage
 
-    def test_can_unregister_from_registry(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_can_unregister_from_registry(self, json_storage: JsonFileStorage) -> None:
         """JsonFileStorage should be unregistrable from StorageRegistry."""
         registry = StorageRegistry()
         registry.register(json_storage)
@@ -1193,9 +1166,7 @@ class TestEdgeCases:
         assert len(findings) == 1
         assert findings[0].metadata == {}
 
-    def test_special_characters_in_paths(
-        self, json_storage: JsonFileStorage
-    ) -> None:
+    def test_special_characters_in_paths(self, json_storage: JsonFileStorage) -> None:
         """JsonFileStorage should handle special characters in paths."""
         result = ScanResult(
             target_path="/tmp/path with spaces/test's dir",
@@ -1340,9 +1311,7 @@ class TestCICDUseCases:
             assert scan is not None
             assert scan.scan_id == scan_id
 
-    def test_trend_analysis_across_runs(
-        self, json_storage_path: Path
-    ) -> None:
+    def test_trend_analysis_across_runs(self, json_storage_path: Path) -> None:
         """Statistics should work across multiple pipeline runs."""
         for i in range(5):
             with JsonFileStorage(json_storage_path) as storage:

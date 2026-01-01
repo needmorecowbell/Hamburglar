@@ -15,10 +15,8 @@ import pytest
 
 from hamburglar.config import (
     ConfigLoader,
-    ConfigPriority,
     HamburglarConfig,
     get_config,
-    get_config_source,
     load_config,
     reset_config,
 )
@@ -246,7 +244,9 @@ scan:
         with pytest.raises(ConfigError) as exc_info:
             loader.load(config_path)
 
-        assert "Invalid YAML" in str(exc_info.value) or "Invalid configuration" in str(exc_info.value)
+        assert "Invalid YAML" in str(exc_info.value) or "Invalid configuration" in str(
+            exc_info.value
+        )
 
     def test_nonexistent_file_raises_error(self) -> None:
         """Loading nonexistent file should raise ConfigError."""
@@ -856,8 +856,9 @@ class TestGetDefaultConfigContent:
 
     def test_get_json_config(self) -> None:
         """Test generating JSON config content."""
-        from hamburglar.config.loader import get_default_config_content
         import json
+
+        from hamburglar.config.loader import get_default_config_content
 
         content = get_default_config_content("json")
         data = json.loads(content)

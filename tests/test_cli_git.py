@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from typer.testing import CliRunner
@@ -70,12 +70,12 @@ def git_repo_with_secrets(tmp_path: Path) -> Generator[Path, None, None]:
 
     # Create file with secrets
     secrets_file = repo_path / "config.py"
-    secrets_file.write_text('''
+    secrets_file.write_text("""
 # Configuration with secrets
 AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
 AWS_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 DATABASE_URL = "postgresql://user:password@localhost/db"
-''')
+""")
 
     # Add and commit
     subprocess.run(["git", "add", "."], cwd=repo_path, capture_output=True, check=True)
@@ -87,11 +87,11 @@ DATABASE_URL = "postgresql://user:password@localhost/db"
     )
 
     # Modify file to remove some secrets
-    secrets_file.write_text('''
+    secrets_file.write_text("""
 # Configuration - secrets removed
 AWS_ACCESS_KEY = "REDACTED"
 DATABASE_URL = "postgresql://localhost/db"
-''')
+""")
 
     # Add and commit with secret in message
     subprocess.run(["git", "add", "."], cwd=repo_path, capture_output=True, check=True)
@@ -162,26 +162,18 @@ class TestScanGitCommand:
         assert "--include-history" in result.output or "--no-history" in result.output
         assert "--clone-dir" in result.output
 
-    def test_scan_git_local_repo_finds_secrets(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_scan_git_local_repo_finds_secrets(self, git_repo_with_secrets: Path) -> None:
         """Test that scan-git finds secrets in a local repository."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--format", "json"])
         assert result.exit_code == 0
 
         data = json.loads(result.output)
         assert "findings" in data
         assert len(data["findings"]) > 0
 
-    def test_scan_git_clean_repo_no_findings(
-        self, git_repo_clean: Path
-    ) -> None:
+    def test_scan_git_clean_repo_no_findings(self, git_repo_clean: Path) -> None:
         """Test that scan-git returns exit code 2 for clean repo."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_clean), "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_clean), "--format", "json"])
         # Exit code 2 means no findings
         assert result.exit_code == 2
 
@@ -211,9 +203,7 @@ class TestScanGitCommand:
 class TestScanGitDepthOption:
     """Test --depth option for limiting commit history."""
 
-    def test_depth_option_limits_commits(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_depth_option_limits_commits(self, git_repo_with_secrets: Path) -> None:
         """Test that --depth limits the number of commits scanned."""
         result = runner.invoke(
             app,
@@ -231,9 +221,7 @@ class TestScanGitDepthOption:
 class TestScanGitBranchOption:
     """Test --branch option for scanning specific branches."""
 
-    def test_branch_option_accepted(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_branch_option_accepted(self, git_repo_with_secrets: Path) -> None:
         """Test that --branch option is accepted."""
         # Get the current branch name (usually 'main' or 'master')
         branch_result = subprocess.run(
@@ -261,22 +249,16 @@ class TestScanGitBranchOption:
 class TestScanGitIncludeHistoryOption:
     """Test --include-history/--no-history option."""
 
-    def test_include_history_default(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_include_history_default(self, git_repo_with_secrets: Path) -> None:
         """Test that history scanning is enabled by default."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--format", "json"])
         assert result.exit_code == 0
 
         data = json.loads(result.output)
         # Default should include history scanning
         assert data["stats"].get("include_history", True) is True
 
-    def test_no_history_flag(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_no_history_flag(self, git_repo_with_secrets: Path) -> None:
         """Test that --no-history disables history scanning."""
         result = runner.invoke(
             app,
@@ -293,9 +275,7 @@ class TestScanGitOutputFormats:
 
     def test_json_format(self, git_repo_with_secrets: Path) -> None:
         """Test JSON output format."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--format", "json"])
         assert result.exit_code == 0
 
         data = json.loads(result.output)
@@ -306,9 +286,7 @@ class TestScanGitOutputFormats:
 
     def test_table_format(self, git_repo_with_secrets: Path) -> None:
         """Test table output format."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--format", "table"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--format", "table"])
         assert result.exit_code == 0
         # Table output should not be valid JSON
         with pytest.raises(json.JSONDecodeError):
@@ -316,18 +294,14 @@ class TestScanGitOutputFormats:
 
     def test_invalid_format_fails(self, git_repo_with_secrets: Path) -> None:
         """Test that invalid format option fails."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--format", "xml"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--format", "xml"])
         assert result.exit_code == 1
 
 
 class TestScanGitOutputFile:
     """Test output file option."""
 
-    def test_output_to_file(
-        self, git_repo_with_secrets: Path, tmp_path: Path
-    ) -> None:
+    def test_output_to_file(self, git_repo_with_secrets: Path, tmp_path: Path) -> None:
         """Test writing output to file."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
@@ -352,19 +326,13 @@ class TestScanGitOutputFile:
 class TestScanGitQuietMode:
     """Test quiet mode."""
 
-    def test_quiet_suppresses_output(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_quiet_suppresses_output(self, git_repo_with_secrets: Path) -> None:
         """Test that --quiet suppresses stdout output."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--quiet"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--quiet"])
         assert result.exit_code == 0
         assert result.output == ""
 
-    def test_quiet_with_output_file(
-        self, git_repo_with_secrets: Path, tmp_path: Path
-    ) -> None:
+    def test_quiet_with_output_file(self, git_repo_with_secrets: Path, tmp_path: Path) -> None:
         """Test that --quiet still writes to output file."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
@@ -386,13 +354,9 @@ class TestScanGitQuietMode:
 class TestScanGitVerboseMode:
     """Test verbose mode."""
 
-    def test_verbose_shows_details(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_verbose_shows_details(self, git_repo_with_secrets: Path) -> None:
         """Test that --verbose shows additional details."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--verbose"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--verbose"])
         assert result.exit_code == 0
         # Verbose should show target info
         assert "Target" in result.output or str(git_repo_with_secrets) in result.output
@@ -401,13 +365,9 @@ class TestScanGitVerboseMode:
 class TestScanGitStreamingMode:
     """Test streaming output mode."""
 
-    def test_stream_produces_ndjson(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_stream_produces_ndjson(self, git_repo_with_secrets: Path) -> None:
         """Test that --stream produces newline-delimited JSON."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets), "--stream"]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets), "--stream"])
         assert result.exit_code == 0
 
         # Each line should be valid JSON (NDJSON format)
@@ -420,9 +380,7 @@ class TestScanGitStreamingMode:
 class TestScanGitCategoryFilters:
     """Test category filtering options."""
 
-    def test_categories_filter(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_categories_filter(self, git_repo_with_secrets: Path) -> None:
         """Test that --categories filters results."""
         result = runner.invoke(
             app,
@@ -438,9 +396,7 @@ class TestScanGitCategoryFilters:
         # Should succeed or have no findings for that category
         assert result.exit_code in (0, 2)
 
-    def test_no_categories_filter(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_no_categories_filter(self, git_repo_with_secrets: Path) -> None:
         """Test that --no-categories excludes categories."""
         result = runner.invoke(
             app,
@@ -459,9 +415,7 @@ class TestScanGitCategoryFilters:
 class TestScanGitMinConfidence:
     """Test minimum confidence filtering."""
 
-    def test_min_confidence_high(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_min_confidence_high(self, git_repo_with_secrets: Path) -> None:
         """Test filtering with high confidence level."""
         result = runner.invoke(
             app,
@@ -480,18 +434,12 @@ class TestScanGitMinConfidence:
 class TestScanGitExitCodes:
     """Test exit codes for various scenarios."""
 
-    def test_exit_code_0_with_findings(
-        self, git_repo_with_secrets: Path
-    ) -> None:
+    def test_exit_code_0_with_findings(self, git_repo_with_secrets: Path) -> None:
         """Test exit code 0 when findings are found."""
-        result = runner.invoke(
-            app, ["scan-git", str(git_repo_with_secrets)]
-        )
+        result = runner.invoke(app, ["scan-git", str(git_repo_with_secrets)])
         assert result.exit_code == 0
 
-    def test_exit_code_2_no_findings(
-        self, git_repo_clean: Path
-    ) -> None:
+    def test_exit_code_2_no_findings(self, git_repo_clean: Path) -> None:
         """Test exit code 2 when no findings."""
         result = runner.invoke(app, ["scan-git", str(git_repo_clean)])
         assert result.exit_code == 2
@@ -506,9 +454,7 @@ class TestScanGitExitCodes:
 class TestScanGitCloneDirOption:
     """Test --clone-dir option."""
 
-    def test_clone_dir_option_accepted(
-        self, git_repo_with_secrets: Path, tmp_path: Path
-    ) -> None:
+    def test_clone_dir_option_accepted(self, git_repo_with_secrets: Path, tmp_path: Path) -> None:
         """Test that --clone-dir is accepted (for local repos, doesn't affect behavior)."""
         clone_dir = tmp_path / "clone_target"
         result = runner.invoke(

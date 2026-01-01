@@ -9,7 +9,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 # Configure path before any hamburglar imports (same as conftest.py)
@@ -23,16 +22,16 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.cli.main import app
 from hamburglar.cli.errors import (
-    get_command_suggestion,
-    get_subcommand_suggestion,
-    get_option_suggestion,
-    get_context_hint,
-    DOC_LINKS,
     COMMAND_ALIASES,
+    DOC_LINKS,
     MAIN_COMMANDS,
+    get_command_suggestion,
+    get_context_hint,
+    get_option_suggestion,
+    get_subcommand_suggestion,
 )
+from hamburglar.cli.main import app
 
 runner = CliRunner()
 
@@ -318,13 +317,22 @@ class TestCLIErrorMessagesIntegration:
         assert result.exit_code == 1
         # Should show confidence hint
         output_lower = result.output.lower()
-        assert "high" in output_lower or "medium" in output_lower or "low" in output_lower or "confidence" in output_lower
+        assert (
+            "high" in output_lower
+            or "medium" in output_lower
+            or "low" in output_lower
+            or "confidence" in output_lower
+        )
 
     def test_error_includes_documentation_link(self, temp_directory: Path) -> None:
         """Test that errors include documentation links."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "invalid"])
         # Should include a documentation URL or reference
-        assert "documentation" in result.output.lower() or "docs" in result.output.lower() or "hamburglar" in result.output.lower()
+        assert (
+            "documentation" in result.output.lower()
+            or "docs" in result.output.lower()
+            or "hamburglar" in result.output.lower()
+        )
 
 
 class TestMainCommandConstants:
@@ -332,7 +340,16 @@ class TestMainCommandConstants:
 
     def test_all_main_commands_defined(self) -> None:
         """Test that all main commands are in the list."""
-        expected = ["scan", "scan-git", "scan-web", "history", "report", "doctor", "plugins", "config"]
+        expected = [
+            "scan",
+            "scan-git",
+            "scan-web",
+            "history",
+            "report",
+            "doctor",
+            "plugins",
+            "config",
+        ]
         for cmd in expected:
             assert cmd in MAIN_COMMANDS
 
@@ -348,7 +365,9 @@ class TestAliasPartialMatch:
     def test_partial_alias_match_returns_correct_command(self) -> None:
         """Test that a partial match against an alias returns the right command."""
         # Testing when the fuzzy match hits an alias (e.g., "chek" matches "check" alias)
-        suggestion = get_command_suggestion("chek")  # Similar to "check" which is an alias for "scan"
+        suggestion = get_command_suggestion(
+            "chek"
+        )  # Similar to "check" which is an alias for "scan"
         assert suggestion == "scan"
 
     def test_fuzzy_alias_diagnostics(self) -> None:
@@ -456,7 +475,7 @@ class TestFormatErrorWithContext:
 
     def test_format_error_with_suggestion(self) -> None:
         """Test that format_error_with_context includes suggestion."""
-        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+        from hamburglar.cli.errors import ErrorContext, format_error_with_context
 
         context = ErrorContext(suggestion="Use 'scan' instead")
         result = format_error_with_context("Test error", context)
@@ -466,7 +485,7 @@ class TestFormatErrorWithContext:
 
     def test_format_error_with_hint(self) -> None:
         """Test that format_error_with_context includes hint."""
-        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+        from hamburglar.cli.errors import ErrorContext, format_error_with_context
 
         context = ErrorContext(hint="Check your configuration")
         result = format_error_with_context("Test error", context)
@@ -476,7 +495,7 @@ class TestFormatErrorWithContext:
 
     def test_format_error_with_doc_link(self) -> None:
         """Test that format_error_with_context includes doc link."""
-        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+        from hamburglar.cli.errors import ErrorContext, format_error_with_context
 
         context = ErrorContext(doc_link="https://example.com/docs")
         result = format_error_with_context("Test error", context)
@@ -486,12 +505,10 @@ class TestFormatErrorWithContext:
 
     def test_format_error_with_all_context(self) -> None:
         """Test that format_error_with_context includes all fields."""
-        from hamburglar.cli.errors import format_error_with_context, ErrorContext
+        from hamburglar.cli.errors import ErrorContext, format_error_with_context
 
         context = ErrorContext(
-            suggestion="Try X",
-            hint="Remember Y",
-            doc_link="https://docs.example.com"
+            suggestion="Try X", hint="Remember Y", doc_link="https://docs.example.com"
         )
         result = format_error_with_context("Main error", context)
         assert "Main error" in result

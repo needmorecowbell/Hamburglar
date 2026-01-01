@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import fcntl
 import json
-import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -174,9 +173,9 @@ class JsonFileStorage(BaseStorage):
         # Apply offset and limit
         if filter is not None:
             if filter.offset:
-                scans = scans[filter.offset:]
+                scans = scans[filter.offset :]
             if filter.limit:
-                scans = scans[:filter.limit]
+                scans = scans[: filter.limit]
 
         return scans
 
@@ -238,9 +237,9 @@ class JsonFileStorage(BaseStorage):
         # Apply offset and limit
         if filter is not None:
             if filter.offset:
-                findings = findings[filter.offset:]
+                findings = findings[filter.offset :]
             if filter.limit:
-                findings = findings[:filter.limit]
+                findings = findings[: filter.limit]
 
         return findings
 
@@ -296,15 +295,11 @@ class JsonFileStorage(BaseStorage):
 
                 # Count by severity
                 severity = finding.severity.value
-                findings_by_severity[severity] = (
-                    findings_by_severity.get(severity, 0) + 1
-                )
+                findings_by_severity[severity] = findings_by_severity.get(severity, 0) + 1
 
                 # Count by detector
                 detector = finding.detector_name
-                findings_by_detector[detector] = (
-                    findings_by_detector.get(detector, 0) + 1
-                )
+                findings_by_detector[detector] = findings_by_detector.get(detector, 0) + 1
 
             # Count by date
             scan_date = scan.stored_at.strftime("%Y-%m-%d")
@@ -415,7 +410,7 @@ class JsonFileStorage(BaseStorage):
         scans: list[StoredScan] = []
 
         try:
-            with open(self._file_path, "r", encoding="utf-8") as f:
+            with open(self._file_path, encoding="utf-8") as f:
                 for line_num, line in enumerate(f, start=1):
                     line = line.strip()
                     if not line:
@@ -513,9 +508,7 @@ class JsonFileStorage(BaseStorage):
             metadata=record.get("metadata", {}),
         )
 
-    def _filter_scans(
-        self, scans: list[StoredScan], filter: ScanFilter
-    ) -> list[StoredScan]:
+    def _filter_scans(self, scans: list[StoredScan], filter: ScanFilter) -> list[StoredScan]:
         """Filter scans according to the provided criteria.
 
         Args:
@@ -551,9 +544,7 @@ class JsonFileStorage(BaseStorage):
 
         return result
 
-    def _matches_finding_filter(
-        self, finding: Finding, filter: FindingFilter | None
-    ) -> bool:
+    def _matches_finding_filter(self, finding: Finding, filter: FindingFilter | None) -> bool:
         """Check if a finding matches the filter criteria.
 
         Args:

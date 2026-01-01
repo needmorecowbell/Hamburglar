@@ -229,10 +229,10 @@ class CallbackProgressReporter:
 
     def __init__(
         self,
-        progress_callback: "Callable[[ScanProgress], None] | None" = None,
-        start_callback: "Callable[[int], None] | None" = None,
-        complete_callback: "Callable[[ScanProgress], None] | None" = None,
-        error_callback: "Callable[[str, str | None], None] | None" = None,
+        progress_callback: Callable[[ScanProgress], None] | None = None,
+        start_callback: Callable[[int], None] | None = None,
+        complete_callback: Callable[[ScanProgress], None] | None = None,
+        error_callback: Callable[[str, str | None], None] | None = None,
     ) -> None:
         """Initialize the callback progress reporter.
 

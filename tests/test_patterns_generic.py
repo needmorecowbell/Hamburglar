@@ -353,14 +353,22 @@ class TestBase64Patterns:
         """Test long base64 data."""
         pattern = re.compile(BASE64_LONG_STRING.regex)
         # 64+ char base64
-        b64 = fake_token("data = '", "VGVzdERhdGFGb3JCYXNlNjRFbmNvZGluZ1Rlc3REYXRhRm9yQmFzZTY0RW5jb2RpbmdBYmNkZWY=", "'")
+        b64 = fake_token(
+            "data = '",
+            "VGVzdERhdGFGb3JCYXNlNjRFbmNvZGluZ1Rlc3REYXRhRm9yQmFzZTY0RW5jb2RpbmdBYmNkZWY=",
+            "'",
+        )
         result = pattern.search(b64)
         assert result is not None
 
     def test_base64_long_string_positive_2(self) -> None:
         """Test payload with base64."""
         pattern = re.compile(BASE64_LONG_STRING.regex)
-        b64 = fake_token('content: "', "SGVsbG9Xb3JsZFRlc3REYXRhMTIzNDU2Nzg5MEFiY2RlZkdoaWprbG1ub3BxcnN0dXZ3eHl6", '"')
+        b64 = fake_token(
+            'content: "',
+            "SGVsbG9Xb3JsZFRlc3REYXRhMTIzNDU2Nzg5MEFiY2RlZkdoaWprbG1ub3BxcnN0dXZ3eHl6",
+            '"',
+        )
         result = pattern.search(b64)
         assert result is not None
 
@@ -408,14 +416,25 @@ class TestHexPatterns:
     def test_hex_string_64_positive_1(self) -> None:
         """Test 64-char hex private key."""
         pattern = re.compile(HEX_STRING_64.regex)
-        hex64 = fake_token("0123456789abcdef", "0123456789abcdef", "0123456789abcdef", "0123456789abcdef")
+        hex64 = fake_token(
+            "0123456789abcdef", "0123456789abcdef", "0123456789abcdef", "0123456789abcdef"
+        )
         result = pattern.search(f"private_key = '{hex64}'")
         assert result is not None
 
     def test_hex_string_64_positive_2(self) -> None:
         """Test signing key hex."""
         pattern = re.compile(HEX_STRING_64.regex)
-        hex64 = fake_token("abcdef01", "23456789", "abcdef01", "23456789", "abcdef01", "23456789", "abcdef01", "23456789")
+        hex64 = fake_token(
+            "abcdef01",
+            "23456789",
+            "abcdef01",
+            "23456789",
+            "abcdef01",
+            "23456789",
+            "abcdef01",
+            "23456789",
+        )
         result = pattern.search(f'signing_key: "{hex64}"')
         assert result is not None
 
@@ -699,7 +718,9 @@ class TestKeyPatterns:
     def test_private_key_inline_negative_2(self) -> None:
         """Test non-private key context."""
         pattern = re.compile(PRIVATE_KEY_INLINE.regex)
-        result = pattern.search("public_key = 'MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7JvEeV0F3dA=='")
+        result = pattern.search(
+            "public_key = 'MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7JvEeV0F3dA=='"
+        )
         assert result is None
 
     def test_encryption_key_positive_1(self) -> None:

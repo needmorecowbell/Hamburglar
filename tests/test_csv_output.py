@@ -29,7 +29,6 @@ from hamburglar.core.models import Finding, ScanResult, Severity
 from hamburglar.outputs import BaseOutput
 from hamburglar.outputs.csv_output import DEFAULT_HEADERS, CsvOutput
 
-
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -118,9 +117,7 @@ class TestRfc4180Compliance:
         for line in lines[:-1]:  # Last split will be empty
             assert "\n" not in line
 
-    def test_fields_are_comma_separated(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_fields_are_comma_separated(self, single_finding_result: ScanResult) -> None:
         """Test that fields are comma separated by default."""
         formatter = CsvOutput()
         output = formatter.format(single_finding_result)
@@ -213,9 +210,7 @@ class TestRfc4180Compliance:
 class TestCsvHeaders:
     """Test that CSV headers are correct."""
 
-    def test_headers_are_included_by_default(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_headers_are_included_by_default(self, single_finding_result: ScanResult) -> None:
         """Test that headers are included by default."""
         formatter = CsvOutput()
         output = formatter.format(single_finding_result)
@@ -240,9 +235,7 @@ class TestCsvHeaders:
 
         assert headers == DEFAULT_HEADERS
 
-    def test_headers_can_be_disabled(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_headers_can_be_disabled(self, single_finding_result: ScanResult) -> None:
         """Test that headers can be disabled."""
         formatter = CsvOutput(include_headers=False)
         output = formatter.format(single_finding_result)
@@ -254,9 +247,7 @@ class TestCsvHeaders:
         assert first_row[0] == "/tmp/test/secrets.txt"
         assert first_row[1] == "aws_key"
 
-    def test_empty_result_still_has_headers(
-        self, empty_scan_result: ScanResult
-    ) -> None:
+    def test_empty_result_still_has_headers(self, empty_scan_result: ScanResult) -> None:
         """Test that empty result still includes headers."""
         formatter = CsvOutput()
         output = formatter.format(empty_scan_result)
@@ -517,9 +508,7 @@ class TestDelimiterConfiguration:
         lines = output.strip().split("\r\n")
         assert "|" in lines[0]
 
-    def test_custom_delimiter_parsing(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_custom_delimiter_parsing(self, single_finding_result: ScanResult) -> None:
         """Test that custom delimiter output can be parsed."""
         formatter = CsvOutput(delimiter=";")
         output = formatter.format(single_finding_result)
@@ -549,9 +538,7 @@ class TestFieldValues:
         row = next(reader)
         assert row[0] == "/tmp/test/secrets.txt"
 
-    def test_detector_name_is_correct(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_detector_name_is_correct(self, single_finding_result: ScanResult) -> None:
         """Test that detector name is correctly included."""
         formatter = CsvOutput()
         output = formatter.format(single_finding_result)
@@ -561,9 +548,7 @@ class TestFieldValues:
         row = next(reader)
         assert row[1] == "aws_key"
 
-    def test_match_value_is_correct(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_match_value_is_correct(self, single_finding_result: ScanResult) -> None:
         """Test that match value is correctly included."""
         formatter = CsvOutput()
         output = formatter.format(single_finding_result)
@@ -583,9 +568,7 @@ class TestFieldValues:
         row = next(reader)
         assert row[3] == "high"
 
-    def test_line_number_from_line_key(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_line_number_from_line_key(self, single_finding_result: ScanResult) -> None:
         """Test that line number is extracted from 'line' key."""
         formatter = CsvOutput()
         output = formatter.format(single_finding_result)
@@ -595,9 +578,7 @@ class TestFieldValues:
         row = next(reader)
         assert row[4] == "5"
 
-    def test_line_number_from_line_number_key(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_line_number_from_line_number_key(self, multiple_findings_result: ScanResult) -> None:
         """Test that line number is extracted from 'line_number' key."""
         formatter = CsvOutput()
         output = formatter.format(multiple_findings_result)
@@ -632,9 +613,7 @@ class TestFieldValues:
         row = next(reader)
         assert row[4] == ""
 
-    def test_context_is_included(
-        self, multiple_findings_result: ScanResult
-    ) -> None:
+    def test_context_is_included(self, multiple_findings_result: ScanResult) -> None:
         """Test that context is correctly included."""
         formatter = CsvOutput()
         output = formatter.format(multiple_findings_result)
@@ -647,9 +626,7 @@ class TestFieldValues:
         # All aws_key rows should have the same context
         assert aws_rows[0][5] == "aws_access_key_id = ..."
 
-    def test_missing_context_is_empty(
-        self, single_finding_result: ScanResult
-    ) -> None:
+    def test_missing_context_is_empty(self, single_finding_result: ScanResult) -> None:
         """Test that missing context results in empty string."""
         formatter = CsvOutput()
         output = formatter.format(single_finding_result)
@@ -738,9 +715,7 @@ class TestMultipleMatches:
 class TestEmptyResults:
     """Test handling of empty scan results."""
 
-    def test_empty_findings_produces_headers_only(
-        self, empty_scan_result: ScanResult
-    ) -> None:
+    def test_empty_findings_produces_headers_only(self, empty_scan_result: ScanResult) -> None:
         """Test that empty findings still produces valid CSV with headers."""
         formatter = CsvOutput()
         output = formatter.format(empty_scan_result)
@@ -751,9 +726,7 @@ class TestEmptyResults:
         assert len(rows) == 1  # Just header
         assert rows[0] == DEFAULT_HEADERS
 
-    def test_empty_findings_no_headers(
-        self, empty_scan_result: ScanResult
-    ) -> None:
+    def test_empty_findings_no_headers(self, empty_scan_result: ScanResult) -> None:
         """Test that empty findings with no headers produces empty output."""
         formatter = CsvOutput(include_headers=False)
         output = formatter.format(empty_scan_result)

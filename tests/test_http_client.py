@@ -448,9 +448,7 @@ class TestHttpClientBasic:
 
     def test_init_with_rate_limit(self):
         """Test initialization with rate limiting."""
-        config = HttpClientConfig(
-            rate_limit=RateLimitConfig(requests_per_second=2.0)
-        )
+        config = HttpClientConfig(rate_limit=RateLimitConfig(requests_per_second=2.0))
         client = HttpClient(config)
         assert client._rate_limiter is not None
 
@@ -590,9 +588,7 @@ class TestHttpClientRetry:
             mock_response_200.headers = {}
             mock_response_200.url = "https://example.com"
 
-            mock_client.request = AsyncMock(
-                side_effect=[mock_response_503, mock_response_200]
-            )
+            mock_client.request = AsyncMock(side_effect=[mock_response_503, mock_response_200])
 
             async with client:
                 response = await client.get("https://example.com")
@@ -654,9 +650,7 @@ class TestHttpClientRetry:
             mock_client.aclose = AsyncMock()
 
             # All calls timeout
-            mock_client.request = AsyncMock(
-                side_effect=httpx.TimeoutException("timeout")
-            )
+            mock_client.request = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
 
             async with client:
                 with pytest.raises(HttpClientError) as exc_info:
@@ -683,9 +677,7 @@ class TestHttpClientRetry:
             mock_client.aclose = AsyncMock()
 
             # All calls fail with request error
-            mock_client.request = AsyncMock(
-                side_effect=httpx.RequestError("Connection failed")
-            )
+            mock_client.request = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
 
             async with client:
                 with pytest.raises(HttpClientError) as exc_info:
@@ -911,9 +903,7 @@ class TestHttpClientRateLimit:
     @pytest.mark.asyncio
     async def test_rate_limit_applied(self):
         """Test rate limiting is applied to requests."""
-        config = HttpClientConfig(
-            rate_limit=RateLimitConfig(requests_per_second=5.0, burst_size=1)
-        )
+        config = HttpClientConfig(rate_limit=RateLimitConfig(requests_per_second=5.0, burst_size=1))
         client = HttpClient(config)
 
         with patch("httpx.AsyncClient") as mock_client_class:
@@ -1193,22 +1183,18 @@ class TestResponseCacheAdvanced:
 
         # Cache with different auth headers
         await cache.set(
-            "GET", "https://example.com", response1,
-            headers={"Authorization": "Bearer token1"}
+            "GET", "https://example.com", response1, headers={"Authorization": "Bearer token1"}
         )
         await cache.set(
-            "GET", "https://example.com", response2,
-            headers={"Authorization": "Bearer token2"}
+            "GET", "https://example.com", response2, headers={"Authorization": "Bearer token2"}
         )
 
         # Both should be cached separately
         result1 = await cache.get(
-            "GET", "https://example.com",
-            headers={"Authorization": "Bearer token1"}
+            "GET", "https://example.com", headers={"Authorization": "Bearer token1"}
         )
         result2 = await cache.get(
-            "GET", "https://example.com",
-            headers={"Authorization": "Bearer token2"}
+            "GET", "https://example.com", headers={"Authorization": "Bearer token2"}
         )
 
         assert result1 is not None
@@ -1236,22 +1222,14 @@ class TestResponseCacheAdvanced:
 
         # Cache with different accept headers
         await cache.set(
-            "GET", "https://example.com", response1,
-            headers={"Accept": "application/json"}
+            "GET", "https://example.com", response1, headers={"Accept": "application/json"}
         )
-        await cache.set(
-            "GET", "https://example.com", response2,
-            headers={"Accept": "text/html"}
-        )
+        await cache.set("GET", "https://example.com", response2, headers={"Accept": "text/html"})
 
         result1 = await cache.get(
-            "GET", "https://example.com",
-            headers={"Accept": "application/json"}
+            "GET", "https://example.com", headers={"Accept": "application/json"}
         )
-        result2 = await cache.get(
-            "GET", "https://example.com",
-            headers={"Accept": "text/html"}
-        )
+        result2 = await cache.get("GET", "https://example.com", headers={"Accept": "text/html"})
 
         assert result1 is not None
         assert result1.content == '{"data": "json"}'
@@ -1365,7 +1343,7 @@ class TestHttpxImportError:
     def test_import_error_when_httpx_unavailable(self):
         """Test ImportError is raised when httpx is not available."""
         # Reimport to get fresh reference
-        from importlib import reload
+
         import hamburglar.core.http_client as http_client_module
 
         # Save original value

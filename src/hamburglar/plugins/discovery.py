@@ -97,7 +97,7 @@ class PluginListEntry:
     config: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_plugin_info(cls, info: PluginInfo) -> "PluginListEntry":
+    def from_plugin_info(cls, info: PluginInfo) -> PluginListEntry:
         """Create a PluginListEntry from a PluginInfo.
 
         Args:
@@ -117,9 +117,7 @@ class PluginListEntry:
         )
 
 
-def validate_plugin_interface(
-    cls: type, plugin_type: str
-) -> tuple[bool, list[str]]:
+def validate_plugin_interface(cls: type, plugin_type: str) -> tuple[bool, list[str]]:
     """Validate that a class implements the required plugin interface.
 
     Checks that the class has all required methods and properties for
@@ -153,7 +151,7 @@ def validate_plugin_interface(
         # Check for detect method
         if not hasattr(cls, "detect"):
             errors.append("Missing 'detect' method")
-        elif not callable(getattr(cls, "detect")):
+        elif not callable(cls.detect):
             errors.append("'detect' must be a callable method")
 
         # Check inheritance (optional but recommended)
@@ -172,14 +170,12 @@ def validate_plugin_interface(
         # Check for format method
         if not hasattr(cls, "format"):
             errors.append("Missing 'format' method")
-        elif not callable(getattr(cls, "format")):
+        elif not callable(cls.format):
             errors.append("'format' must be a callable method")
 
         # Check inheritance (optional but recommended)
         if not issubclass(cls, BaseOutput) and not errors:
-            errors.append(
-                f"Output should inherit from BaseOutput (inherits from {cls.__bases__})"
-            )
+            errors.append(f"Output should inherit from BaseOutput (inherits from {cls.__bases__})")
             # This is a warning, not a hard error - remove it
             errors.pop()
 
@@ -294,9 +290,7 @@ def discover_directory(
     return discovered
 
 
-def _load_plugins_from_file(
-    file_path: Path, validate: bool = True
-) -> list[tuple[str, str, type]]:
+def _load_plugins_from_file(file_path: Path, validate: bool = True) -> list[tuple[str, str, type]]:
     """Load plugin classes from a Python file.
 
     Args:
@@ -416,14 +410,10 @@ def discover_plugins(
             for name, plugin_type, cls, source in ep_plugins:
                 try:
                     if plugin_type == "detector":
-                        manager._register_detector_from_class(
-                            name, cls, source="entry_point"
-                        )
+                        manager._register_detector_from_class(name, cls, source="entry_point")
                         result.detector_count += 1
                     else:
-                        manager._register_output_from_class(
-                            name, cls, source="entry_point"
-                        )
+                        manager._register_output_from_class(name, cls, source="entry_point")
                         result.output_count += 1
                     result.sources[name] = f"entry_point:{source}"
                 except Exception as e:
@@ -440,14 +430,10 @@ def discover_plugins(
                 for name, plugin_type, cls, file_path in dir_plugins:
                     try:
                         if plugin_type == "detector":
-                            manager._register_detector_from_class(
-                                name, cls, source="directory"
-                            )
+                            manager._register_detector_from_class(name, cls, source="directory")
                             result.detector_count += 1
                         else:
-                            manager._register_output_from_class(
-                                name, cls, source="directory"
-                            )
+                            manager._register_output_from_class(name, cls, source="directory")
                             result.output_count += 1
                         result.sources[name] = f"directory:{file_path}"
                     except Exception as e:
@@ -503,9 +489,7 @@ def list_plugins(
             yield PluginListEntry.from_plugin_info(info)
 
 
-def get_plugin_details(
-    name: str, manager: PluginManager | None = None
-) -> PluginListEntry | None:
+def get_plugin_details(name: str, manager: PluginManager | None = None) -> PluginListEntry | None:
     """Get detailed information about a specific plugin.
 
     Args:

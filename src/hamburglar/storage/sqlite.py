@@ -10,10 +10,11 @@ import json
 import sqlite3
 import threading
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from hamburglar.core.models import Finding, ScanResult, Severity
 from hamburglar.storage import (
@@ -24,7 +25,6 @@ from hamburglar.storage import (
     StorageError,
     StoredScan,
 )
-
 
 # Database schema version for migrations
 SCHEMA_VERSION = 1
@@ -231,9 +231,12 @@ class SqliteStorage(BaseStorage):
             """)
 
             # Set schema version
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO schema_version (version) VALUES (?)
-            """, (SCHEMA_VERSION,))
+            """,
+                (SCHEMA_VERSION,),
+            )
 
     def save_scan(self, result: ScanResult) -> str:
         """Save a scan result to the database.
@@ -253,44 +256,55 @@ class SqliteStorage(BaseStorage):
         try:
             with self._transaction() as cursor:
                 # Insert the scan record
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO scans (scan_id, target_path, scan_duration, stats_json, stored_at)
                     VALUES (?, ?, ?, ?, ?)
-                """, (
-                    scan_id,
-                    result.target_path,
-                    result.scan_duration,
-                    json.dumps(result.stats),
-                    stored_at,
-                ))
+                """,
+                    (
+                        scan_id,
+                        result.target_path,
+                        result.scan_duration,
+                        json.dumps(result.stats),
+                        stored_at,
+                    ),
+                )
 
                 # Insert all findings
                 for finding in result.findings:
                     # Extract line number from metadata if present
-                    line_number = finding.metadata.get("line") or finding.metadata.get("line_number")
+                    line_number = finding.metadata.get("line") or finding.metadata.get(
+                        "line_number"
+                    )
                     context = finding.metadata.get("context")
 
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO findings (
                             scan_id, file_path, detector_name, severity,
                             matches_json, metadata_json, line_number, context
                         )
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        scan_id,
-                        finding.file_path,
-                        finding.detector_name,
-                        finding.severity.value,
-                        json.dumps(finding.matches),
-                        json.dumps(finding.metadata),
-                        line_number,
-                        context,
-                    ))
+                    """,
+                        (
+                            scan_id,
+                            finding.file_path,
+                            finding.detector_name,
+                            finding.severity.value,
+                            json.dumps(finding.matches),
+                            json.dumps(finding.metadata),
+                            line_number,
+                            context,
+                        ),
+                    )
 
                     # Ensure detector is registered
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT OR IGNORE INTO detectors (name) VALUES (?)
-                    """, (finding.detector_name,))
+                    """,
+                        (finding.detector_name,),
+                    )
 
         except StorageError:
             raise
@@ -339,7 +353,9 @@ class SqliteStorage(BaseStorage):
 
                 if filter.min_findings is not None or filter.max_findings is not None:
                     # We need a subquery to count findings
-                    subquery = "(SELECT COUNT(*) FROM findings WHERE findings.scan_id = scans.scan_id)"
+                    subquery = (
+                        "(SELECT COUNT(*) FROM findings WHERE findings.scan_id = scans.scan_id)"
+                    )
                     if filter.min_findings is not None:
                         conditions.append(f"{subquery} >= ?")
                         params.append(filter.min_findings)
@@ -371,11 +387,14 @@ class SqliteStorage(BaseStorage):
             result: list[StoredScan] = []
             for row in rows:
                 # Fetch findings for this scan
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT file_path, detector_name, severity, matches_json, metadata_json
                     FROM findings
                     WHERE scan_id = ?
-                """, (row["scan_id"],))
+                """,
+                    (row["scan_id"],),
+                )
                 finding_rows = cursor.fetchall()
 
                 findings = [
@@ -399,12 +418,14 @@ class SqliteStorage(BaseStorage):
                 stored_at = datetime.fromisoformat(row["stored_at"])
                 metadata = json.loads(row["metadata_json"]) if row["metadata_json"] else {}
 
-                result.append(StoredScan(
-                    scan_id=row["scan_id"],
-                    scan_result=scan_result,
-                    stored_at=stored_at,
-                    metadata=metadata,
-                ))
+                result.append(
+                    StoredScan(
+                        scan_id=row["scan_id"],
+                        scan_result=scan_result,
+                        stored_at=stored_at,
+                        metadata=metadata,
+                    )
+                )
 
             cursor.close()
             return result
@@ -627,10 +648,13 @@ class SqliteStorage(BaseStorage):
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT scan_id, target_path, scan_duration, stats_json, stored_at, metadata_json
                 FROM scans WHERE scan_id = ?
-            """, (scan_id,))
+            """,
+                (scan_id,),
+            )
             row = cursor.fetchone()
 
             if row is None:
@@ -638,10 +662,13 @@ class SqliteStorage(BaseStorage):
                 return None
 
             # Fetch findings for this scan
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT file_path, detector_name, severity, matches_json, metadata_json
                 FROM findings WHERE scan_id = ?
-            """, (scan_id,))
+            """,
+                (scan_id,),
+            )
             finding_rows = cursor.fetchall()
 
             findings = [

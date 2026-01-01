@@ -14,8 +14,7 @@ import asyncio
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -85,8 +84,7 @@ def git_repo_with_history(tmp_path: Path) -> Path:
 
     # Commit 2: Add second secret
     secrets_file.write_text(
-        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n'
-        'API_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\nAPI_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
     )
     subprocess.run(["git", "add", "."], cwd=repo_path, check=True, capture_output=True)
     subprocess.run(
@@ -98,8 +96,7 @@ def git_repo_with_history(tmp_path: Path) -> Path:
 
     # Commit 3: Remove first secret
     secrets_file.write_text(
-        '# AWS_KEY removed for security\n'
-        'API_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        '# AWS_KEY removed for security\nAPI_TOKEN = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"\n'
     )
     subprocess.run(["git", "add", "."], cwd=repo_path, check=True, capture_output=True)
     subprocess.run(
@@ -488,9 +485,7 @@ class TestRemovedSecretsDetection:
         assert scanner.get_stats()["secrets_tracked"] > 0
 
     @pytest.mark.asyncio
-    async def test_timeline_includes_all_occurrences(
-        self, git_repo_with_history: Path
-    ) -> None:
+    async def test_timeline_includes_all_occurrences(self, git_repo_with_history: Path) -> None:
         """Test that timelines include all occurrences of a secret."""
         detector = RegexDetector()
         scanner = GitHistoryScanner(
@@ -512,9 +507,7 @@ class TestFullScan:
     """Test complete scan functionality."""
 
     @pytest.mark.asyncio
-    async def test_full_scan_returns_findings(
-        self, git_repo_with_history: Path
-    ) -> None:
+    async def test_full_scan_returns_findings(self, git_repo_with_history: Path) -> None:
         """Test that full scan returns findings."""
         detector = RegexDetector()
         scanner = GitHistoryScanner(
@@ -553,9 +546,7 @@ class TestFullScan:
         assert result.stats["commits_parsed"] == 1
 
     @pytest.mark.asyncio
-    async def test_findings_have_correct_metadata(
-        self, git_repo_simple: Path
-    ) -> None:
+    async def test_findings_have_correct_metadata(self, git_repo_simple: Path) -> None:
         """Test that findings have correct metadata."""
         detector = RegexDetector()
         scanner = GitHistoryScanner(
@@ -681,9 +672,7 @@ class TestProgressCallback:
         assert len(progress_calls) > 0
 
     @pytest.mark.asyncio
-    async def test_progress_callback_error_handling(
-        self, git_repo_simple: Path
-    ) -> None:
+    async def test_progress_callback_error_handling(self, git_repo_simple: Path) -> None:
         """Test that callback errors don't disrupt the scan."""
 
         def failing_callback(progress: ScanProgress) -> None:
@@ -718,9 +707,7 @@ class TestStreaming:
         assert len(findings) > 0
 
     @pytest.mark.asyncio
-    async def test_stream_with_cancellation(
-        self, git_repo_with_history: Path
-    ) -> None:
+    async def test_stream_with_cancellation(self, git_repo_with_history: Path) -> None:
         """Test streaming respects cancellation."""
         scanner = GitHistoryScanner(
             git_repo_with_history,
@@ -779,9 +766,7 @@ class TestTimelineReport:
     """Test timeline report generation."""
 
     @pytest.mark.asyncio
-    async def test_generate_timeline_report(
-        self, git_repo_with_history: Path
-    ) -> None:
+    async def test_generate_timeline_report(self, git_repo_with_history: Path) -> None:
         """Test timeline report generation."""
         scanner = GitHistoryScanner(
             git_repo_with_history,
@@ -802,9 +787,7 @@ class TestTimelineReport:
         repo_path = git_repo_simple.parent / "no_secrets_repo"
         repo_path.mkdir()
 
-        subprocess.run(
-            ["git", "init"], cwd=repo_path, check=True, capture_output=True
-        )
+        subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
         subprocess.run(
             ["git", "config", "user.email", "test@example.com"],
             cwd=repo_path,
@@ -818,9 +801,7 @@ class TestTimelineReport:
             capture_output=True,
         )
         (repo_path / "README.md").write_text("# Clean Repo\n")
-        subprocess.run(
-            ["git", "add", "."], cwd=repo_path, check=True, capture_output=True
-        )
+        subprocess.run(["git", "add", "."], cwd=repo_path, check=True, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "Initial clean commit"],
             cwd=repo_path,
@@ -936,9 +917,7 @@ class TestCommitMessageScanning:
     """Test scanning of commit messages."""
 
     @pytest.mark.asyncio
-    async def test_finds_secrets_in_commit_messages(
-        self, git_repo_with_history: Path
-    ) -> None:
+    async def test_finds_secrets_in_commit_messages(self, git_repo_with_history: Path) -> None:
         """Test that secrets in commit messages are found."""
         detector = RegexDetector()
         scanner = GitHistoryScanner(
@@ -950,9 +929,7 @@ class TestCommitMessageScanning:
 
         # Find commit message findings
         commit_msg_findings = [
-            f
-            for f in result.findings
-            if f.metadata.get("source_type") == "commit_message"
+            f for f in result.findings if f.metadata.get("source_type") == "commit_message"
         ]
 
         # The repo has a secret in a commit message

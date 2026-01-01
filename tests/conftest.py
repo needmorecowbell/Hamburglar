@@ -8,13 +8,14 @@ default configurations.
 from __future__ import annotations
 
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
 
 import pytest
 
 # Import git fixtures to make them available project-wide
 pytest_plugins = ["tests.fixtures.git.conftest"]
+
 
 # Configure path before any hamburglar imports.
 # This is needed because there's a legacy hamburglar.py file in the project root
@@ -35,6 +36,7 @@ def _configure_path() -> None:
     for key in list(sys.modules.keys()):
         if key == "hamburglar" or key.startswith("hamburglar."):
             del sys.modules[key]
+
 
 _configure_path()
 

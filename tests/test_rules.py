@@ -31,7 +31,7 @@ class TestRulesPath:
 
     def test_rules_dir_constant(self) -> None:
         """RULES_DIR constant should match get_rules_path."""
-        assert RULES_DIR == get_rules_path()
+        assert get_rules_path() == RULES_DIR
 
 
 class TestListRules:

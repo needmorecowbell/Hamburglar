@@ -22,6 +22,7 @@ def fake_token(*parts: str) -> str:
     """Build a test token from parts to bypass secret scanning."""
     return "".join(parts)
 
+
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.patterns.api_keys import (
@@ -104,17 +105,13 @@ class TestAWSPatterns:
     def test_aws_secret_key_positive_1(self) -> None:
         """Test AWS Secret Key matches valid key in context."""
         pattern = re.compile(AWS_SECRET_KEY.regex)
-        result = pattern.search(
-            "aws_secret_key = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'"
-        )
+        result = pattern.search("aws_secret_key = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'")
         assert result is not None
 
     def test_aws_secret_key_positive_2(self) -> None:
         """Test AWS Secret Key matches with different separator."""
         pattern = re.compile(AWS_SECRET_KEY.regex)
-        result = pattern.search(
-            'AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"'
-        )
+        result = pattern.search('AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"')
         assert result is not None
 
     def test_aws_secret_key_negative_1(self) -> None:
@@ -277,17 +274,13 @@ class TestGitHubPatterns:
     def test_github_oauth_client_secret_positive(self) -> None:
         """Test GitHub OAuth client secret matches."""
         pattern = re.compile(GITHUB_OAUTH_CLIENT_SECRET.regex)
-        result = pattern.search(
-            "github_client_secret = 'abcdef1234567890ABCDEF1234567890abcdefgh'"
-        )
+        result = pattern.search("github_client_secret = 'abcdef1234567890ABCDEF1234567890abcdefgh'")
         assert result is not None
 
     def test_github_oauth_client_secret_positive_2(self) -> None:
         """Test GitHub OAuth client secret alternate format."""
         pattern = re.compile(GITHUB_OAUTH_CLIENT_SECRET.regex)
-        result = pattern.search(
-            'GITHUB_OAUTH_SECRET: "1234567890abcdef1234567890ABCDEF12345678"'
-        )
+        result = pattern.search('GITHUB_OAUTH_SECRET: "1234567890abcdef1234567890ABCDEF12345678"')
         assert result is not None
 
     def test_github_oauth_client_secret_negative_1(self) -> None:
@@ -409,7 +402,13 @@ class TestSlackPatterns:
         # Use string concatenation to bypass scanning
         test_str = fake_token(
             'webhook_url = "https://hooks.slack.com/services/',
-            "T", "0" * 9, "/B", "0" * 10, "/", "0" * 24, '"'
+            "T",
+            "0" * 9,
+            "/B",
+            "0" * 10,
+            "/",
+            "0" * 24,
+            '"',
         )
         result = pattern.search(test_str)
         assert result is not None
@@ -417,9 +416,7 @@ class TestSlackPatterns:
     def test_slack_webhook_negative_1(self) -> None:
         """Test Slack webhook wrong domain."""
         pattern = re.compile(SLACK_WEBHOOK.regex)
-        result = pattern.search(
-            "https://hooks.other.com/services/T12345678/B123456789/AbCdEfGhIj"
-        )
+        result = pattern.search("https://hooks.other.com/services/T12345678/B123456789/AbCdEfGhIj")
         assert result is None
 
     def test_slack_webhook_negative_2(self) -> None:
@@ -794,7 +791,9 @@ class TestNPMPatterns:
         """Test NPM token in .npmrc."""
         pattern = re.compile(NPM_TOKEN.regex)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("//registry.npmjs.org/:_authToken=", "npm_", "ABCDEFghijklmnop", "1234567890abcdefghij")
+        test_str = fake_token(
+            "//registry.npmjs.org/:_authToken=", "npm_", "ABCDEFghijklmnop", "1234567890abcdefghij"
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -849,7 +848,13 @@ class TestPyPIPattern:
         pattern = re.compile(PYPI_TOKEN.regex)
         # 50+ chars after prefix (pypi-AgEIcHlwaS5vcmc)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("pypi-", "AgEIcHlwaS5vcmc", "CJGFiY2RlZjEyLTM0", "NTYtNzg5MC1hYmNkLWVm", "MTIzNDU2Nzg5MA")
+        test_str = fake_token(
+            "pypi-",
+            "AgEIcHlwaS5vcmc",
+            "CJGFiY2RlZjEyLTM0",
+            "NTYtNzg5MC1hYmNkLWVm",
+            "MTIzNDU2Nzg5MA",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -858,7 +863,13 @@ class TestPyPIPattern:
         pattern = re.compile(PYPI_TOKEN.regex)
         # 50+ chars after prefix (pypi-AgEIcHlwaS5vcmc)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("PYPI_API_TOKEN=", "pypi-", "AgEIcHlwaS5vcmcABCDEFGH", "IJKLMNOPQRSTUVWXYZ12345", "678901234567890abcd")
+        test_str = fake_token(
+            "PYPI_API_TOKEN=",
+            "pypi-",
+            "AgEIcHlwaS5vcmcABCDEFGH",
+            "IJKLMNOPQRSTUVWXYZ12345",
+            "678901234567890abcd",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -964,7 +975,13 @@ class TestDigitalOceanPatterns:
         """Test DigitalOcean PAT matches."""
         pattern = re.compile(DIGITALOCEAN_TOKEN.regex)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("dop_v1_", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef")
+        test_str = fake_token(
+            "dop_v1_",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -973,7 +990,14 @@ class TestDigitalOceanPatterns:
         pattern = re.compile(DIGITALOCEAN_TOKEN.regex)
         # dop_v1_ followed by 64 lowercase hex chars (16*4=64)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("DO_TOKEN=", "dop_v1_", "abcdef1234567890", "abcdef1234567890", "abcdef1234567890", "abcdef1234567890")
+        test_str = fake_token(
+            "DO_TOKEN=",
+            "dop_v1_",
+            "abcdef1234567890",
+            "abcdef1234567890",
+            "abcdef1234567890",
+            "abcdef1234567890",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -981,7 +1005,13 @@ class TestDigitalOceanPatterns:
         """Test DigitalOcean token wrong prefix."""
         pattern = re.compile(DIGITALOCEAN_TOKEN.regex)
         # Use string concatenation to bypass scanning (dop_v2_ instead of dop_v1_)
-        test_str = fake_token("dop_v2_", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef")
+        test_str = fake_token(
+            "dop_v2_",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+        )
         result = pattern.search(test_str)
         assert result is None
 
@@ -995,7 +1025,13 @@ class TestDigitalOceanPatterns:
         """Test DigitalOcean OAuth token matches."""
         pattern = re.compile(DIGITALOCEAN_OAUTH_TOKEN.regex)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("doo_v1_", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef")
+        test_str = fake_token(
+            "doo_v1_",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -1004,7 +1040,14 @@ class TestDigitalOceanPatterns:
         pattern = re.compile(DIGITALOCEAN_OAUTH_TOKEN.regex)
         # doo_v1_ followed by 64 lowercase hex chars (16*4=64)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("oauth_token=", "doo_v1_", "abcdef1234567890", "abcdef1234567890", "abcdef1234567890", "abcdef1234567890")
+        test_str = fake_token(
+            "oauth_token=",
+            "doo_v1_",
+            "abcdef1234567890",
+            "abcdef1234567890",
+            "abcdef1234567890",
+            "abcdef1234567890",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -1026,7 +1069,13 @@ class TestDigitalOceanPatterns:
         """Test DigitalOcean refresh token matches."""
         pattern = re.compile(DIGITALOCEAN_REFRESH_TOKEN.regex)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("dor_v1_", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef")
+        test_str = fake_token(
+            "dor_v1_",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -1035,7 +1084,14 @@ class TestDigitalOceanPatterns:
         pattern = re.compile(DIGITALOCEAN_REFRESH_TOKEN.regex)
         # dor_v1_ followed by 64 lowercase hex chars (16*4=64)
         # Use string concatenation to bypass scanning
-        test_str = fake_token("refresh=", "dor_v1_", "abcdef1234567890", "abcdef1234567890", "abcdef1234567890", "abcdef1234567890")
+        test_str = fake_token(
+            "refresh=",
+            "dor_v1_",
+            "abcdef1234567890",
+            "abcdef1234567890",
+            "abcdef1234567890",
+            "abcdef1234567890",
+        )
         result = pattern.search(test_str)
         assert result is not None
 
@@ -1043,7 +1099,13 @@ class TestDigitalOceanPatterns:
         """Test DigitalOcean refresh wrong prefix."""
         pattern = re.compile(DIGITALOCEAN_REFRESH_TOKEN.regex)
         # Use string concatenation to bypass scanning (dop_v1_ instead of dor_v1_)
-        test_str = fake_token("dop_v1_", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef", "1234567890abcdef")
+        test_str = fake_token(
+            "dop_v1_",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+            "1234567890abcdef",
+        )
         result = pattern.search(test_str)
         assert result is None
 
@@ -1084,9 +1146,7 @@ class TestDatadogPatterns:
     def test_datadog_app_key_positive_1(self) -> None:
         """Test Datadog app key matches."""
         pattern = re.compile(DATADOG_APP_KEY.regex)
-        result = pattern.search(
-            "datadog_app_key = '1234567890abcdef1234567890abcdef12345678'"
-        )
+        result = pattern.search("datadog_app_key = '1234567890abcdef1234567890abcdef12345678'")
         assert result is not None
 
     def test_datadog_app_key_positive_2(self) -> None:
@@ -1100,9 +1160,7 @@ class TestDatadogPatterns:
     def test_datadog_app_key_negative_1(self) -> None:
         """Test Datadog app key no context."""
         pattern = re.compile(DATADOG_APP_KEY.regex)
-        result = pattern.search(
-            "app_key = '1234567890abcdef1234567890abcdef12345678'"
-        )
+        result = pattern.search("app_key = '1234567890abcdef1234567890abcdef12345678'")
         assert result is None
 
     def test_datadog_app_key_negative_2(self) -> None:
@@ -1126,17 +1184,13 @@ class TestNewRelicPatterns:
     def test_new_relic_license_positive_2(self) -> None:
         """Test New Relic license alternate format."""
         pattern = re.compile(NEW_RELIC_LICENSE_KEY.regex)
-        result = pattern.search(
-            'NEWRELIC_KEY: "abcdef1234567890abcdef1234567890abcdef12"'
-        )
+        result = pattern.search('NEWRELIC_KEY: "abcdef1234567890abcdef1234567890abcdef12"')
         assert result is not None
 
     def test_new_relic_license_negative_1(self) -> None:
         """Test New Relic license key no context."""
         pattern = re.compile(NEW_RELIC_LICENSE_KEY.regex)
-        result = pattern.search(
-            "license_key = '1234567890abcdef1234567890abcdef12345678'"
-        )
+        result = pattern.search("license_key = '1234567890abcdef1234567890abcdef12345678'")
         assert result is None
 
     def test_new_relic_license_negative_2(self) -> None:

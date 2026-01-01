@@ -51,6 +51,7 @@ class TestBaseScanner:
 
     def test_init_with_detectors(self):
         """Test initialization with detectors."""
+
         # Mock detector
         class MockDetector:
             pass
@@ -129,6 +130,7 @@ class TestBaseScanner:
 
     def test_is_cancelled_default(self):
         """Test that is_cancelled returns False by default for base implementation."""
+
         # Test the base class default - we need a minimal implementation
         class MinimalScanner(BaseScanner):
             @property

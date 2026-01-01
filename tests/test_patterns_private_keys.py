@@ -13,30 +13,27 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.patterns.private_keys import (
-    PRIVATE_KEY_PATTERNS,
-    RSA_PRIVATE_KEY,
-    OPENSSH_PRIVATE_KEY,
-    EC_PRIVATE_KEY,
+    AWS_EC2_KEY_PAIR,
     DSA_PRIVATE_KEY,
+    EC_PRIVATE_KEY,
+    OPENSSH_PRIVATE_KEY,
     PGP_PRIVATE_KEY,
-    PKCS8_PRIVATE_KEY,
     PKCS8_ENCRYPTED_PRIVATE_KEY,
-    SSH_PRIVATE_KEY_GENERIC,
-    SSH2_PRIVATE_KEY,
-    PUTTY_PRIVATE_KEY,
-    X509_CERTIFICATE,
-    X509_CERTIFICATE_REQUEST,
-    SSL_PRIVATE_KEY,
+    PKCS8_PRIVATE_KEY,
     PRIVATE_KEY_ASSIGNMENT,
     PRIVATE_KEY_PATH,
-    AWS_EC2_KEY_PAIR,
+    PRIVATE_KEY_PATTERNS,
+    PUTTY_PRIVATE_KEY,
+    RSA_PRIVATE_KEY,
+    SSH2_PRIVATE_KEY,
+    SSH_PRIVATE_KEY_GENERIC,
+    SSL_PRIVATE_KEY,
+    X509_CERTIFICATE,
+    X509_CERTIFICATE_REQUEST,
 )
-
 
 # Sample test keys - intentionally fake/example content
 FAKE_RSA_KEY = """-----BEGIN RSA PRIVATE KEY-----
@@ -125,7 +122,9 @@ class TestRSAPrivateKey:
     def test_rsa_private_key_negative_2(self) -> None:
         """Test RSA private key doesn't match public key."""
         pattern = re.compile(RSA_PRIVATE_KEY.regex, re.DOTALL)
-        result = pattern.search("-----BEGIN RSA PUBLIC KEY-----\ntest\n-----END RSA PUBLIC KEY-----")
+        result = pattern.search(
+            "-----BEGIN RSA PUBLIC KEY-----\ntest\n-----END RSA PUBLIC KEY-----"
+        )
         assert result is None
 
     def test_rsa_private_key_metadata(self) -> None:
@@ -234,7 +233,9 @@ class TestDSAPrivateKey:
     def test_dsa_private_key_negative_2(self) -> None:
         """Test DSA private key doesn't match DSA parameters."""
         pattern = re.compile(DSA_PRIVATE_KEY.regex, re.DOTALL)
-        result = pattern.search("-----BEGIN DSA PARAMETERS-----\ntest\n-----END DSA PARAMETERS-----")
+        result = pattern.search(
+            "-----BEGIN DSA PARAMETERS-----\ntest\n-----END DSA PARAMETERS-----"
+        )
         assert result is None
 
     def test_dsa_private_key_metadata(self) -> None:
@@ -263,7 +264,9 @@ class TestPGPPrivateKey:
     def test_pgp_private_key_negative_1(self) -> None:
         """Test PGP private key doesn't match public key."""
         pattern = re.compile(PGP_PRIVATE_KEY.regex, re.DOTALL)
-        result = pattern.search("-----BEGIN PGP PUBLIC KEY BLOCK-----\ntest\n-----END PGP PUBLIC KEY BLOCK-----")
+        result = pattern.search(
+            "-----BEGIN PGP PUBLIC KEY BLOCK-----\ntest\n-----END PGP PUBLIC KEY BLOCK-----"
+        )
         assert result is None
 
     def test_pgp_private_key_negative_2(self) -> None:

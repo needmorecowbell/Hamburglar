@@ -8,12 +8,11 @@ both sync and async interfaces and caches compiled patterns for reuse.
 from __future__ import annotations
 
 import asyncio
-import fnmatch
 import logging
 import re
-from dataclasses import dataclass, field
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +269,11 @@ class FileFilter:
         # For non-anchored patterns, allow matching anywhere in path
         # For anchored patterns, match from start
         # Always match to end of string or before /
-        return f"(?:^|.*/){regex_str}(?:/.*)?$" if not self._is_simple_name(pattern) else f"(?:^|.*/){regex_str}$"
+        return (
+            f"(?:^|.*/){regex_str}(?:/.*)?$"
+            if not self._is_simple_name(pattern)
+            else f"(?:^|.*/){regex_str}$"
+        )
 
     def _is_simple_name(self, pattern: str) -> bool:
         """Check if pattern is a simple filename (no directory components).
@@ -533,9 +536,7 @@ class FileFilter:
         """
         if pattern in self.exclude_patterns:
             self.exclude_patterns.remove(pattern)
-            self._compiled_excludes = [
-                c for c in self._compiled_excludes if c.original != pattern
-            ]
+            self._compiled_excludes = [c for c in self._compiled_excludes if c.original != pattern]
             return True
         return False
 
@@ -550,9 +551,7 @@ class FileFilter:
         """
         if pattern in self.include_patterns:
             self.include_patterns.remove(pattern)
-            self._compiled_includes = [
-                c for c in self._compiled_includes if c.original != pattern
-            ]
+            self._compiled_includes = [c for c in self._compiled_includes if c.original != pattern]
             return True
         return False
 
@@ -561,7 +560,7 @@ class FileFilter:
         cls,
         gitignore_path: Path,
         base_path: Path | None = None,
-    ) -> "FileFilter":
+    ) -> FileFilter:
         """Create a FileFilter from a .gitignore file.
 
         Args:
@@ -575,13 +574,13 @@ class FileFilter:
         patterns: list[str] = []
 
         try:
-            with open(gitignore_path, "r", encoding="utf-8") as f:
+            with open(gitignore_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.rstrip("\n\r")
                     # Skip empty lines and comments
                     if line.strip() and not line.strip().startswith("#"):
                         patterns.append(line)
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.warning(f"Could not read gitignore file {gitignore_path}: {e}")
             return cls(exclude=[], base_path=base_path)
 
@@ -600,7 +599,4 @@ class FileFilter:
 
     def __repr__(self) -> str:
         """Return string representation of the filter."""
-        return (
-            f"FileFilter(exclude={self.exclude_patterns!r}, "
-            f"include={self.include_patterns!r})"
-        )
+        return f"FileFilter(exclude={self.exclude_patterns!r}, include={self.include_patterns!r})"

@@ -10,8 +10,9 @@ import asyncio
 import fnmatch
 import logging
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import TYPE_CHECKING, AsyncIterator, Callable
+from typing import TYPE_CHECKING, Callable
 
 from hamburglar.core.exceptions import ScanError
 from hamburglar.core.models import Finding, ScanConfig, ScanResult
@@ -470,7 +471,7 @@ class AsyncScanner:
                 except asyncio.CancelledError:
                     pass
 
-        scan_duration = time.time() - self._start_time
+        time.time() - self._start_time
         logger.info(
             f"Stream scan complete: {self._files_scanned} files scanned, "
             f"{self._files_skipped} skipped, {self._findings_count} findings"

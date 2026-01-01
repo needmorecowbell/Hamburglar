@@ -13,8 +13,8 @@ import asyncio
 import io
 import json
 import sys
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 
 import pytest
 
@@ -38,7 +38,6 @@ from hamburglar.outputs.streaming import (  # noqa: E402
     StreamingOutput,
     stream_to_ndjson,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -255,7 +254,7 @@ class TestNDJSONFormat:
 
         parsed = json.loads(output)
         assert "日本語" in parsed["file_path"]
-        assert "пароль_детектор" == parsed["detector_name"]
+        assert parsed["detector_name"] == "пароль_детектор"
 
 
 # ============================================================================
@@ -267,9 +266,7 @@ class TestStreamFindings:
     """Test that findings stream as discovered."""
 
     @pytest.mark.asyncio
-    async def test_stream_findings_yields_lines(
-        self, sample_findings: list[Finding]
-    ) -> None:
+    async def test_stream_findings_yields_lines(self, sample_findings: list[Finding]) -> None:
         """Test that stream_findings yields formatted lines."""
         formatter = StreamingOutput()
         iterator = async_findings_generator(sample_findings)
@@ -297,9 +294,7 @@ class TestStreamFindings:
         received_times: list[float] = []
         start_time = asyncio.get_event_loop().time()
 
-        async for _ in formatter.stream_findings(
-            async_findings_generator(findings, delay=0.01)
-        ):
+        async for _ in formatter.stream_findings(async_findings_generator(findings, delay=0.01)):
             received_times.append(asyncio.get_event_loop().time() - start_time)
 
         # Findings should arrive at different times
@@ -404,9 +399,7 @@ class TestWriteStream:
     """Test write_stream functionality."""
 
     @pytest.mark.asyncio
-    async def test_write_stream_to_buffer(
-        self, sample_findings: list[Finding]
-    ) -> None:
+    async def test_write_stream_to_buffer(self, sample_findings: list[Finding]) -> None:
         """Test writing stream to a StringIO buffer."""
         formatter = StreamingOutput()
         buffer = io.StringIO()
@@ -491,9 +484,7 @@ class TestNDJSONStreamWriter:
         assert parsed["detector_name"] == "aws_key"
 
     @pytest.mark.asyncio
-    async def test_writer_buffers_findings(
-        self, sample_findings: list[Finding]
-    ) -> None:
+    async def test_writer_buffers_findings(self, sample_findings: list[Finding]) -> None:
         """Test that the writer buffers findings."""
         buffer = io.StringIO()
 
@@ -581,9 +572,7 @@ class TestStreamToNdjson:
     """Test the stream_to_ndjson convenience function."""
 
     @pytest.mark.asyncio
-    async def test_collect_without_output(
-        self, sample_findings: list[Finding]
-    ) -> None:
+    async def test_collect_without_output(self, sample_findings: list[Finding]) -> None:
         """Test collecting NDJSON strings without output file."""
         lines = await stream_to_ndjson(async_findings_generator(sample_findings))
 
@@ -760,9 +749,7 @@ class TestStreamingEdgeCases:
         ]
 
         formatter = StreamingOutput()
-        collected = await formatter.collect_findings(
-            async_findings_generator(findings)
-        )
+        collected = await formatter.collect_findings(async_findings_generator(findings))
 
         assert len(collected) == 1000
 

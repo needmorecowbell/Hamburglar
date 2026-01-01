@@ -119,9 +119,7 @@ def get_env_overrides() -> dict[str, Any]:
 
     # Detector settings
     if ENV_CATEGORIES in os.environ:
-        overrides["detector"]["enabled_categories"] = _parse_list(
-            os.environ[ENV_CATEGORIES]
-        )
+        overrides["detector"]["enabled_categories"] = _parse_list(os.environ[ENV_CATEGORIES])
 
     if ENV_MIN_CONFIDENCE in os.environ:
         overrides["detector"]["min_confidence"] = os.environ[ENV_MIN_CONFIDENCE].lower()

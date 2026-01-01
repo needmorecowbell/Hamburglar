@@ -121,6 +121,7 @@ class TestParseSeverities:
     def test_raises_on_invalid_severity(self) -> None:
         """Test that invalid severity raises BadParameter."""
         import typer
+
         with pytest.raises(typer.BadParameter) as excinfo:
             parse_severities("invalid")
         assert "Invalid severity" in str(excinfo.value)
@@ -184,6 +185,7 @@ class TestParseDate:
     def test_raises_on_invalid_format(self) -> None:
         """Test that invalid format raises BadParameter."""
         import typer
+
         with pytest.raises(typer.BadParameter) as excinfo:
             parse_date("invalid-date")
         assert "Invalid date format" in str(excinfo.value)
@@ -237,7 +239,15 @@ class TestHistoryFilters:
         """Test filtering by a single severity level."""
         result = runner.invoke(
             app,
-            ["history", "--db-path", str(populated_db), "--severity", "critical", "--format", "json"],
+            [
+                "history",
+                "--db-path",
+                str(populated_db),
+                "--severity",
+                "critical",
+                "--format",
+                "json",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -248,7 +258,15 @@ class TestHistoryFilters:
         """Test filtering by multiple severity levels."""
         result = runner.invoke(
             app,
-            ["history", "--db-path", str(populated_db), "--severity", "critical,high", "--format", "json"],
+            [
+                "history",
+                "--db-path",
+                str(populated_db),
+                "--severity",
+                "critical,high",
+                "--format",
+                "json",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -260,7 +278,15 @@ class TestHistoryFilters:
         """Test filtering by detector name."""
         result = runner.invoke(
             app,
-            ["history", "--db-path", str(populated_db), "--detector", "aws_access_key", "--format", "json"],
+            [
+                "history",
+                "--db-path",
+                str(populated_db),
+                "--detector",
+                "aws_access_key",
+                "--format",
+                "json",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -271,7 +297,15 @@ class TestHistoryFilters:
         """Test filtering by file path prefix."""
         result = runner.invoke(
             app,
-            ["history", "--db-path", str(populated_db), "--path", "/test/path1", "--format", "json"],
+            [
+                "history",
+                "--db-path",
+                str(populated_db),
+                "--path",
+                "/test/path1",
+                "--format",
+                "json",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -283,7 +317,15 @@ class TestHistoryFilters:
         """Test filtering by scan target path."""
         result = runner.invoke(
             app,
-            ["history", "--db-path", str(populated_db), "--target", "/test/path2", "--format", "json"],
+            [
+                "history",
+                "--db-path",
+                str(populated_db),
+                "--target",
+                "/test/path2",
+                "--format",
+                "json",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -360,7 +402,10 @@ class TestHistoryOutputFormats:
         )
         assert result.exit_code == 0
         # CSV should have headers
-        assert "file,detector,match,severity" in result.output.lower() or "file_path" in result.output.lower()
+        assert (
+            "file,detector,match,severity" in result.output.lower()
+            or "file_path" in result.output.lower()
+        )
 
     def test_format_sarif(self, populated_db: Path) -> None:
         """Test SARIF output format."""
@@ -423,9 +468,12 @@ class TestHistoryOutput:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--format", "json",
-                "--output", str(output_file),
+                "--db-path",
+                str(populated_db),
+                "--format",
+                "json",
+                "--output",
+                str(output_file),
             ],
         )
         assert result.exit_code == 0
@@ -444,9 +492,12 @@ class TestHistoryOutput:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--format", "json",
-                "--output", str(output_file),
+                "--db-path",
+                str(populated_db),
+                "--format",
+                "json",
+                "--output",
+                str(output_file),
                 "--quiet",
             ],
         )
@@ -561,10 +612,14 @@ class TestHistoryDateFilters:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--since", yesterday,
-                "--until", tomorrow,
-                "--format", "json",
+                "--db-path",
+                str(populated_db),
+                "--since",
+                yesterday,
+                "--until",
+                tomorrow,
+                "--format",
+                "json",
             ],
         )
         assert result.exit_code == 0
@@ -600,9 +655,12 @@ class TestHistoryVerboseOutput:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--severity", "high",
-                "--detector", "private_key",
+                "--db-path",
+                str(populated_db),
+                "--severity",
+                "high",
+                "--detector",
+                "private_key",
                 "--verbose",
             ],
         )
@@ -616,8 +674,10 @@ class TestHistoryVerboseOutput:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--since", "7d",
+                "--db-path",
+                str(populated_db),
+                "--since",
+                "7d",
                 "--verbose",
             ],
         )
@@ -644,10 +704,14 @@ class TestHistoryCombinedFilters:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--severity", "critical",
-                "--detector", "aws_access_key",
-                "--format", "json",
+                "--db-path",
+                str(populated_db),
+                "--severity",
+                "critical",
+                "--detector",
+                "aws_access_key",
+                "--format",
+                "json",
             ],
         )
         assert result.exit_code == 0
@@ -662,10 +726,14 @@ class TestHistoryCombinedFilters:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--path", "/test/path1",
-                "--severity", "critical,high",
-                "--format", "json",
+                "--db-path",
+                str(populated_db),
+                "--path",
+                "/test/path1",
+                "--severity",
+                "critical,high",
+                "--format",
+                "json",
             ],
         )
         assert result.exit_code == 0
@@ -681,11 +749,16 @@ class TestHistoryCombinedFilters:
             app,
             [
                 "history",
-                "--db-path", str(populated_db),
-                "--path", "/test/path1",
-                "--severity", "critical",
-                "--limit", "1",
-                "--format", "json",
+                "--db-path",
+                str(populated_db),
+                "--path",
+                "/test/path1",
+                "--severity",
+                "critical",
+                "--limit",
+                "1",
+                "--format",
+                "json",
             ],
         )
         assert result.exit_code == 0

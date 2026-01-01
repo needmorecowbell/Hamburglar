@@ -19,16 +19,14 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, AsyncIterator
+from typing import Any
 
 from hamburglar.core.exceptions import YaraCompilationError
 from hamburglar.core.logging import get_logger
 from hamburglar.core.models import Finding, Severity
 from hamburglar.detectors import BaseDetector
-
-if TYPE_CHECKING:
-    pass
 
 # YARA is an optional dependency
 try:
@@ -49,7 +47,7 @@ DEFAULT_YARA_TIMEOUT = 60
 
 # Class-level rule cache to avoid recompiling identical rule sets
 # Key: hash of rule files content, Value: (compiled rules, rule count, mtime)
-_RULE_CACHE: dict[str, tuple["yara.Rules", int, float]] = {}
+_RULE_CACHE: dict[str, tuple[yara.Rules, int, float]] = {}
 
 
 def is_yara_available() -> bool:
@@ -161,9 +159,7 @@ class YaraDetector(BaseDetector):
                 rule_files = [rules_path]
             else:
                 # Directory - find all .yar and .yara files
-                rule_files = list(rules_path.glob("**/*.yar")) + list(
-                    rules_path.glob("**/*.yara")
-                )
+                rule_files = list(rules_path.glob("**/*.yar")) + list(rules_path.glob("**/*.yara"))
 
                 if not rule_files:
                     raise ValueError(f"No YARA rule files found in {rules_path}")
@@ -180,9 +176,7 @@ class YaraDetector(BaseDetector):
                     if current_mtime <= cached_mtime:
                         self._rules = cached_rules
                         self._rule_count = cached_count
-                        self._logger.debug(
-                            "Using cached YARA rules (cache key: %s)", cache_key[:8]
-                        )
+                        self._logger.debug("Using cached YARA rules (cache key: %s)", cache_key[:8])
                         return
 
             # Compile rules
@@ -469,9 +463,7 @@ class YaraDetector(BaseDetector):
         """
         return await asyncio.to_thread(self.detect, content, file_path)
 
-    async def detect_bytes_async(
-        self, content: bytes, file_path: str = ""
-    ) -> list[Finding]:
+    async def detect_bytes_async(self, content: bytes, file_path: str = "") -> list[Finding]:
         """Asynchronously detect YARA rule matches in raw byte content.
 
         This method runs the synchronous detect_bytes() method in a thread pool
@@ -487,9 +479,7 @@ class YaraDetector(BaseDetector):
         """
         return await asyncio.to_thread(self.detect_bytes, content, file_path)
 
-    def detect_batch(
-        self, contents: list[tuple[bytes, str]]
-    ) -> dict[str, list[Finding]]:
+    def detect_batch(self, contents: list[tuple[bytes, str]]) -> dict[str, list[Finding]]:
         """Detect YARA rule matches in multiple byte contents efficiently.
 
         This method processes multiple pieces of content in a batch,
@@ -532,9 +522,7 @@ class YaraDetector(BaseDetector):
 
         async def process_content(content_bytes: bytes, file_path: str) -> None:
             async with semaphore:
-                findings = await asyncio.to_thread(
-                    self.detect_bytes, content_bytes, file_path
-                )
+                findings = await asyncio.to_thread(self.detect_bytes, content_bytes, file_path)
                 async with lock:
                     results[file_path] = findings
 
@@ -543,9 +531,7 @@ class YaraDetector(BaseDetector):
 
         return results
 
-    async def detect_stream(
-        self, content: bytes, file_path: str = ""
-    ) -> AsyncIterator[Finding]:
+    async def detect_stream(self, content: bytes, file_path: str = "") -> AsyncIterator[Finding]:
         """Stream YARA rule matches as they are discovered.
 
         This async generator yields findings one at a time as they are
@@ -588,9 +574,7 @@ class YaraDetector(BaseDetector):
                 for string_match in match.strings:
                     for instance in string_match.instances:
                         try:
-                            matched_data = instance.matched_data.decode(
-                                "utf-8", errors="replace"
-                            )
+                            matched_data = instance.matched_data.decode("utf-8", errors="replace")
                         except AttributeError:
                             matched_data = str(instance.matched_data)
                         matched_strings.append(matched_data)

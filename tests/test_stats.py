@@ -3,10 +3,8 @@
 import time
 from collections import Counter
 
-import pytest
-
 from hamburglar.core.models import Finding, Severity
-from hamburglar.core.stats import ScanStats, SkipReason, SkippedFile
+from hamburglar.core.stats import ScanStats, SkippedFile, SkipReason
 
 
 class TestSkippedFile:

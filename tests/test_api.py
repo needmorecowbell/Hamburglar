@@ -16,19 +16,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from hamburglar.api import (
-    scan_directory,
-    scan_git,
-    scan_url,
+    _create_detectors,
     scan,
     scan_dir,
+    scan_directory,
+    scan_git,
     scan_repo,
+    scan_url,
     scan_web,
-    _create_detectors,
 )
 from hamburglar.core.exceptions import ScanError
 from hamburglar.core.models import ScanResult, Severity
+from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
-from hamburglar.detectors.patterns import PatternCategory, Confidence
 
 
 class TestCreateDetectors:
@@ -52,8 +52,7 @@ class TestCreateDetectors:
     def test_enabled_categories(self):
         """Test that enabled_categories filters patterns."""
         detectors = _create_detectors(
-            use_expanded_patterns=True,
-            enabled_categories=[PatternCategory.API_KEYS]
+            use_expanded_patterns=True, enabled_categories=[PatternCategory.API_KEYS]
         )
         detector = detectors[0]
         assert detector.get_enabled_categories() == [PatternCategory.API_KEYS]
@@ -61,18 +60,14 @@ class TestCreateDetectors:
     def test_disabled_categories(self):
         """Test that disabled_categories excludes patterns."""
         detectors = _create_detectors(
-            use_expanded_patterns=True,
-            disabled_categories=[PatternCategory.NETWORK]
+            use_expanded_patterns=True, disabled_categories=[PatternCategory.NETWORK]
         )
         detector = detectors[0]
         assert detector.get_disabled_categories() == [PatternCategory.NETWORK]
 
     def test_min_confidence(self):
         """Test that min_confidence filters low-confidence patterns."""
-        detectors = _create_detectors(
-            use_expanded_patterns=True,
-            min_confidence=Confidence.HIGH
-        )
+        detectors = _create_detectors(use_expanded_patterns=True, min_confidence=Confidence.HIGH)
         detector = detectors[0]
         assert detector.get_min_confidence() == Confidence.HIGH
 
@@ -119,15 +114,14 @@ class TestScanDirectory:
         result_non_recursive = await scan_directory(temp_directory, recursive=False)
 
         # Non-recursive should scan fewer files
-        assert result_non_recursive.stats["files_scanned"] <= result_recursive.stats["files_scanned"]
+        assert (
+            result_non_recursive.stats["files_scanned"] <= result_recursive.stats["files_scanned"]
+        )
 
     @pytest.mark.asyncio
     async def test_scan_directory_with_expanded_patterns(self, temp_directory: Path):
         """Test scanning with expanded patterns."""
-        result = await scan_directory(
-            temp_directory,
-            use_expanded_patterns=True
-        )
+        result = await scan_directory(temp_directory, use_expanded_patterns=True)
 
         assert isinstance(result, ScanResult)
         # Should find at least as many findings with expanded patterns
@@ -136,10 +130,7 @@ class TestScanDirectory:
     @pytest.mark.asyncio
     async def test_scan_directory_with_blacklist(self, temp_directory: Path):
         """Test scanning with blacklist patterns."""
-        result = await scan_directory(
-            temp_directory,
-            blacklist=["subdir", "*.txt"]
-        )
+        result = await scan_directory(temp_directory, blacklist=["subdir", "*.txt"])
 
         # Should not scan files matching blacklist
         assert isinstance(result, ScanResult)
@@ -147,10 +138,7 @@ class TestScanDirectory:
     @pytest.mark.asyncio
     async def test_scan_directory_with_whitelist(self, temp_directory: Path):
         """Test scanning with whitelist patterns."""
-        result = await scan_directory(
-            temp_directory,
-            whitelist=["*.py"]
-        )
+        result = await scan_directory(temp_directory, whitelist=["*.py"])
 
         # Should only scan .py files
         assert isinstance(result, ScanResult)
@@ -169,10 +157,7 @@ class TestScanDirectory:
             use_defaults=False,
         )
 
-        result = await scan_directory(
-            temp_directory,
-            detectors=[custom_detector]
-        )
+        result = await scan_directory(temp_directory, detectors=[custom_detector])
 
         assert isinstance(result, ScanResult)
         # Should find the AWS key
@@ -185,7 +170,7 @@ class TestScanDirectory:
         result = await scan_directory(
             temp_directory,
             use_expanded_patterns=True,
-            enabled_categories=[PatternCategory.API_KEYS]
+            enabled_categories=[PatternCategory.API_KEYS],
         )
 
         assert isinstance(result, ScanResult)
@@ -214,7 +199,7 @@ class TestScanGit:
         """Test scanning a local git repository."""
         result = await scan_git(
             str(git_repo_with_current_secret),
-            include_history=False  # Faster test without history
+            include_history=False,  # Faster test without history
         )
 
         assert isinstance(result, ScanResult)
@@ -225,10 +210,7 @@ class TestScanGit:
     @pytest.mark.asyncio
     async def test_scan_git_with_history(self, git_repo_with_current_secret: Path):
         """Test scanning a git repository with history enabled."""
-        result = await scan_git(
-            str(git_repo_with_current_secret),
-            include_history=True
-        )
+        result = await scan_git(str(git_repo_with_current_secret), include_history=True)
 
         assert isinstance(result, ScanResult)
         assert result.stats.get("include_history") is True
@@ -236,10 +218,7 @@ class TestScanGit:
     @pytest.mark.asyncio
     async def test_scan_git_with_depth(self, git_repo_with_current_secret: Path):
         """Test scanning with commit depth limit."""
-        result = await scan_git(
-            str(git_repo_with_current_secret),
-            depth=1
-        )
+        result = await scan_git(str(git_repo_with_current_secret), depth=1)
 
         assert isinstance(result, ScanResult)
 
@@ -247,9 +226,7 @@ class TestScanGit:
     async def test_scan_git_with_expanded_patterns(self, git_repo_with_current_secret: Path):
         """Test scanning git repo with expanded patterns."""
         result = await scan_git(
-            str(git_repo_with_current_secret),
-            use_expanded_patterns=True,
-            include_history=False
+            str(git_repo_with_current_secret), use_expanded_patterns=True, include_history=False
         )
 
         assert isinstance(result, ScanResult)
@@ -376,6 +353,7 @@ class TestPackageExports:
     def test_scan_directory_exported(self):
         """Test that scan_directory is exported from hamburglar."""
         import hamburglar
+
         assert hasattr(hamburglar, "scan_directory")
         assert callable(hamburglar.scan_directory)
         # Verify it's the same function by name
@@ -384,6 +362,7 @@ class TestPackageExports:
     def test_scan_git_exported(self):
         """Test that scan_git is exported from hamburglar."""
         import hamburglar
+
         assert hasattr(hamburglar, "scan_git")
         assert callable(hamburglar.scan_git)
         assert hamburglar.scan_git.__name__ == "scan_git"
@@ -391,6 +370,7 @@ class TestPackageExports:
     def test_scan_url_exported(self):
         """Test that scan_url is exported from hamburglar."""
         import hamburglar
+
         assert hasattr(hamburglar, "scan_url")
         assert callable(hamburglar.scan_url)
         assert hamburglar.scan_url.__name__ == "scan_url"
@@ -398,6 +378,7 @@ class TestPackageExports:
     def test_aliases_exported(self):
         """Test that aliases are exported from hamburglar."""
         import hamburglar
+
         assert hasattr(hamburglar, "scan")
         assert hasattr(hamburglar, "scan_dir")
         assert hasattr(hamburglar, "scan_repo")
@@ -426,10 +407,7 @@ class TestOptionsPassthrough:
         # Add a file with the custom pattern
         (temp_directory / "custom.txt").write_text("Found: CUSTOM_TEST_12345")
 
-        result = await scan_directory(
-            temp_directory,
-            custom_patterns=custom_patterns
-        )
+        result = await scan_directory(temp_directory, custom_patterns=custom_patterns)
 
         # Should find the custom pattern
         custom_findings = [f for f in result.findings if "Custom Pattern" in f.detector_name]
@@ -444,7 +422,7 @@ class TestOptionsPassthrough:
 
         result = await scan_directory(
             temp_directory,
-            concurrency_limit=2  # Low limit for testing
+            concurrency_limit=2,  # Low limit for testing
         )
 
         assert isinstance(result, ScanResult)
@@ -470,10 +448,7 @@ class TestLibraryUsagePattern:
     @pytest.mark.asyncio
     async def test_comprehensive_scan_example(self, temp_directory: Path):
         """Test comprehensive scan with all patterns."""
-        result = await scan_directory(
-            temp_directory,
-            use_expanded_patterns=True
-        )
+        result = await scan_directory(temp_directory, use_expanded_patterns=True)
 
         assert isinstance(result, ScanResult)
 
@@ -483,7 +458,7 @@ class TestLibraryUsagePattern:
         result = await scan_directory(
             temp_directory,
             use_expanded_patterns=True,
-            enabled_categories=[PatternCategory.API_KEYS, PatternCategory.CREDENTIALS]
+            enabled_categories=[PatternCategory.API_KEYS, PatternCategory.CREDENTIALS],
         )
 
         assert isinstance(result, ScanResult)

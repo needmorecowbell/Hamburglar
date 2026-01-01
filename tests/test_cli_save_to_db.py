@@ -9,9 +9,7 @@ from __future__ import annotations
 import sqlite3
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 from typer.testing import CliRunner
 
 # Configure path before any hamburglar imports (same as conftest.py)
@@ -229,7 +227,9 @@ class TestScanSaveToDb:
         assert "Saved to database" in result.output
         assert "Scan ID" in result.output
 
-    def test_save_to_db_creates_nested_directories(self, temp_directory: Path, tmp_path: Path) -> None:
+    def test_save_to_db_creates_nested_directories(
+        self, temp_directory: Path, tmp_path: Path
+    ) -> None:
         """Test that --save-to-db creates nested directories for custom db path."""
         db_path = tmp_path / "deep" / "nested" / "path" / "findings.db"
         assert not db_path.parent.exists()
@@ -247,7 +247,9 @@ class TestScanSaveToDb:
         assert result.exit_code == 0
         assert db_path.exists()
 
-    def test_db_path_without_save_to_db_is_ignored(self, temp_directory: Path, tmp_path: Path) -> None:
+    def test_db_path_without_save_to_db_is_ignored(
+        self, temp_directory: Path, tmp_path: Path
+    ) -> None:
         """Test that --db-path without --save-to-db does not create database."""
         db_path = tmp_path / "findings.db"
 
@@ -386,7 +388,9 @@ class TestHelpText:
 class TestDatabaseSchema:
     """Test that saved data has correct schema."""
 
-    def test_saved_findings_have_correct_structure(self, temp_directory: Path, tmp_path: Path) -> None:
+    def test_saved_findings_have_correct_structure(
+        self, temp_directory: Path, tmp_path: Path
+    ) -> None:
         """Test that saved findings have all required fields."""
         db_path = tmp_path / "findings.db"
 

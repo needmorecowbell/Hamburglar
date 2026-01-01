@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 
 from hamburglar.core.models import Severity
-from hamburglar.detectors.regex_detector import DEFAULT_PATTERNS, RegexDetector
+from hamburglar.detectors.regex_detector import RegexDetector
 
 
 class TestRegexDetectorBasics:
@@ -870,11 +870,11 @@ class TestAllPatternsPositiveCases:
         """Test Generic API Key pattern matches various formats."""
         detector = RegexDetector()
         # Test different key formats: api-key, apikey, api_secret
-        content = '''
+        content = """
         api-key: "1234567890abcdef1234567890abcdef"
         apikey = "abcdef1234567890abcdef1234567890"
         api_secret = "1234567890123456789012345678901234567890"
-        '''
+        """
         findings = detector.detect(content, "config.yml")
         api_findings = [f for f in findings if "Generic API Key" in f.detector_name]
         assert len(api_findings) == 1
@@ -1121,7 +1121,9 @@ class TestAllPatternsNegativeCases:
     def test_slack_webhook_negative_wrong_domain(self) -> None:
         """Test Slack Webhook doesn't match non-slack domains."""
         detector = RegexDetector()
-        content = "https://hooks.example.com/services/T12345678/B123456789AB/abcdefghijklmnopqrstuvwx"
+        content = (
+            "https://hooks.example.com/services/T12345678/B123456789AB/abcdefghijklmnopqrstuvwx"
+        )
         findings = detector.detect(content, "config.yml")
         webhook_findings = [f for f in findings if "Slack Webhook" in f.detector_name]
         assert len(webhook_findings) == 0
@@ -1270,7 +1272,7 @@ class TestCatastrophicBacktracking:
         """Test AWS Secret Key pattern doesn't hang on adversarial input."""
         detector = RegexDetector(regex_timeout=1.0)
         # Adversarial input: long string of 'a's that could cause backtracking
-        adversarial = 'aws' + 'a' * 1000 + '"' + 'a' * 50 + '"'
+        adversarial = "aws" + "a" * 1000 + '"' + "a" * 50 + '"'
         # Should complete without timeout
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
@@ -1279,7 +1281,7 @@ class TestCatastrophicBacktracking:
         """Test GitHub Legacy Token pattern doesn't hang on adversarial input."""
         detector = RegexDetector(regex_timeout=1.0)
         # Pattern has .* which could backtrack
-        adversarial = 'GITHUB' + 'x' * 1000 + '"' + 'a' * 50 + '"'
+        adversarial = "GITHUB" + "x" * 1000 + '"' + "a" * 50 + '"'
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1287,7 +1289,7 @@ class TestCatastrophicBacktracking:
         """Test Generic API Key pattern doesn't hang on adversarial input."""
         detector = RegexDetector(regex_timeout=1.0)
         # Pattern: api.* with complex suffix
-        adversarial = 'api_key' + ' ' * 500 + '=' + ' ' * 500 + '"' + 'x' * 100 + '"'
+        adversarial = "api_key" + " " * 500 + "=" + " " * 500 + '"' + "x" * 100 + '"'
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1295,7 +1297,7 @@ class TestCatastrophicBacktracking:
         """Test Generic Secret pattern doesn't hang on adversarial input."""
         detector = RegexDetector(regex_timeout=1.0)
         # Pattern has .* which could cause issues
-        adversarial = 'SECRET' + 'x' * 1000 + '"' + 'a' * 50 + '"'
+        adversarial = "SECRET" + "x" * 1000 + '"' + "a" * 50 + '"'
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1303,7 +1305,7 @@ class TestCatastrophicBacktracking:
         """Test Heroku API Key pattern doesn't hang on adversarial input."""
         detector = RegexDetector(regex_timeout=1.0)
         # Pattern has .* which could backtrack
-        adversarial = 'HEROKU' + 'x' * 1000 + '12345678-1234-1234-1234-123456789ABC'
+        adversarial = "HEROKU" + "x" * 1000 + "12345678-1234-1234-1234-123456789ABC"
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1311,7 +1313,7 @@ class TestCatastrophicBacktracking:
         """Test Email pattern doesn't hang on strings with many dots."""
         detector = RegexDetector(regex_timeout=1.0)
         # Many dots could cause backtracking in domain matching
-        adversarial = 'a' + '.a' * 500 + '@' + 'b' + '.b' * 500 + '.com'
+        adversarial = "a" + ".a" * 500 + "@" + "b" + ".b" * 500 + ".com"
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1319,7 +1321,7 @@ class TestCatastrophicBacktracking:
         """Test URL pattern doesn't hang on very long paths."""
         detector = RegexDetector(regex_timeout=1.0)
         # Long path with many special chars could cause issues
-        adversarial = 'https://example.com/' + 'a/b/c/d/e?' * 200
+        adversarial = "https://example.com/" + "a/b/c/d/e?" * 200
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1327,7 +1329,7 @@ class TestCatastrophicBacktracking:
         """Test Bitcoin pattern doesn't hang on long alphanumeric strings."""
         detector = RegexDetector(regex_timeout=1.0)
         # Long base58 string that could match partially
-        adversarial = '1' + 'a' * 1000
+        adversarial = "1" + "a" * 1000
         findings = detector.detect(adversarial, "test.txt")
         assert isinstance(findings, list)
 
@@ -1336,13 +1338,13 @@ class TestCatastrophicBacktracking:
         detector = RegexDetector(regex_timeout=1.0)
         # Test various adversarial inputs
         adversarial_inputs = [
-            'a' * 10000,  # Just repeated chars
-            '"' + 'a' * 10000 + '"',  # Quoted repeated chars
-            '=' * 5000 + '"' + 'a' * 5000 + '"',  # Assignment-like
-            '@' * 1000,  # Many @ symbols
-            '.' * 1000,  # Many dots
-            '-----BEGIN ' + 'x' * 5000 + '-----',  # PEM-like
-            '0x' + 'a' * 1000,  # Ethereum-like prefix
+            "a" * 10000,  # Just repeated chars
+            '"' + "a" * 10000 + '"',  # Quoted repeated chars
+            "=" * 5000 + '"' + "a" * 5000 + '"',  # Assignment-like
+            "@" * 1000,  # Many @ symbols
+            "." * 1000,  # Many dots
+            "-----BEGIN " + "x" * 5000 + "-----",  # PEM-like
+            "0x" + "a" * 1000,  # Ethereum-like prefix
         ]
         for adversarial in adversarial_inputs:
             findings = detector.detect(adversarial, "test.txt")
@@ -1369,7 +1371,7 @@ class TestCatastrophicBacktracking:
         """Test that after a timeout, other patterns are still checked."""
         detector = RegexDetector(regex_timeout=1.0)
         # Include a valid email in content that also has potential backtracking triggers
-        content = "admin@example.com " + 'x' * 1000
+        content = "admin@example.com " + "x" * 1000
         findings = detector.detect(content, "test.txt")
         # Should find the email even if other patterns took time
         email_findings = [f for f in findings if "Email Address" in f.detector_name]

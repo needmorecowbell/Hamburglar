@@ -410,9 +410,7 @@ class HttpClientError(Exception):
         status_code: HTTP status code if applicable.
     """
 
-    def __init__(
-        self, message: str, url: str | None = None, status_code: int | None = None
-    ):
+    def __init__(self, message: str, url: str | None = None, status_code: int | None = None):
         """Initialize the error.
 
         Args:
@@ -467,9 +465,7 @@ class HttpClient:
             ImportError: If httpx is not installed.
         """
         if not HTTPX_AVAILABLE:
-            raise ImportError(
-                "HttpClient requires httpx. Install it with: pip install httpx"
-            )
+            raise ImportError("HttpClient requires httpx. Install it with: pip install httpx")
 
         self.config = config or HttpClientConfig()
         self._client: httpx.AsyncClient | None = None
@@ -490,7 +486,7 @@ class HttpClient:
                 default_ttl=self.config.cache.default_ttl,
             )
 
-    async def __aenter__(self) -> "HttpClient":
+    async def __aenter__(self) -> HttpClient:
         """Enter async context and create the client."""
         await self._ensure_client()
         return self
@@ -553,11 +549,7 @@ class HttpClient:
             HttpClientError: If the request fails after all retries.
         """
         # Check cache first for GET requests
-        if (
-            use_cache
-            and self._cache is not None
-            and method.upper() == "GET"
-        ):
+        if use_cache and self._cache is not None and method.upper() == "GET":
             cached = await self._cache.get(method, url, headers)
             if cached is not None:
                 logger.debug(f"Cache hit for {url}")
@@ -629,8 +621,7 @@ class HttpClient:
                 if attempt < self.config.retry.max_retries:
                     delay = self.config.retry.get_delay(attempt)
                     logger.debug(
-                        f"Timeout for {url}, retrying after {delay:.2f}s "
-                        f"(attempt {attempt + 1})"
+                        f"Timeout for {url}, retrying after {delay:.2f}s (attempt {attempt + 1})"
                     )
                     await asyncio.sleep(delay)
                 else:

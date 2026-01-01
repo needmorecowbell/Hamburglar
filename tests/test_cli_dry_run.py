@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from typer.testing import CliRunner
@@ -128,9 +128,7 @@ class TestScanDryRun:
 
     def test_dry_run_with_verbose_shows_file_list(self, temp_directory: Path) -> None:
         """Test that --dry-run with --verbose shows file list."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--dry-run", "--verbose"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--dry-run", "--verbose"])
         assert result.exit_code == 0
         assert "Files to Scan" in result.output
         # File table should show actual files
@@ -156,9 +154,7 @@ class TestScanDryRun:
 
     def test_dry_run_quiet_mode(self, temp_directory: Path) -> None:
         """Test that --dry-run with --quiet suppresses output."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--dry-run", "--quiet"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--dry-run", "--quiet"])
         # Should succeed but with no output
         assert result.exit_code == 0
         # Output should be minimal or empty
@@ -166,9 +162,7 @@ class TestScanDryRun:
 
     def test_dry_run_with_format_option(self, temp_directory: Path) -> None:
         """Test that --dry-run respects --format option."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--dry-run", "--format", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--dry-run", "--format", "json"])
         assert result.exit_code == 0
         assert "Output Format" in result.output
         assert "json" in result.output
@@ -201,9 +195,7 @@ class TestScanGitDryRun:
 
     def test_dry_run_shows_remote_repository_type(self) -> None:
         """Test that --dry-run identifies remote repository type."""
-        result = runner.invoke(
-            app, ["scan-git", "https://github.com/example/repo", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-git", "https://github.com/example/repo", "--dry-run"])
         assert result.exit_code == 0
         assert "Remote Repository" in result.output
 
@@ -215,9 +207,7 @@ class TestScanGitDryRun:
 
     def test_dry_run_with_depth(self, temp_git_repo: Path) -> None:
         """Test that --dry-run shows commit depth option."""
-        result = runner.invoke(
-            app, ["scan-git", str(temp_git_repo), "--dry-run", "--depth", "10"]
-        )
+        result = runner.invoke(app, ["scan-git", str(temp_git_repo), "--dry-run", "--depth", "10"])
         assert result.exit_code == 0
         assert "Commit Depth" in result.output
         assert "10" in result.output
@@ -246,9 +236,7 @@ class TestScanGitDryRun:
 
     def test_dry_run_no_history(self, temp_git_repo: Path) -> None:
         """Test that --dry-run with --no-history shows correct config."""
-        result = runner.invoke(
-            app, ["scan-git", str(temp_git_repo), "--dry-run", "--no-history"]
-        )
+        result = runner.invoke(app, ["scan-git", str(temp_git_repo), "--dry-run", "--no-history"])
         assert result.exit_code == 0
         assert "Include History" in result.output
 
@@ -258,18 +246,14 @@ class TestScanWebDryRun:
 
     def test_dry_run_shows_web_config_table(self) -> None:
         """Test that --dry-run shows web scan configuration table."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "DRY RUN MODE" in result.output
         assert "Web Scan Configuration" in result.output
 
     def test_dry_run_shows_url_info(self) -> None:
         """Test that --dry-run shows URL information."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "URL" in result.output
         assert "example.com" in result.output
@@ -277,9 +261,7 @@ class TestScanWebDryRun:
 
     def test_dry_run_shows_protocol(self) -> None:
         """Test that --dry-run shows protocol."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "Protocol" in result.output
         assert "HTTPS" in result.output
@@ -295,9 +277,7 @@ class TestScanWebDryRun:
 
     def test_dry_run_shows_scripts_option(self) -> None:
         """Test that --dry-run shows include scripts option."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "Include Scripts" in result.output
 
@@ -312,34 +292,26 @@ class TestScanWebDryRun:
 
     def test_dry_run_shows_robots_option(self) -> None:
         """Test that --dry-run shows robots.txt option."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "robots.txt" in result.output
 
     def test_dry_run_shows_detectors(self) -> None:
         """Test that --dry-run shows detectors table."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "Detectors" in result.output
         assert "RegexDetector" in result.output
 
     def test_dry_run_shows_scan_behavior(self) -> None:
         """Test that --dry-run shows scan behavior."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "Scan behavior" in result.output
 
     def test_dry_run_no_http_requests(self) -> None:
         """Test that --dry-run shows no HTTP requests were made."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0
         assert "No HTTP requests were made" in result.output
 
@@ -356,8 +328,7 @@ class TestScanWebDryRun:
     def test_dry_run_with_user_agent(self) -> None:
         """Test that --dry-run shows user agent configuration."""
         result = runner.invoke(
-            app,
-            ["scan-web", "https://example.com", "--dry-run", "--user-agent", "TestAgent"]
+            app, ["scan-web", "https://example.com", "--dry-run", "--user-agent", "TestAgent"]
         )
         assert result.exit_code == 0
         assert "User Agent" in result.output
@@ -379,7 +350,5 @@ class TestDryRunExitCodes:
 
     def test_scan_web_dry_run_exits_zero(self) -> None:
         """Test that scan-web --dry-run exits with code 0."""
-        result = runner.invoke(
-            app, ["scan-web", "https://example.com", "--dry-run"]
-        )
+        result = runner.invoke(app, ["scan-web", "https://example.com", "--dry-run"])
         assert result.exit_code == 0

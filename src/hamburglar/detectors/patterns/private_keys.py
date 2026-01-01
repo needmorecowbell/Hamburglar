@@ -7,7 +7,6 @@ including RSA, OpenSSH, EC, DSA, PGP, PKCS#8, and SSL/TLS formats.
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # RSA Private Key
 RSA_PRIVATE_KEY = Pattern(
     name="rsa_private_key",

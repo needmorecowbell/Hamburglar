@@ -114,6 +114,14 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
     - Tests for plugins/__init__.py error handling (unregister with/without registry, entry point discovery errors, plugin file loading errors) - now 90% coverage
   - Coverage threshold of 90% is met (configured in pyproject.toml as fail_under = 90)
 
-- [ ] Run `ruff check --fix` and `ruff format` for final code polish
+- [x] Run `ruff check --fix` and `ruff format` for final code polish
+  - Added comprehensive ruff configuration to pyproject.toml with 8 rule sets enabled (E, W, F, I, B, C4, UP, SIM)
+  - Configured 11 intentional rule ignores for patterns like lazy imports (E402), Typer defaults (B008), and CLI exit patterns (B904)
+  - Fixed import ordering in cli/main.py - reorganized imports to be at top of file
+  - Added TYPE_CHECKING imports in config/loader.py and config/schema.py for HamburglarConfig and ScanConfig
+  - Fixed ambiguous variable name 'l' to 'line' in scanners/git_history.py
+  - Ran ruff check --fix which auto-fixed 134 issues across the codebase
+  - Ran ruff format which reformatted 25 files
+  - All 4143 tests pass after changes
 
 - [ ] Run `mypy src/hamburglar` and resolve any type errors

@@ -128,22 +128,14 @@ def get_command_suggestion(invalid_command: str, cutoff: float = 0.6) -> str | N
         return COMMAND_ALIASES[lower_cmd]
 
     # Try fuzzy matching against main commands
-    matches = difflib.get_close_matches(
-        lower_cmd,
-        MAIN_COMMANDS,
-        n=1,
-        cutoff=cutoff
-    )
+    matches = difflib.get_close_matches(lower_cmd, MAIN_COMMANDS, n=1, cutoff=cutoff)
 
     if matches:
         return matches[0]
 
     # Try matching against aliases as well (for partial matches)
     alias_matches = difflib.get_close_matches(
-        lower_cmd,
-        list(COMMAND_ALIASES.keys()),
-        n=1,
-        cutoff=cutoff
+        lower_cmd, list(COMMAND_ALIASES.keys()), n=1, cutoff=cutoff
     )
 
     if alias_matches:
@@ -153,9 +145,7 @@ def get_command_suggestion(invalid_command: str, cutoff: float = 0.6) -> str | N
 
 
 def get_subcommand_suggestion(
-    parent: str,
-    invalid_subcommand: str,
-    cutoff: float = 0.6
+    parent: str, invalid_subcommand: str, cutoff: float = 0.6
 ) -> str | None:
     """Get a suggested subcommand for a typo.
 
@@ -176,12 +166,7 @@ def get_subcommand_suggestion(
     else:
         return None
 
-    matches = difflib.get_close_matches(
-        invalid_subcommand.lower(),
-        subcommands,
-        n=1,
-        cutoff=cutoff
-    )
+    matches = difflib.get_close_matches(invalid_subcommand.lower(), subcommands, n=1, cutoff=cutoff)
 
     return matches[0] if matches else None
 
@@ -197,8 +182,7 @@ def format_command_suggestion(invalid_cmd: str, suggested_cmd: str) -> str:
         A formatted suggestion message.
     """
     return (
-        f"Unknown command '{invalid_cmd}'. "
-        f"Did you mean '[bold cyan]{suggested_cmd}[/bold cyan]'?"
+        f"Unknown command '{invalid_cmd}'. Did you mean '[bold cyan]{suggested_cmd}[/bold cyan]'?"
     )
 
 
@@ -208,9 +192,8 @@ def format_available_commands() -> str:
     Returns:
         A formatted string listing all available commands.
     """
-    return (
-        "\n[dim]Available commands:[/dim] " +
-        ", ".join(f"[cyan]{cmd}[/cyan]" for cmd in MAIN_COMMANDS)
+    return "\n[dim]Available commands:[/dim] " + ", ".join(
+        f"[cyan]{cmd}[/cyan]" for cmd in MAIN_COMMANDS
     )
 
 
@@ -244,74 +227,40 @@ def format_doc_reference(topic: str) -> str:
 # Context-aware hints for common error scenarios
 CONTEXT_HINTS: dict[str, str] = {
     # Format errors
-    "invalid_format": (
-        "Valid formats: json, table, csv, html, markdown, sarif, ndjson"
-    ),
+    "invalid_format": ("Valid formats: json, table, csv, html, markdown, sarif, ndjson"),
     # Category errors
     "invalid_category": (
         "Valid categories: api_keys, cloud, credentials, crypto, generic, network, private_keys"
     ),
     # Confidence errors
-    "invalid_confidence": (
-        "Valid confidence levels: high, medium, low"
-    ),
+    "invalid_confidence": ("Valid confidence levels: high, medium, low"),
     # YARA errors
-    "yara_not_found": (
-        "Ensure YARA rules path exists. Use --no-yara to disable YARA scanning."
-    ),
+    "yara_not_found": ("Ensure YARA rules path exists. Use --no-yara to disable YARA scanning."),
     "yara_compile_error": (
         "Check YARA rule syntax. Common issues: missing 'condition' section, "
         "invalid regex patterns, undefined identifiers."
     ),
-    "yara_not_installed": (
-        "Install yara-python with: pip install yara-python"
-    ),
+    "yara_not_installed": ("Install yara-python with: pip install yara-python"),
     # Path errors
-    "path_not_found": (
-        "Check that the file or directory exists and the path is correct."
-    ),
-    "permission_denied": (
-        "Check file permissions. You may need read access to scan files."
-    ),
+    "path_not_found": ("Check that the file or directory exists and the path is correct."),
+    "permission_denied": ("Check file permissions. You may need read access to scan files."),
     # Output errors
-    "output_permission": (
-        "Check write permissions for the output directory."
-    ),
-    "output_dir_missing": (
-        "The output directory does not exist. Use --output-dir to auto-create."
-    ),
+    "output_permission": ("Check write permissions for the output directory."),
+    "output_dir_missing": ("The output directory does not exist. Use --output-dir to auto-create."),
     # Database errors
-    "db_permission": (
-        "Check write permissions for ~/.hamburglar/ or specify --db-path."
-    ),
+    "db_permission": ("Check write permissions for ~/.hamburglar/ or specify --db-path."),
     # Config errors
-    "config_not_found": (
-        "Create a config file with: hamburglar config init"
-    ),
-    "config_invalid": (
-        "Validate config with: hamburglar config validate"
-    ),
+    "config_not_found": ("Create a config file with: hamburglar config init"),
+    "config_invalid": ("Validate config with: hamburglar config validate"),
     # Git scan errors
-    "git_clone_failed": (
-        "Check that the repository URL is correct and accessible."
-    ),
-    "git_not_installed": (
-        "Git must be installed for git repository scanning."
-    ),
+    "git_clone_failed": ("Check that the repository URL is correct and accessible."),
+    "git_not_installed": ("Git must be installed for git repository scanning."),
     # Web scan errors
-    "url_invalid": (
-        "Ensure the URL starts with http:// or https://"
-    ),
-    "url_unreachable": (
-        "Check network connectivity and that the URL is correct."
-    ),
+    "url_invalid": ("Ensure the URL starts with http:// or https://"),
+    "url_unreachable": ("Check network connectivity and that the URL is correct."),
     # Plugin errors
-    "plugin_not_found": (
-        "List available plugins with: hamburglar plugins list"
-    ),
-    "plugin_load_error": (
-        "Check plugin dependencies and compatibility."
-    ),
+    "plugin_not_found": ("List available plugins with: hamburglar plugins list"),
+    "plugin_load_error": ("Check plugin dependencies and compatibility."),
 }
 
 
@@ -354,9 +303,7 @@ def format_error_with_context(
 
 
 def get_option_suggestion(
-    invalid_option: str,
-    valid_options: Sequence[str],
-    cutoff: float = 0.6
+    invalid_option: str, valid_options: Sequence[str], cutoff: float = 0.6
 ) -> str | None:
     """Get a suggested option name for a typo.
 
@@ -372,12 +319,7 @@ def get_option_suggestion(
     clean_option = invalid_option.lstrip("-")
     clean_valid = [opt.lstrip("-") for opt in valid_options]
 
-    matches = difflib.get_close_matches(
-        clean_option,
-        clean_valid,
-        n=1,
-        cutoff=cutoff
-    )
+    matches = difflib.get_close_matches(clean_option, clean_valid, n=1, cutoff=cutoff)
 
     if matches:
         # Find the original option with dashes
@@ -389,18 +331,10 @@ def get_option_suggestion(
 
 # Error messages for specific scenarios
 ERROR_MESSAGES: dict[str, str] = {
-    "no_command": (
-        "No command specified. Use 'hamburglar --help' to see available commands."
-    ),
-    "unknown_command": (
-        "Unknown command. Use 'hamburglar --help' to see available commands."
-    ),
-    "missing_argument": (
-        "Missing required argument. Use 'hamburglar {command} --help' for usage."
-    ),
-    "invalid_option": (
-        "Invalid option. Use 'hamburglar {command} --help' for available options."
-    ),
+    "no_command": ("No command specified. Use 'hamburglar --help' to see available commands."),
+    "unknown_command": ("Unknown command. Use 'hamburglar --help' to see available commands."),
+    "missing_argument": ("Missing required argument. Use 'hamburglar {command} --help' for usage."),
+    "invalid_option": ("Invalid option. Use 'hamburglar {command} --help' for available options."),
 }
 
 

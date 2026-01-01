@@ -15,9 +15,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
-import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
@@ -26,6 +25,7 @@ src_path = str(Path(__file__).parent.parent / "src")
 if src_path in sys.path:
     sys.path.remove(src_path)
 sys.path.insert(0, src_path)
+
 
 # Check if Docker is available
 def docker_available() -> bool:
@@ -194,9 +194,7 @@ class TestDockerContainerRuns:
         assert result.returncode == 0
         assert "PATH" in result.stdout or "path" in result.stdout.lower()
 
-    def test_container_produces_output(
-        self, docker_image: str, temp_scan_directory: Path
-    ) -> None:
+    def test_container_produces_output(self, docker_image: str, temp_scan_directory: Path) -> None:
         """Test that the container produces scan output."""
         result = subprocess.run(
             [
@@ -249,9 +247,7 @@ class TestDockerVolumeMounts:
         )
         assert result.returncode == 0
 
-    def test_volume_mount_read_only(
-        self, docker_image: str, temp_scan_directory: Path
-    ) -> None:
+    def test_volume_mount_read_only(self, docker_image: str, temp_scan_directory: Path) -> None:
         """Test that the container respects read-only volume mounts."""
         # Try to create a file in read-only mounted volume
         result = subprocess.run(
@@ -403,9 +399,7 @@ class TestDockerYaraRules:
 class TestDockerScanFunctionality:
     """Tests for actual scanning functionality in Docker."""
 
-    def test_scan_finds_aws_keys(
-        self, docker_image: str, temp_scan_directory: Path
-    ) -> None:
+    def test_scan_finds_aws_keys(self, docker_image: str, temp_scan_directory: Path) -> None:
         """Test that scanning finds AWS keys in the test files."""
         result = subprocess.run(
             [
@@ -433,14 +427,10 @@ class TestDockerScanFunctionality:
 
         # Check for AWS-related findings
         finding_patterns = [f["pattern_name"].lower() for f in output["findings"]]
-        has_aws_finding = any(
-            "aws" in p or "key" in p for p in finding_patterns
-        )
+        has_aws_finding = any("aws" in p or "key" in p for p in finding_patterns)
         assert has_aws_finding or len(output["findings"]) > 0
 
-    def test_scan_recursive_by_default(
-        self, docker_image: str, tmp_path: Path
-    ) -> None:
+    def test_scan_recursive_by_default(self, docker_image: str, tmp_path: Path) -> None:
         """Test that scanning is recursive by default."""
         # Create nested directory structure
         subdir = tmp_path / "nested" / "deep"
@@ -474,9 +464,7 @@ class TestDockerScanFunctionality:
         # Should find the secret in the nested file
         assert len(output["findings"]) > 0
 
-    def test_scan_with_json_format(
-        self, docker_image: str, temp_scan_directory: Path
-    ) -> None:
+    def test_scan_with_json_format(self, docker_image: str, temp_scan_directory: Path) -> None:
         """Test scan output in JSON format."""
         result = subprocess.run(
             [
@@ -504,9 +492,7 @@ class TestDockerScanFunctionality:
         assert isinstance(output, dict)
         assert "findings" in output
 
-    def test_scan_with_table_format(
-        self, docker_image: str, temp_scan_directory: Path
-    ) -> None:
+    def test_scan_with_table_format(self, docker_image: str, temp_scan_directory: Path) -> None:
         """Test scan output in table format."""
         result = subprocess.run(
             [

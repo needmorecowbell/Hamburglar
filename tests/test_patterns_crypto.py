@@ -140,7 +140,9 @@ class TestBitcoinAddressPatterns:
     def test_bitcoin_bech32m_positive_2(self) -> None:
         """Test Bitcoin Bech32m address in context."""
         pattern = re.compile(BITCOIN_ADDRESS_BECH32M.regex)
-        result = pattern.search("Taproot: bc1pq2urtlmzp0ztk6efv9c7gh3lgpga6kchc9hgft9e2xdvcmwqpe2qrp83g3")
+        result = pattern.search(
+            "Taproot: bc1pq2urtlmzp0ztk6efv9c7gh3lgpga6kchc9hgft9e2xdvcmwqpe2qrp83g3"
+        )
         assert result is not None
 
     def test_bitcoin_bech32m_negative_1(self) -> None:
@@ -250,13 +252,17 @@ class TestEthereumPatterns:
     def test_ethereum_private_key_positive_1(self) -> None:
         """Test Ethereum private key with context."""
         pattern = re.compile(ETHEREUM_PRIVATE_KEY.regex)
-        result = pattern.search("eth_private_key = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'")
+        result = pattern.search(
+            "eth_private_key = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'"
+        )
         assert result is not None
 
     def test_ethereum_private_key_positive_2(self) -> None:
         """Test Ethereum private key alternate context."""
         pattern = re.compile(ETHEREUM_PRIVATE_KEY.regex)
-        result = pattern.search('ETHEREUM_KEY: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"')
+        result = pattern.search(
+            'ETHEREUM_KEY: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"'
+        )
         assert result is not None
 
     def test_ethereum_private_key_negative_1(self) -> None:
@@ -268,19 +274,25 @@ class TestEthereumPatterns:
     def test_ethereum_private_key_negative_2(self) -> None:
         """Test non-Ethereum key context."""
         pattern = re.compile(ETHEREUM_PRIVATE_KEY.regex)
-        result = pattern.search("api_key = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'")
+        result = pattern.search(
+            "api_key = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'"
+        )
         assert result is None
 
     def test_ethereum_private_key_raw_positive_1(self) -> None:
         """Test raw Ethereum private key."""
         pattern = re.compile(ETHEREUM_PRIVATE_KEY_RAW.regex)
-        result = pattern.search("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+        result = pattern.search(
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        )
         assert result is not None
 
     def test_ethereum_private_key_raw_positive_2(self) -> None:
         """Test raw Ethereum private key in context."""
         pattern = re.compile(ETHEREUM_PRIVATE_KEY_RAW.regex)
-        result = pattern.search("key: 0xabcdefABCDEF1234567890abcdef1234567890abcdef1234567890abcdef1234")
+        result = pattern.search(
+            "key: 0xabcdefABCDEF1234567890abcdef1234567890abcdef1234567890abcdef1234"
+        )
         assert result is not None
 
     def test_ethereum_private_key_raw_negative_1(self) -> None:
@@ -586,7 +598,9 @@ class TestCardanoPatterns:
         """Test Cardano Shelley address in context."""
         pattern = re.compile(CARDANO_ADDRESS_SHELLEY.regex)
         # Valid 103-char Cardano Shelley address
-        result = pattern.search("ADA wallet: addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x")
+        result = pattern.search(
+            "ADA wallet: addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x"
+        )
         assert result is not None
 
     def test_cardano_shelley_negative_1(self) -> None:
@@ -673,7 +687,7 @@ class TestSeedPhrasePatterns:
         """Test 24-word recovery phrase."""
         pattern = re.compile(SEED_PHRASE_24_WORDS.regex)
         words = " ".join(["zoo"] * 23 + ["wrong"])
-        phrase = f"recovery_phrase: \"{words}\""
+        phrase = f'recovery_phrase: "{words}"'
         result = pattern.search(phrase)
         assert result is not None
 
@@ -705,7 +719,7 @@ class TestSeedPhrasePatterns:
         """Test mnemonic words detection."""
         pattern = re.compile(SEED_PHRASE_GENERIC.regex)
         words = " ".join(["word"] * 18)
-        phrase = f"mnemonic_words: \"{words}\""
+        phrase = f'mnemonic_words: "{words}"'
         result = pattern.search(phrase)
         assert result is not None
 

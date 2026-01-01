@@ -11,11 +11,9 @@ from __future__ import annotations
 
 import asyncio
 import gc
-import os
 import sys
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -38,7 +36,6 @@ from hamburglar.core.profiling import (  # noqa: E402
     is_memory_tracking_available,
 )
 from hamburglar.detectors.regex_detector import RegexDetector  # noqa: E402
-
 
 # Sample content for test files
 SAMPLE_CONTENT_WITH_SECRETS = """
@@ -236,8 +233,7 @@ class TestMemoryBoundedness:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
-        not is_memory_tracking_available(),
-        reason="psutil not available for memory tracking"
+        not is_memory_tracking_available(), reason="psutil not available for memory tracking"
     )
     async def test_memory_bounded_100_files(self, tmp_path: Path) -> None:
         """Test that memory stays bounded while scanning 100 files."""
@@ -267,8 +263,7 @@ class TestMemoryBoundedness:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
-        not is_memory_tracking_available(),
-        reason="psutil not available for memory tracking"
+        not is_memory_tracking_available(), reason="psutil not available for memory tracking"
     )
     async def test_memory_bounded_1000_files(self, tmp_path: Path) -> None:
         """Test that memory stays bounded while scanning 1000 files."""
@@ -297,8 +292,7 @@ class TestMemoryBoundedness:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
-        not is_memory_tracking_available(),
-        reason="psutil not available for memory tracking"
+        not is_memory_tracking_available(), reason="psutil not available for memory tracking"
     )
     async def test_memory_peak_tracking(self, tmp_path: Path) -> None:
         """Test that peak memory is tracked correctly during scan."""
@@ -416,8 +410,8 @@ class TestConcurrencyPerformance:
         max_concurrent = 0
         lock = asyncio.Lock()
 
-        from hamburglar.detectors import BaseDetector
         from hamburglar.core.models import Finding
+        from hamburglar.detectors import BaseDetector
 
         class TrackingDetector(BaseDetector):
             """Detector that tracks concurrent executions."""
@@ -548,7 +542,7 @@ class TestScalabilityBehavior:
 
         # Time for 100 files should be roughly 2x time for 50 files
         # (within 3x to account for overhead and variance)
-        ratio = times[100] / times[50] if times[50] > 0 else float('inf')
+        ratio = times[100] / times[50] if times[50] > 0 else float("inf")
         assert ratio < 4.0, f"Scaling ratio too high: {ratio:.2f}x"
 
     @pytest.mark.asyncio

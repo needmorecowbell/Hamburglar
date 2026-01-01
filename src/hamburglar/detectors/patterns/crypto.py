@@ -7,7 +7,6 @@ wallet identifiers, and seed phrases across various blockchain networks.
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
-
 # Bitcoin Address Patterns
 BITCOIN_ADDRESS_P2PKH = Pattern(
     name="bitcoin_address_p2pkh",

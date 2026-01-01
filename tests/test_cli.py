@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 from typer.testing import CliRunner
@@ -55,18 +54,16 @@ class TestVersionOutput:
 class TestScanCommand:
     """Test scan command with temp directory produces output."""
 
-    def test_scan_command_with_temp_directory(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_command_with_temp_directory(self, temp_directory: Path) -> None:
         """Test that scan command produces output for directory with secrets."""
         result = runner.invoke(app, ["scan", str(temp_directory)])
         assert result.exit_code == 0
         # Should produce table output by default
-        assert "Hamburglar" in result.output or "Finding" in result.output or "Scan" in result.output
+        assert (
+            "Hamburglar" in result.output or "Finding" in result.output or "Scan" in result.output
+        )
 
-    def test_scan_command_finds_secrets(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_command_finds_secrets(self, temp_directory: Path) -> None:
         """Test that scan command finds secrets in temp directory."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
@@ -75,9 +72,7 @@ class TestScanCommand:
         assert "findings" in data
         assert len(data["findings"]) > 0
 
-    def test_scan_single_file(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_single_file(self, temp_directory: Path) -> None:
         """Test scanning a single file."""
         single_file = temp_directory / "secrets.txt"
         result = runner.invoke(app, ["scan", str(single_file)])
@@ -90,16 +85,12 @@ class TestScanCommand:
         # Typer should catch this and return non-zero exit code
         assert result.exit_code != 0
 
-    def test_scan_with_recursive_flag(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_with_recursive_flag(self, temp_directory: Path) -> None:
         """Test scan with explicit --recursive flag."""
         result = runner.invoke(app, ["scan", str(temp_directory), "-r"])
         assert result.exit_code == 0
 
-    def test_scan_default_is_recursive(
-        self, temp_directory: Path
-    ) -> None:
+    def test_scan_default_is_recursive(self, temp_directory: Path) -> None:
         """Test that scan is recursive by default."""
         # Default behavior is recursive, which finds secrets in subdir
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
@@ -114,9 +105,7 @@ class TestScanCommand:
 class TestJsonFormatOutput:
     """Test --format json produces valid JSON."""
 
-    def test_format_json_produces_valid_json(
-        self, temp_directory: Path
-    ) -> None:
+    def test_format_json_produces_valid_json(self, temp_directory: Path) -> None:
         """Test that --format json produces valid JSON output."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
@@ -127,9 +116,7 @@ class TestJsonFormatOutput:
         except json.JSONDecodeError:
             pytest.fail("Output is not valid JSON")
 
-    def test_json_output_has_required_fields(
-        self, temp_directory: Path
-    ) -> None:
+    def test_json_output_has_required_fields(self, temp_directory: Path) -> None:
         """Test that JSON output contains required fields."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
@@ -140,9 +127,7 @@ class TestJsonFormatOutput:
         assert "scan_duration" in data
         assert "stats" in data
 
-    def test_json_output_findings_structure(
-        self, temp_directory: Path
-    ) -> None:
+    def test_json_output_findings_structure(self, temp_directory: Path) -> None:
         """Test that findings in JSON output have correct structure."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "json"])
         assert result.exit_code == 0
@@ -157,9 +142,7 @@ class TestJsonFormatOutput:
         assert "matches" in finding
         assert "severity" in finding
 
-    def test_json_format_short_flag(
-        self, temp_directory: Path
-    ) -> None:
+    def test_json_format_short_flag(self, temp_directory: Path) -> None:
         """Test that -f json works the same as --format json."""
         result = runner.invoke(app, ["scan", str(temp_directory), "-f", "json"])
         assert result.exit_code == 0
@@ -168,9 +151,7 @@ class TestJsonFormatOutput:
         data = json.loads(result.output)
         assert "findings" in data
 
-    def test_json_format_case_insensitive(
-        self, temp_directory: Path
-    ) -> None:
+    def test_json_format_case_insensitive(self, temp_directory: Path) -> None:
         """Test that format option is case-insensitive."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "JSON"])
         assert result.exit_code == 0
@@ -182,9 +163,7 @@ class TestJsonFormatOutput:
 class TestTableFormatOutput:
     """Test --format table produces table output."""
 
-    def test_format_table_produces_table_output(
-        self, temp_directory: Path
-    ) -> None:
+    def test_format_table_produces_table_output(self, temp_directory: Path) -> None:
         """Test that --format table produces table-formatted output."""
         result = runner.invoke(app, ["scan", str(temp_directory), "--format", "table"])
         assert result.exit_code == 0
@@ -192,9 +171,7 @@ class TestTableFormatOutput:
         # Rich tables may have various formatting, but should have content
         assert len(result.output) > 0
 
-    def test_table_is_default_format(
-        self, temp_directory: Path
-    ) -> None:
+    def test_table_is_default_format(self, temp_directory: Path) -> None:
         """Test that table is the default format when not specified."""
         result_default = runner.invoke(app, ["scan", str(temp_directory)])
         result_table = runner.invoke(app, ["scan", str(temp_directory), "--format", "table"])
@@ -210,9 +187,7 @@ class TestTableFormatOutput:
         except json.JSONDecodeError:
             pass  # Expected - table format is not valid JSON
 
-    def test_table_format_short_flag(
-        self, temp_directory: Path
-    ) -> None:
+    def test_table_format_short_flag(self, temp_directory: Path) -> None:
         """Test that -f table works the same as --format table."""
         result = runner.invoke(app, ["scan", str(temp_directory), "-f", "table"])
         assert result.exit_code == 0
@@ -258,8 +233,7 @@ class TestOutputFileOption:
         """Test that --output writes to a file."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "--format", "json", "--output", str(output_file)]
+            app, ["scan", str(temp_directory), "--format", "json", "--output", str(output_file)]
         )
         assert result.exit_code == 0
         assert output_file.exists()
@@ -273,8 +247,7 @@ class TestOutputFileOption:
         """Test that -o works the same as --output."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
-            app,
-            ["scan", str(temp_directory), "-f", "json", "-o", str(output_file)]
+            app, ["scan", str(temp_directory), "-f", "json", "-o", str(output_file)]
         )
         assert result.exit_code == 0
         assert output_file.exists()
@@ -372,7 +345,15 @@ class TestQuietFlag:
         output_file = tmp_path / "output.json"
         result = runner.invoke(
             app,
-            ["scan", str(temp_directory), "--quiet", "--format", "json", "--output", str(output_file)]
+            [
+                "scan",
+                str(temp_directory),
+                "--quiet",
+                "--format",
+                "json",
+                "--output",
+                str(output_file),
+            ],
         )
         assert result.exit_code == 0
         # File should exist and contain findings
@@ -398,7 +379,11 @@ class TestErrorDisplay:
         assert result.exit_code == 1
         # Error should be displayed (the Panel will contain the error info)
         # Note: the rich Panel output may vary, but the error message should be present
-        assert "Invalid format" in result.output or "Config Error" in result.output or "Error" in result.output
+        assert (
+            "Invalid format" in result.output
+            or "Config Error" in result.output
+            or "Error" in result.output
+        )
 
 
 class TestHelpContainsQuietOption:

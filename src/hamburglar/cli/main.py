@@ -5,7 +5,6 @@ with various options for output format, YARA rules, and verbosity.
 """
 
 import asyncio
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Optional
@@ -25,18 +24,19 @@ from rich.progress import (
 )
 
 from hamburglar import __version__
-from hamburglar.core.async_scanner import AsyncScanner
 from hamburglar.cli.errors import (
-    CONTEXT_HINTS,
     DOC_LINKS,
-    format_doc_reference,
+    format_available_commands,
     get_command_suggestion,
     get_context_hint,
-    get_option_suggestion,
-    get_subcommand_suggestion,
-    format_available_commands,
-    format_help_footer,
 )
+from hamburglar.config import (
+    ConfigLoader,
+    HamburglarConfig,
+    load_config,
+    reset_config,
+)
+from hamburglar.core.async_scanner import AsyncScanner
 from hamburglar.core.exceptions import (
     ConfigError,
     DetectorError,
@@ -46,36 +46,28 @@ from hamburglar.core.exceptions import (
     YaraCompilationError,
 )
 from hamburglar.core.logging import setup_logging
-from hamburglar.core.models import OutputFormat, ScanConfig, Severity
+from hamburglar.core.models import OutputFormat, ScanConfig, ScanResult, Severity
 from hamburglar.core.progress import ScanProgress
 from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.yara_detector import YaraDetector
+from hamburglar.outputs import BaseOutput
+from hamburglar.outputs.csv_output import CsvOutput
+from hamburglar.outputs.html_output import HtmlOutput
+from hamburglar.outputs.json_output import JsonOutput
+from hamburglar.outputs.markdown_output import MarkdownOutput
+from hamburglar.outputs.sarif import SarifOutput
 from hamburglar.outputs.streaming import StreamingOutput
+from hamburglar.outputs.table_output import TableOutput
 from hamburglar.scanners import GitScanner, WebScanner
+from hamburglar.storage import ScanStatistics, StorageError
+from hamburglar.storage.sqlite import SqliteStorage
 
 # Valid category names for CLI parsing
 VALID_CATEGORIES = {cat.value: cat for cat in PatternCategory}
 
 # Valid confidence levels for CLI parsing
 VALID_CONFIDENCE_LEVELS = {conf.value: conf for conf in Confidence}
-
-from hamburglar.outputs.json_output import JsonOutput
-from hamburglar.outputs.table_output import TableOutput
-from hamburglar.outputs.sarif import SarifOutput
-from hamburglar.outputs.csv_output import CsvOutput
-from hamburglar.outputs.html_output import HtmlOutput
-from hamburglar.outputs.markdown_output import MarkdownOutput
-from hamburglar.outputs import BaseOutput
-from hamburglar.storage import ScanStatistics, StorageError
-from hamburglar.storage.sqlite import SqliteStorage
-from hamburglar.config import (
-    get_config,
-    load_config,
-    reset_config,
-    HamburglarConfig,
-    ConfigLoader,
-)
 
 # Valid output formats for CLI parsing
 VALID_FORMATS = {fmt.value: fmt for fmt in OutputFormat}
@@ -280,9 +272,7 @@ def save_to_database(
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
     except OSError as e:
-        _display_error(
-            OutputError(f"Failed to save to database: {e}", output_path=str(db_path))
-        )
+        _display_error(OutputError(f"Failed to save to database: {e}", output_path=str(db_path)))
         raise typer.Exit(code=EXIT_ERROR) from None
 
 
@@ -308,9 +298,7 @@ def parse_categories(value: str) -> list[PatternCategory]:
             continue
         if name not in VALID_CATEGORIES:
             valid_names = ", ".join(sorted(VALID_CATEGORIES.keys()))
-            raise typer.BadParameter(
-                f"Invalid category '{name}'. Valid categories: {valid_names}"
-            )
+            raise typer.BadParameter(f"Invalid category '{name}'. Valid categories: {valid_names}")
         categories.append(VALID_CATEGORIES[name])
 
     return categories
@@ -334,15 +322,14 @@ def parse_confidence(value: str) -> Confidence:
     level = value.strip().lower()
     if level not in VALID_CONFIDENCE_LEVELS:
         valid_names = ", ".join(sorted(VALID_CONFIDENCE_LEVELS.keys()))
-        raise typer.BadParameter(
-            f"Invalid confidence level '{level}'. Valid levels: {valid_names}"
-        )
+        raise typer.BadParameter(f"Invalid confidence level '{level}'. Valid levels: {valid_names}")
 
     return VALID_CONFIDENCE_LEVELS[level]
 
 
 if TYPE_CHECKING:
     from hamburglar.detectors import BaseDetector
+    from hamburglar.plugins.discovery import PluginListEntry
 
 # Exit codes
 EXIT_SUCCESS = 0
@@ -416,7 +403,9 @@ def _display_error(
                 message += f"\n\n[yellow]Hint:[/yellow] {get_context_hint('invalid_category')}"
             elif error.config_key == "min_confidence":
                 message += f"\n\n[yellow]Hint:[/yellow] {get_context_hint('invalid_confidence')}"
-        message += help_section or f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('configuration', '')}"
+        message += (
+            help_section or f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('configuration', '')}"
+        )
         error_console.print(Panel(message, title="[red]Config Error[/red]", border_style="red"))
     elif isinstance(error, OutputError):
         message = f"[bold red]Output Error[/bold red]\n\n{error.message}"
@@ -748,7 +737,9 @@ def scan(
     eff_save_to_db = save_to_db if save_to_db is not None else cfg.output.save_to_db
     eff_db_path = db_path if db_path is not None else cfg.output.db_path
     eff_output = output if output is not None else cfg.output.output_path
-    eff_min_confidence = min_confidence if min_confidence is not None else cfg.detector.min_confidence
+    eff_min_confidence = (
+        min_confidence if min_confidence is not None else cfg.detector.min_confidence
+    )
 
     # Handle YARA: CLI --yara path takes precedence, then --no-yara, then config
     if yara is not None:
@@ -844,9 +835,13 @@ def scan(
         if stream:
             console.print("[dim]Mode:[/dim] Streaming (NDJSON)")
         if enabled_categories:
-            console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
+            console.print(
+                f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}"
+            )
         if disabled_categories:
-            console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
+            console.print(
+                f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}"
+            )
         if confidence_filter:
             console.print(f"[dim]Min confidence:[/dim] {confidence_filter.value}")
         if eff_use_yara and eff_yara_path:
@@ -897,31 +892,39 @@ def scan(
 
     # Handle dry-run mode
     if dry_run:
-        asyncio.run(_run_dry_run(
-            scan_config, detectors, eff_concurrency, eff_quiet, eff_verbose,
-            enabled_categories, disabled_categories, confidence_filter
-        ))
+        asyncio.run(
+            _run_dry_run(
+                scan_config,
+                detectors,
+                eff_concurrency,
+                eff_quiet,
+                eff_verbose,
+                enabled_categories,
+                disabled_categories,
+                confidence_filter,
+            )
+        )
         return
 
     # Handle streaming mode
     if stream:
-        asyncio.run(_run_streaming_scan(
-            scan_config, detectors, eff_concurrency, eff_output, eff_quiet, eff_verbose
-        ))
+        asyncio.run(
+            _run_streaming_scan(
+                scan_config, detectors, eff_concurrency, eff_output, eff_quiet, eff_verbose
+            )
+        )
         return
 
     # Handle benchmark mode
     if benchmark:
-        asyncio.run(_run_benchmark_scan(
-            scan_config, detectors, eff_concurrency, eff_quiet
-        ))
+        asyncio.run(_run_benchmark_scan(scan_config, detectors, eff_concurrency, eff_quiet))
         return
 
     # Run the scan with progress bar (non-streaming mode)
     try:
-        result = asyncio.run(_run_scan_with_progress(
-            scan_config, detectors, eff_concurrency, eff_quiet, eff_verbose
-        ))
+        result = asyncio.run(
+            _run_scan_with_progress(scan_config, detectors, eff_concurrency, eff_quiet, eff_verbose)
+        )
     except ScanError as e:
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
@@ -961,7 +964,9 @@ def scan(
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(eff_output)))
+            _display_error(
+                OutputError(f"Failed to write output file: {e}", output_path=str(eff_output))
+            )
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
@@ -1014,7 +1019,6 @@ async def _run_scan_with_progress(
     Returns:
         ScanResult with all findings.
     """
-    from hamburglar.core.models import ScanResult
 
     # Progress tracking state
     progress_state = {
@@ -1050,9 +1054,7 @@ async def _run_scan_with_progress(
         transient=not verbose,  # Keep progress visible in verbose mode
     ) as progress:
         # Start with discovering task
-        discover_task = progress.add_task(
-            "[cyan]Discovering files...", total=None, stats=""
-        )
+        discover_task = progress.add_task("[cyan]Discovering files...", total=None, stats="")
 
         # Start the scan
         scan_task = asyncio.create_task(scanner.scan())
@@ -1149,7 +1151,9 @@ async def _run_streaming_scan(
                     findings_count += 1
 
             if not quiet:
-                console.print(f"[green]Streamed {findings_count} findings to:[/green] {output_path}")
+                console.print(
+                    f"[green]Streamed {findings_count} findings to:[/green] {output_path}"
+                )
         else:
             # Write to stdout
             async for finding in scanner.scan_stream():
@@ -1210,7 +1214,6 @@ async def _run_dry_run(
         confidence_filter: Minimum confidence level, if specified.
     """
     from rich.table import Table
-    from rich.tree import Tree
 
     if not quiet:
         console.print()
@@ -1309,7 +1312,9 @@ async def _run_dry_run(
         return f"{num_bytes:.1f} TB"
 
     # Display summary
-    summary_table = Table(title="File Discovery Summary", show_header=True, header_style="bold cyan")
+    summary_table = Table(
+        title="File Discovery Summary", show_header=True, header_style="bold cyan"
+    )
     summary_table.add_column("Metric", style="dim")
     summary_table.add_column("Value")
 
@@ -1461,13 +1466,18 @@ def _run_git_dry_run(
     if not is_remote:
         try:
             from pathlib import Path as PathLib
+
             target_path = PathLib(target).resolve()
             if target_path.exists() and (target_path / ".git").exists():
                 if not quiet:
-                    console.print("[dim]Local repository detected. Run without --dry-run to scan.[/dim]")
+                    console.print(
+                        "[dim]Local repository detected. Run without --dry-run to scan.[/dim]"
+                    )
             elif target_path.exists():
                 if not quiet:
-                    console.print(f"[yellow]Warning: {target} exists but is not a git repository[/yellow]")
+                    console.print(
+                        f"[yellow]Warning: {target} exists but is not a git repository[/yellow]"
+                    )
             else:
                 if not quiet:
                     console.print(f"[yellow]Warning: {target} does not exist[/yellow]")
@@ -1477,7 +1487,9 @@ def _run_git_dry_run(
     if not quiet:
         console.print()
         if is_remote:
-            console.print("[green]✓ Dry run complete. Repository would be cloned and scanned.[/green]")
+            console.print(
+                "[green]✓ Dry run complete. Repository would be cloned and scanned.[/green]"
+            )
         else:
             console.print("[green]✓ Dry run complete. Repository would be scanned.[/green]")
 
@@ -1516,8 +1528,9 @@ def _run_web_dry_run(
         disabled_categories: Categories to disable, if specified.
         confidence_filter: Minimum confidence level, if specified.
     """
-    from rich.table import Table
     from urllib.parse import urlparse
+
+    from rich.table import Table
 
     if not quiet:
         console.print()
@@ -1883,7 +1896,9 @@ def scan_git(
     eff_save_to_db = save_to_db if save_to_db is not None else cfg.output.save_to_db
     eff_db_path = db_path if db_path is not None else cfg.output.db_path
     eff_output = output if output is not None else cfg.output.output_path
-    eff_min_confidence = min_confidence if min_confidence is not None else cfg.detector.min_confidence
+    eff_min_confidence = (
+        min_confidence if min_confidence is not None else cfg.detector.min_confidence
+    )
 
     # Handle categories: CLI overrides config
     if categories is not None:
@@ -1973,9 +1988,13 @@ def scan_git(
         if stream:
             console.print("[dim]Mode:[/dim] Streaming (NDJSON)")
         if enabled_categories:
-            console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
+            console.print(
+                f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}"
+            )
         if disabled_categories:
-            console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
+            console.print(
+                f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}"
+            )
         if confidence_filter:
             console.print(f"[dim]Min confidence:[/dim] {confidence_filter.value}")
 
@@ -1994,23 +2013,45 @@ def scan_git(
     # Handle dry-run mode
     if dry_run:
         _run_git_dry_run(
-            target, detectors, output_format, depth, branch, include_history, clone_dir,
-            eff_quiet, eff_verbose, enabled_categories, disabled_categories, confidence_filter
+            target,
+            detectors,
+            output_format,
+            depth,
+            branch,
+            include_history,
+            clone_dir,
+            eff_quiet,
+            eff_verbose,
+            enabled_categories,
+            disabled_categories,
+            confidence_filter,
         )
         return
 
     # Handle streaming mode
     if stream:
-        asyncio.run(_run_git_streaming_scan(
-            target, detectors, depth, branch, include_history, clone_dir, eff_output, eff_quiet, eff_verbose
-        ))
+        asyncio.run(
+            _run_git_streaming_scan(
+                target,
+                detectors,
+                depth,
+                branch,
+                include_history,
+                clone_dir,
+                eff_output,
+                eff_quiet,
+                eff_verbose,
+            )
+        )
         return
 
     # Run the scan with progress bar (non-streaming mode)
     try:
-        result = asyncio.run(_run_git_scan_with_progress(
-            target, detectors, depth, branch, include_history, clone_dir, eff_quiet, eff_verbose
-        ))
+        result = asyncio.run(
+            _run_git_scan_with_progress(
+                target, detectors, depth, branch, include_history, clone_dir, eff_quiet, eff_verbose
+            )
+        )
     except ScanError as e:
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
@@ -2050,7 +2091,9 @@ def scan_git(
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(eff_output)))
+            _display_error(
+                OutputError(f"Failed to write output file: {e}", output_path=str(eff_output))
+            )
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
@@ -2109,7 +2152,6 @@ async def _run_git_scan_with_progress(
     Returns:
         ScanResult with all findings.
     """
-    from hamburglar.core.models import ScanResult
 
     # Progress tracking state
     progress_state = {
@@ -2145,9 +2187,7 @@ async def _run_git_scan_with_progress(
         transient=not verbose,
     ) as progress:
         # Start with cloning/loading task
-        main_task = progress.add_task(
-            "[cyan]Scanning git repository...", total=None, stats=""
-        )
+        main_task = progress.add_task("[cyan]Scanning git repository...", total=None, stats="")
 
         # Start the scan
         scan_task = asyncio.create_task(scanner.scan())
@@ -2162,9 +2202,7 @@ async def _run_git_scan_with_progress(
                 if last_progress.scanned_files > 0:
                     stats_parts.append(f"{last_progress.scanned_files} files")
                 if last_progress.findings_count > 0:
-                    stats_parts.append(
-                        f"[yellow]{last_progress.findings_count} findings[/yellow]"
-                    )
+                    stats_parts.append(f"[yellow]{last_progress.findings_count} findings[/yellow]")
                 if last_progress.current_file:
                     # Truncate long file names
                     current = last_progress.current_file
@@ -2234,7 +2272,9 @@ async def _run_git_streaming_scan(
                     findings_count += 1
 
             if not quiet:
-                console.print(f"[green]Streamed {findings_count} findings to:[/green] {output_path}")
+                console.print(
+                    f"[green]Streamed {findings_count} findings to:[/green] {output_path}"
+                )
         else:
             async for finding in scanner.scan_stream():
                 print(formatter.format_finding(finding), flush=True)
@@ -2483,7 +2523,9 @@ def scan_web(
     eff_save_to_db = save_to_db if save_to_db is not None else cfg.output.save_to_db
     eff_db_path = db_path if db_path is not None else cfg.output.db_path
     eff_output = output if output is not None else cfg.output.output_path
-    eff_min_confidence = min_confidence if min_confidence is not None else cfg.detector.min_confidence
+    eff_min_confidence = (
+        min_confidence if min_confidence is not None else cfg.detector.min_confidence
+    )
 
     # Handle categories: CLI overrides config
     if categories is not None:
@@ -2588,9 +2630,13 @@ def scan_web(
         if stream:
             console.print("[dim]Mode:[/dim] Streaming (NDJSON)")
         if enabled_categories:
-            console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
+            console.print(
+                f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}"
+            )
         if disabled_categories:
-            console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
+            console.print(
+                f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}"
+            )
         if confidence_filter:
             console.print(f"[dim]Min confidence:[/dim] {confidence_filter.value}")
 
@@ -2609,26 +2655,58 @@ def scan_web(
     # Handle dry-run mode
     if dry_run:
         _run_web_dry_run(
-            url, detectors, output_format, depth, include_scripts, user_agent, timeout,
-            respect_robots, auth_tuple, eff_quiet, eff_verbose,
-            enabled_categories, disabled_categories, confidence_filter
+            url,
+            detectors,
+            output_format,
+            depth,
+            include_scripts,
+            user_agent,
+            timeout,
+            respect_robots,
+            auth_tuple,
+            eff_quiet,
+            eff_verbose,
+            enabled_categories,
+            disabled_categories,
+            confidence_filter,
         )
         return
 
     # Handle streaming mode
     if stream:
-        asyncio.run(_run_web_streaming_scan(
-            url, detectors, depth, include_scripts, user_agent, timeout,
-            respect_robots, auth_tuple, eff_output, eff_quiet, eff_verbose
-        ))
+        asyncio.run(
+            _run_web_streaming_scan(
+                url,
+                detectors,
+                depth,
+                include_scripts,
+                user_agent,
+                timeout,
+                respect_robots,
+                auth_tuple,
+                eff_output,
+                eff_quiet,
+                eff_verbose,
+            )
+        )
         return
 
     # Run the scan with progress bar (non-streaming mode)
     try:
-        result = asyncio.run(_run_web_scan_with_progress(
-            url, detectors, depth, include_scripts, user_agent, timeout,
-            respect_robots, auth_tuple, eff_quiet, eff_verbose
-        ))
+        result = asyncio.run(
+            _run_web_scan_with_progress(
+                url,
+                detectors,
+                depth,
+                include_scripts,
+                user_agent,
+                timeout,
+                respect_robots,
+                auth_tuple,
+                eff_quiet,
+                eff_verbose,
+            )
+        )
     except ScanError as e:
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
@@ -2668,7 +2746,9 @@ def scan_web(
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(eff_output)))
+            _display_error(
+                OutputError(f"Failed to write output file: {e}", output_path=str(eff_output))
+            )
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
@@ -2731,8 +2811,6 @@ async def _run_web_scan_with_progress(
     Returns:
         ScanResult with all findings.
     """
-    from hamburglar.core.models import ScanResult
-    from hamburglar.scanners.web import DEFAULT_USER_AGENT
 
     # Progress tracking state
     progress_state = {
@@ -2762,7 +2840,9 @@ async def _run_web_scan_with_progress(
     # For now, auth would need to be added to WebScanner if needed
     # This is a placeholder for future auth support
     if auth_tuple and verbose and not quiet:
-        console.print("[dim]Note: Auth credentials provided (requires WebScanner auth support)[/dim]")
+        console.print(
+            "[dim]Note: Auth credentials provided (requires WebScanner auth support)[/dim]"
+        )
 
     scanner = WebScanner(**scanner_kwargs)
 
@@ -2780,9 +2860,7 @@ async def _run_web_scan_with_progress(
         transient=not verbose,
     ) as progress:
         # Start with scanning task
-        main_task = progress.add_task(
-            "[cyan]Scanning web URL...", total=None, stats=""
-        )
+        main_task = progress.add_task("[cyan]Scanning web URL...", total=None, stats="")
 
         # Start the scan
         scan_task = asyncio.create_task(scanner.scan())
@@ -2797,9 +2875,7 @@ async def _run_web_scan_with_progress(
                 if last_progress.scanned_files > 0:
                     stats_parts.append(f"{last_progress.scanned_files} URLs/scripts")
                 if last_progress.findings_count > 0:
-                    stats_parts.append(
-                        f"[yellow]{last_progress.findings_count} findings[/yellow]"
-                    )
+                    stats_parts.append(f"[yellow]{last_progress.findings_count} findings[/yellow]")
                 if last_progress.current_file:
                     # Truncate long URLs
                     current = last_progress.current_file
@@ -2879,7 +2955,9 @@ async def _run_web_streaming_scan(
                     findings_count += 1
 
             if not quiet:
-                console.print(f"[green]Streamed {findings_count} findings to:[/green] {output_path}")
+                console.print(
+                    f"[green]Streamed {findings_count} findings to:[/green] {output_path}"
+                )
         else:
             async for finding in scanner.scan_stream():
                 print(formatter.format_finding(finding), flush=True)
@@ -2936,9 +3014,7 @@ def parse_severities(value: str) -> list[Severity]:
             continue
         if name not in valid_severities:
             valid_names = ", ".join(sorted(valid_severities.keys()))
-            raise typer.BadParameter(
-                f"Invalid severity '{name}'. Valid severities: {valid_names}"
-            )
+            raise typer.BadParameter(f"Invalid severity '{name}'. Valid severities: {valid_names}")
         severities.append(valid_severities[name])
 
     return severities
@@ -2956,8 +3032,8 @@ def parse_date(value: str) -> datetime:
     Raises:
         typer.BadParameter: If the date format is invalid.
     """
-    from datetime import timedelta
     import re
+    from datetime import timedelta
 
     value = value.strip()
 
@@ -3035,8 +3111,7 @@ def history(
         Optional[str],
         typer.Option(
             "--severity",
-            help="Filter by severity level(s), comma-separated "
-            "(critical, high, medium, low, info)",
+            help="Filter by severity level(s), comma-separated (critical, high, medium, low, info)",
         ),
     ] = None,
     detector: Annotated[
@@ -3231,8 +3306,7 @@ def history(
                 from hamburglar.core.models import ScanResult
 
                 converted_findings = [
-                    CurrentFinding.model_validate(f.model_dump())
-                    for f in findings
+                    CurrentFinding.model_validate(f.model_dump()) for f in findings
                 ]
 
                 result = ScanResult(
@@ -3260,7 +3334,11 @@ def history(
                         _display_error(e)
                         raise typer.Exit(code=EXIT_ERROR) from None
                     except OSError as e:
-                        _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+                        _display_error(
+                            OutputError(
+                                f"Failed to write output file: {e}", output_path=str(output)
+                            )
+                        )
                         raise typer.Exit(code=EXIT_ERROR) from None
                 elif not quiet:
                     if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
@@ -3303,7 +3381,6 @@ def _display_statistics(
         output: Optional path to write output to.
         output_format: The output format to use.
     """
-    from hamburglar.storage import ScanStatistics
     import json
 
     # Build a structured representation of the statistics
@@ -3314,8 +3391,12 @@ def _display_statistics(
         "findings_by_severity": statistics.findings_by_severity,
         "findings_by_detector": statistics.findings_by_detector,
         "scans_by_date": statistics.scans_by_date,
-        "first_scan_date": statistics.first_scan_date.isoformat() if statistics.first_scan_date else None,
-        "last_scan_date": statistics.last_scan_date.isoformat() if statistics.last_scan_date else None,
+        "first_scan_date": statistics.first_scan_date.isoformat()
+        if statistics.first_scan_date
+        else None,
+        "last_scan_date": statistics.last_scan_date.isoformat()
+        if statistics.last_scan_date
+        else None,
         "average_findings_per_scan": round(statistics.average_findings_per_scan, 2),
         "average_scan_duration": round(statistics.average_scan_duration, 2),
     }
@@ -3355,7 +3436,9 @@ def _display_statistics(
             summary.add_row("Last Scan", statistics.last_scan_date.strftime("%Y-%m-%d %H:%M"))
 
         # Severity breakdown table
-        severity_table = Table(title="Findings by Severity", show_header=True, header_style="bold cyan")
+        severity_table = Table(
+            title="Findings by Severity", show_header=True, header_style="bold cyan"
+        )
         severity_table.add_column("Severity", style="dim")
         severity_table.add_column("Count", justify="right")
 
@@ -3367,7 +3450,9 @@ def _display_statistics(
                 severity_table.add_row(sev.upper(), str(count))
 
         # Detector breakdown table (show top 10)
-        detector_table = Table(title="Findings by Detector (Top 10)", show_header=True, header_style="bold cyan")
+        detector_table = Table(
+            title="Findings by Detector (Top 10)", show_header=True, header_style="bold cyan"
+        )
         detector_table.add_column("Detector", style="dim")
         detector_table.add_column("Count", justify="right")
 
@@ -3380,7 +3465,9 @@ def _display_statistics(
             detector_table.add_row(det_name, str(count))
 
         # Scan activity table (show last 7 dates)
-        activity_table = Table(title="Recent Scan Activity", show_header=True, header_style="bold cyan")
+        activity_table = Table(
+            title="Recent Scan Activity", show_header=True, header_style="bold cyan"
+        )
         activity_table.add_column("Date", style="dim")
         activity_table.add_column("Scans", justify="right")
 
@@ -3392,6 +3479,7 @@ def _display_statistics(
         if output:
             # Capture console output to string
             from io import StringIO
+
             from rich.console import Console
 
             string_io = StringIO()
@@ -3431,7 +3519,9 @@ def _display_statistics(
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+            _display_error(
+                OutputError(f"Failed to write output file: {e}", output_path=str(output))
+            )
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not quiet:
         if output_format in (OutputFormat.JSON, OutputFormat.CSV):
@@ -3484,13 +3574,13 @@ def _generate_report_html(
             color = severity_colors.get(sev, "#95a5a6")
             severity_rows.append(
                 f'<tr><td><span style="color:{color};font-weight:bold;">'
-                f'{esc(sev.upper())}</span></td><td>{count}</td></tr>'
+                f"{esc(sev.upper())}</span></td><td>{count}</td></tr>"
             )
 
     # Build detector breakdown rows
     detector_rows = []
     for det_name, count in top_detectors[:15]:
-        detector_rows.append(f'<tr><td>{esc(det_name)}</td><td>{count}</td></tr>')
+        detector_rows.append(f"<tr><td>{esc(det_name)}</td><td>{count}</td></tr>")
 
     # Build top files rows
     file_rows = []
@@ -3499,19 +3589,19 @@ def _generate_report_html(
         display_path = file_path if len(file_path) <= 80 else "..." + file_path[-77:]
         file_rows.append(
             f'<tr><td title="{esc(file_path)}"><code>{esc(display_path)}</code></td>'
-            f'<td>{count}</td></tr>'
+            f"<td>{count}</td></tr>"
         )
 
     # Build trend data (scans by date, sorted chronologically)
     sorted_dates = sorted(statistics.scans_by_date.items())
     trend_rows = []
     for date, count in sorted_dates[-30:]:  # Last 30 days
-        trend_rows.append(f'<tr><td>{esc(date)}</td><td>{count}</td></tr>')
+        trend_rows.append(f"<tr><td>{esc(date)}</td><td>{count}</td></tr>")
 
     # Generate report timestamp
     report_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    html_content = f'''<!DOCTYPE html>
+    html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -3656,22 +3746,22 @@ def _generate_report_html(
         <div class="two-columns">
             <div class="section">
                 <h2>Findings by Severity</h2>
-                {'<table><thead><tr><th>Severity</th><th>Count</th></tr></thead><tbody>' + ''.join(severity_rows) + '</tbody></table>' if severity_rows else '<p class="empty-state">No findings recorded</p>'}
+                {"<table><thead><tr><th>Severity</th><th>Count</th></tr></thead><tbody>" + "".join(severity_rows) + "</tbody></table>" if severity_rows else '<p class="empty-state">No findings recorded</p>'}
             </div>
             <div class="section">
                 <h2>Most Common Finding Types</h2>
-                {'<table><thead><tr><th>Detector</th><th>Count</th></tr></thead><tbody>' + ''.join(detector_rows) + '</tbody></table>' if detector_rows else '<p class="empty-state">No findings recorded</p>'}
+                {"<table><thead><tr><th>Detector</th><th>Count</th></tr></thead><tbody>" + "".join(detector_rows) + "</tbody></table>" if detector_rows else '<p class="empty-state">No findings recorded</p>'}
             </div>
         </div>
 
         <div class="section">
             <h2>Files with Most Findings</h2>
-            {'<table><thead><tr><th>File Path</th><th>Findings</th></tr></thead><tbody>' + ''.join(file_rows) + '</tbody></table>' if file_rows else '<p class="empty-state">No findings recorded</p>'}
+            {"<table><thead><tr><th>File Path</th><th>Findings</th></tr></thead><tbody>" + "".join(file_rows) + "</tbody></table>" if file_rows else '<p class="empty-state">No findings recorded</p>'}
         </div>
 
         <div class="section">
             <h2>Scan Activity Over Time</h2>
-            {'<table><thead><tr><th>Date</th><th>Scans</th></tr></thead><tbody>' + ''.join(trend_rows) + '</tbody></table>' if trend_rows else '<p class="empty-state">No scan activity recorded</p>'}
+            {"<table><thead><tr><th>Date</th><th>Scans</th></tr></thead><tbody>" + "".join(trend_rows) + "</tbody></table>" if trend_rows else '<p class="empty-state">No scan activity recorded</p>'}
         </div>
 
         <div class="footer">
@@ -3679,7 +3769,7 @@ def _generate_report_html(
         </div>
     </div>
 </body>
-</html>'''
+</html>"""
     return html_content
 
 
@@ -3737,11 +3827,11 @@ def _generate_report_markdown(
     # Severity breakdown
     severity_order = ["critical", "high", "medium", "low", "info"]
     severity_emojis = {
-        "critical": "\U0001F6A8",  # 🚨
-        "high": "\U0001F534",  # 🔴
-        "medium": "\U0001F7E0",  # 🟠
-        "low": "\U0001F535",  # 🔵
-        "info": "\U00002139\uFE0F",  # ℹ️
+        "critical": "\U0001f6a8",  # 🚨
+        "high": "\U0001f534",  # 🔴
+        "medium": "\U0001f7e0",  # 🟠
+        "low": "\U0001f535",  # 🔵
+        "info": "\U00002139\ufe0f",  # ℹ️
     }
 
     lines.append("## Findings by Severity")
@@ -3902,7 +3992,7 @@ def report(
         1: Error occurred
         2: No data in database
     """
-    from hamburglar.storage import FindingFilter, ScanFilter
+    from hamburglar.storage import FindingFilter
 
     # Set up logging based on verbosity
     if not quiet:
@@ -3992,8 +4082,12 @@ def report(
                 # Recompute detector counts from filtered findings
                 detector_count: dict[str, int] = {}
                 for finding in findings:
-                    detector_count[finding.detector_name] = detector_count.get(finding.detector_name, 0) + 1
-                top_detectors = sorted(detector_count.items(), key=lambda x: x[1], reverse=True)[:top_n]
+                    detector_count[finding.detector_name] = (
+                        detector_count.get(finding.detector_name, 0) + 1
+                    )
+                top_detectors = sorted(detector_count.items(), key=lambda x: x[1], reverse=True)[
+                    :top_n
+                ]
             else:
                 # Use statistics data
                 top_detectors = sorted(
@@ -4028,7 +4122,9 @@ def report(
                     _display_error(e)
                     raise typer.Exit(code=EXIT_ERROR) from None
                 except OSError as e:
-                    _display_error(OutputError(f"Failed to write report file: {e}", output_path=str(output)))
+                    _display_error(
+                        OutputError(f"Failed to write report file: {e}", output_path=str(output))
+                    )
                     raise typer.Exit(code=EXIT_ERROR) from None
             elif not quiet:
                 print(report_content)
@@ -4092,14 +4188,16 @@ def doctor(
     Use this command to troubleshoot issues or verify your installation
     is working correctly.
     """
-    from dataclasses import dataclass
-    from enum import Enum
-    from rich.table import Table
     import importlib.metadata
     import platform
+    from dataclasses import dataclass
+    from enum import Enum
+
+    from rich.table import Table
 
     class CheckStatus(str, Enum):
         """Status for each diagnostic check."""
+
         OK = "ok"
         WARNING = "warning"
         ERROR = "error"
@@ -4108,6 +4206,7 @@ def doctor(
     @dataclass
     class CheckResult:
         """Result of a diagnostic check."""
+
         name: str
         status: CheckStatus
         message: str
@@ -4141,7 +4240,9 @@ def doctor(
                 name="Python Version",
                 status=CheckStatus.OK,
                 message=f"Python {python_version}",
-                details=f"Python {python_version} meets the minimum requirement (3.9+)." if verbose else None,
+                details=f"Python {python_version} meets the minimum requirement (3.9+)."
+                if verbose
+                else None,
             )
         )
 
@@ -4170,6 +4271,7 @@ def doctor(
             def parse_version_part(part: str) -> int:
                 """Parse version part, handling suffixes like '0rc1'."""
                 import re
+
                 match = re.match(r"(\d+)", part)
                 return int(match.group(1)) if match else 0
 
@@ -4199,7 +4301,7 @@ def doctor(
                 name="Dependencies",
                 status=CheckStatus.WARNING,
                 message=f"Outdated packages: {pkg_info}",
-                details=f"Some packages are below the minimum required version.",
+                details="Some packages are below the minimum required version.",
                 suggestion=f"Upgrade with: pip install --upgrade {' '.join(p[0] for p in outdated_packages)}",
             )
         )
@@ -4219,11 +4321,12 @@ def doctor(
     # -------------------------------------------------------------------------
     try:
         import yara  # type: ignore
+
         yara_version = yara.YARA_VERSION if hasattr(yara, "YARA_VERSION") else "unknown"
 
         # Test basic YARA functionality
         try:
-            test_rule = yara.compile(source='rule test { condition: true }')
+            yara.compile(source="rule test { condition: true }")
             results.append(
                 CheckResult(
                     name="YARA",
@@ -4237,7 +4340,7 @@ def doctor(
                 CheckResult(
                     name="YARA",
                     status=CheckStatus.WARNING,
-                    message=f"YARA installed but compilation failed",
+                    message="YARA installed but compilation failed",
                     details=str(e),
                     suggestion="Try reinstalling yara-python: pip install --force-reinstall yara-python",
                 )
@@ -4290,7 +4393,7 @@ def doctor(
                 )
         else:
             # No config file - try loading defaults
-            config = load_config(use_file=False)
+            load_config(use_file=False)
             results.append(
                 CheckResult(
                     name="Configuration",
@@ -4357,7 +4460,7 @@ def doctor(
                 CheckResult(
                     name="Data Directory",
                     status=CheckStatus.OK,
-                    message=f"Directory exists: ~/.hamburglar",
+                    message="Directory exists: ~/.hamburglar",
                     details=f"Full path: {db_dir}" if verbose else None,
                 )
             )
@@ -4401,7 +4504,9 @@ def doctor(
                     name="Data Directory",
                     status=CheckStatus.OK,
                     message="Directory will be created when needed",
-                    details=f"~/.hamburglar does not exist yet (this is normal for new installations)." if verbose else None,
+                    details="~/.hamburglar does not exist yet (this is normal for new installations)."
+                    if verbose
+                    else None,
                 )
             )
 
@@ -4409,7 +4514,7 @@ def doctor(
     # Check 7: Built-in YARA rules
     # -------------------------------------------------------------------------
     try:
-        from hamburglar.detectors.yara_detector import YaraDetector
+        from hamburglar.detectors.yara_detector import YaraDetector  # noqa: F401
 
         # Get the default rules path
         rules_path = Path(__file__).parent.parent / "rules"
@@ -4574,10 +4679,8 @@ def plugins_list(
     """
     from hamburglar.plugins import get_plugin_manager, reset_plugin_manager
     from hamburglar.plugins.discovery import (
-        discover_plugins,
         format_plugin_list,
         list_plugins,
-        PluginListEntry,
     )
 
     # Validate plugin type if specified
@@ -4618,6 +4721,7 @@ def plugins_list(
     format_lower = format.lower()
     if format_lower == "json":
         import json
+
         plugin_dicts = [
             {
                 "name": p.name,
@@ -4642,9 +4746,7 @@ def plugins_list(
     raise typer.Exit(code=EXIT_SUCCESS)
 
 
-def _display_plugins_table(
-    plugins: list["PluginListEntry"], verbose: bool = False
-) -> None:
+def _display_plugins_table(plugins: list["PluginListEntry"], verbose: bool = False) -> None:
     """Display plugins in a rich table format.
 
     Args:
@@ -4652,7 +4754,6 @@ def _display_plugins_table(
         verbose: If True, show additional columns.
     """
     from rich.table import Table
-    from hamburglar.plugins.discovery import PluginListEntry
 
     # Separate by type
     detectors = [p for p in plugins if p.plugin_type == "detector"]
@@ -4695,9 +4796,7 @@ def _display_plugins_table(
         console.print()
 
     # Summary
-    console.print(
-        f"[dim]Total: {len(detectors)} detector(s), {len(outputs)} output(s)[/dim]"
-    )
+    console.print(f"[dim]Total: {len(detectors)} detector(s), {len(outputs)} output(s)[/dim]")
 
 
 @plugins_app.command("info")
@@ -4747,6 +4846,7 @@ def plugins_info(
     format_lower = format.lower()
     if format_lower == "json":
         import json
+
         plugin_dict = {
             "name": plugin.name,
             "type": plugin.plugin_type,
@@ -4775,8 +4875,6 @@ def _display_plugin_details(plugin: "PluginListEntry") -> None:
         plugin: The plugin to display details for.
     """
     from rich.panel import Panel
-    from rich.table import Table
-    from hamburglar.plugins.discovery import PluginListEntry
 
     # Build content
     lines = []
@@ -4854,11 +4952,7 @@ def config_show(
     environment variables, and CLI arguments) with optional source tracking.
     """
     from hamburglar.config import (
-        ConfigPriority,
-        get_config,
-        get_config_source,
         load_config,
-        reset_config,
     )
     from hamburglar.config.loader import ConfigLoader
 
@@ -4883,11 +4977,13 @@ def config_show(
     format_lower = format.lower()
     if format_lower == "json":
         import json
+
         output = json.dumps(config_dict, indent=2, default=str)
         console.print(output)
     elif format_lower == "toml":
         try:
             import tomli_w
+
             output = tomli_w.dumps(config_dict)
             console.print(output)
         except ImportError:
@@ -4897,11 +4993,13 @@ def config_show(
     else:  # Default to yaml
         try:
             import yaml
+
             output = yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
             console.print(output)
         except ImportError:
             console.print("[yellow]Note: pyyaml not installed, using JSON format[/yellow]")
             import json
+
             output = json.dumps(config_dict, indent=2, default=str)
             console.print(output)
 
@@ -4935,7 +5033,7 @@ def _print_config_as_toml(config_dict: dict, prefix: str = "") -> None:
 
 def _print_config_sources(config_dict: dict, path: str = "") -> None:
     """Print the source for each configuration key."""
-    from hamburglar.config import get_config_source, ConfigPriority
+    from hamburglar.config import ConfigPriority, get_config_source
 
     source_colors = {
         ConfigPriority.DEFAULT: "dim",
@@ -5162,6 +5260,7 @@ def run_cli() -> None:
             # Extract the invalid command name from the error
             # Format: "Error: No such command 'xyz'."
             import re
+
             match = re.search(r"No such command ['\"]([^'\"]+)['\"]", error_msg)
             if match:
                 invalid_cmd = match.group(1)
@@ -5176,9 +5275,7 @@ def run_cli() -> None:
                         f"[cyan]Did you mean:[/cyan] [bold green]{suggested}[/bold green]"
                     )
                     error_console.print()
-                    error_console.print(
-                        f"[dim]Run:[/dim] hamburglar {suggested} --help"
-                    )
+                    error_console.print(f"[dim]Run:[/dim] hamburglar {suggested} --help")
                 else:
                     error_console.print(
                         f"[red]Error:[/red] Unknown command '[bold]{invalid_cmd}[/bold]'."
@@ -5186,12 +5283,8 @@ def run_cli() -> None:
                     error_console.print(format_available_commands())
 
                 error_console.print()
-                error_console.print(
-                    f"[dim]For help:[/dim] hamburglar --help"
-                )
-                error_console.print(
-                    f"[dim]Docs:[/dim] {DOC_LINKS.get('cli', '')}"
-                )
+                error_console.print("[dim]For help:[/dim] hamburglar --help")
+                error_console.print(f"[dim]Docs:[/dim] {DOC_LINKS.get('cli', '')}")
                 raise SystemExit(2) from None
         # Re-raise other usage errors
         raise

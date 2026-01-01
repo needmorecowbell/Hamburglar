@@ -28,7 +28,7 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.core.file_reader import AsyncFileReader, FileInfo, FileType  # noqa: E402
+from hamburglar.core.file_reader import AsyncFileReader, FileType  # noqa: E402
 
 
 class TestAsyncFileReaderBasic:
@@ -675,9 +675,7 @@ class TestConcurrency:
             async with AsyncFileReader(path) as reader:
                 return path, await reader.read()
 
-        results = await asyncio.gather(
-            *[read_file(path) for path in files.keys()]
-        )
+        results = await asyncio.gather(*[read_file(path) for path in files])
 
         for path, result in results:
             assert result == files[path]

@@ -35,9 +35,7 @@ class TestMissingTargetPath:
     """Test handling of missing target paths."""
 
     @pytest.mark.asyncio
-    async def test_scanner_raises_scan_error_for_nonexistent_path(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_scanner_raises_scan_error_for_nonexistent_path(self, tmp_path: Path) -> None:
         """Test that scanner raises ScanError when target path does not exist."""
         nonexistent = tmp_path / "this_path_does_not_exist"
         config = ScanConfig(target_path=nonexistent)
@@ -51,9 +49,7 @@ class TestMissingTargetPath:
         assert exc_info.value.path == str(nonexistent)
 
     @pytest.mark.asyncio
-    async def test_scanner_raises_scan_error_with_context(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_scanner_raises_scan_error_with_context(self, tmp_path: Path) -> None:
         """Test that ScanError includes path context."""
         nonexistent = tmp_path / "missing_directory"
         config = ScanConfig(target_path=nonexistent)
@@ -66,9 +62,7 @@ class TestMissingTargetPath:
         assert exc_info.value.context.get("path") == str(nonexistent)
 
     @pytest.mark.asyncio
-    async def test_scanner_raises_for_nonexistent_file(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_scanner_raises_for_nonexistent_file(self, tmp_path: Path) -> None:
         """Test that scanner raises ScanError for nonexistent single file."""
         nonexistent_file = tmp_path / "nonexistent_file.txt"
         config = ScanConfig(target_path=nonexistent_file)
@@ -86,9 +80,7 @@ class TestPermissionDeniedOnDirectory:
     @pytest.mark.asyncio
     @pytest.mark.skipif(os.name == "nt", reason="Permission tests not reliable on Windows")
     @pytest.mark.skipif(os.getuid() == 0, reason="Root user bypasses permission checks")
-    async def test_handles_permission_denied_on_subdirectory(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_handles_permission_denied_on_subdirectory(self, tmp_path: Path) -> None:
         """Test that scanner continues when a subdirectory is not accessible.
 
         Note: Python's rglob silently skips inaccessible directories without
@@ -206,9 +198,7 @@ class TestPermissionDeniedOnIndividualFiles:
     @pytest.mark.asyncio
     @pytest.mark.skipif(os.name == "nt", reason="Permission tests not reliable on Windows")
     @pytest.mark.skipif(os.getuid() == 0, reason="Root user bypasses permission checks")
-    async def test_continues_scanning_after_permission_error_on_file(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_continues_scanning_after_permission_error_on_file(self, tmp_path: Path) -> None:
         """Test that scanner continues when one file is not readable."""
         # Create accessible files
         file1 = tmp_path / "file1.txt"
@@ -539,9 +529,7 @@ class TestGracefulDegradation:
         assert len(result.stats["errors"]) >= 1
 
     @pytest.mark.asyncio
-    async def test_result_includes_duration_even_on_errors(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_result_includes_duration_even_on_errors(self, tmp_path: Path) -> None:
         """Test that scan duration is recorded even when errors occur."""
         nonexistent = tmp_path / "does_not_exist"
         config = ScanConfig(target_path=nonexistent)

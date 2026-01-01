@@ -14,7 +14,6 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -31,7 +30,7 @@ for key in list(sys.modules.keys()):
 
 from hamburglar.core.async_scanner import AsyncScanner, ScanProgress  # noqa: E402
 from hamburglar.core.exceptions import ScanError  # noqa: E402
-from hamburglar.core.models import Finding, ScanConfig, Severity  # noqa: E402
+from hamburglar.core.models import Finding, ScanConfig  # noqa: E402
 from hamburglar.core.scanner import Scanner  # noqa: E402
 from hamburglar.detectors import BaseDetector  # noqa: E402
 from hamburglar.detectors.regex_detector import RegexDetector  # noqa: E402
@@ -181,6 +180,7 @@ class TestConcurrencyLimit:
                 max_concurrent = max(max_concurrent, concurrent_count)
                 # Simulate some work
                 import time
+
                 time.sleep(0.01)
                 concurrent_count -= 1
                 return []
@@ -234,6 +234,7 @@ class TestCancellation:
                 scan_started.set()  # Signal that scan has started
                 # Add a small sleep to make cancellation timing more reliable
                 import time
+
                 time.sleep(0.01)
                 return []
 

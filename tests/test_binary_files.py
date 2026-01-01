@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hamburglar.core.models import ScanConfig, Severity
+from hamburglar.core.models import ScanConfig
 from hamburglar.core.scanner import Scanner
 from hamburglar.detectors.regex_detector import (
     BINARY_INDICATOR_BYTES,
@@ -147,13 +147,13 @@ class TestRegexDetectorIdentifiesTextFiles:
     def test_process_python_source_code(self) -> None:
         """Test that Python source code is processed normally."""
         detector = RegexDetector()
-        content = '''
+        content = """
 AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
 EMAIL = "admin@example.com"
 
 def connect():
     pass
-'''
+"""
         findings = detector.detect(content, "config.py")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         email_findings = [f for f in findings if "Email Address" in f.detector_name]
@@ -163,11 +163,11 @@ def connect():
     def test_process_javascript_source_code(self) -> None:
         """Test that JavaScript source code is processed normally."""
         detector = RegexDetector()
-        content = '''
+        content = """
 const apiKey = "AKIAIOSFODNN7EXAMPLE";
 const email = "admin@example.com";
 export { apiKey, email };
-'''
+"""
         findings = detector.detect(content, "config.js")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
@@ -175,12 +175,12 @@ export { apiKey, email };
     def test_process_json_config(self) -> None:
         """Test that JSON configuration files are processed normally."""
         detector = RegexDetector()
-        content = '''
+        content = """
 {
     "aws_access_key": "AKIAIOSFODNN7EXAMPLE",
     "email": "admin@example.com"
 }
-'''
+"""
         findings = detector.detect(content, "config.json")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
@@ -188,12 +188,12 @@ export { apiKey, email };
     def test_process_yaml_config(self) -> None:
         """Test that YAML configuration files are processed normally."""
         detector = RegexDetector()
-        content = '''
+        content = """
 aws:
   access_key: AKIAIOSFODNN7EXAMPLE
 contact:
   email: admin@example.com
-'''
+"""
         findings = detector.detect(content, "config.yaml")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
@@ -201,12 +201,12 @@ contact:
     def test_process_xml_file(self) -> None:
         """Test that XML files are processed normally."""
         detector = RegexDetector()
-        content = '''<?xml version="1.0"?>
+        content = """<?xml version="1.0"?>
 <config>
     <aws_key>AKIAIOSFODNN7EXAMPLE</aws_key>
     <email>admin@example.com</email>
 </config>
-'''
+"""
         findings = detector.detect(content, "config.xml")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
@@ -214,13 +214,13 @@ contact:
     def test_process_markdown_file(self) -> None:
         """Test that Markdown files are processed normally."""
         detector = RegexDetector()
-        content = '''# Configuration
+        content = """# Configuration
 
 Contact: admin@example.com
 
 ## AWS Keys
 - Access Key: AKIAIOSFODNN7EXAMPLE
-'''
+"""
         findings = detector.detect(content, "README.md")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         email_findings = [f for f in findings if "Email Address" in f.detector_name]
@@ -230,7 +230,7 @@ Contact: admin@example.com
     def test_process_html_file(self) -> None:
         """Test that HTML files are processed normally."""
         detector = RegexDetector()
-        content = '''<!DOCTYPE html>
+        content = """<!DOCTYPE html>
 <html>
 <head><title>Test</title></head>
 <body>
@@ -239,7 +239,7 @@ Contact: admin@example.com
     <a href="mailto:admin@example.com">Contact</a>
 </body>
 </html>
-'''
+"""
         findings = detector.detect(content, "index.html")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         email_findings = [f for f in findings if "Email Address" in f.detector_name]
@@ -249,11 +249,11 @@ Contact: admin@example.com
     def test_process_env_file(self) -> None:
         """Test that .env files are processed normally."""
         detector = RegexDetector()
-        content = '''
+        content = """
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY"
 CONTACT_EMAIL=admin@example.com
-'''
+"""
         findings = detector.detect(content, ".env")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
@@ -261,11 +261,11 @@ CONTACT_EMAIL=admin@example.com
     def test_process_shell_script(self) -> None:
         """Test that shell scripts are processed normally."""
         detector = RegexDetector()
-        content = '''#!/bin/bash
+        content = """#!/bin/bash
 export AWS_KEY="AKIAIOSFODNN7EXAMPLE"
 export EMAIL="admin@example.com"
 echo "Configured"
-'''
+"""
         findings = detector.detect(content, "setup.sh")
         aws_findings = [f for f in findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1

@@ -24,7 +24,7 @@ for key in list(sys.modules.keys()):
     if key == "hamburglar" or key.startswith("hamburglar."):
         del sys.modules[key]
 
-from hamburglar.cli.main import app, parse_categories, VALID_CATEGORIES
+from hamburglar.cli.main import VALID_CATEGORIES, app, parse_categories
 from hamburglar.detectors.patterns import PatternCategory
 
 runner = CliRunner()
@@ -68,6 +68,7 @@ class TestParseCategoriesFunction:
     def test_parse_invalid_category_raises_error(self) -> None:
         """Test that an invalid category raises BadParameter."""
         import typer
+
         with pytest.raises(typer.BadParameter) as exc_info:
             parse_categories("invalid_category")
         assert "Invalid category 'invalid_category'" in str(exc_info.value)
@@ -75,6 +76,7 @@ class TestParseCategoriesFunction:
     def test_parse_mixed_valid_invalid_categories_raises_error(self) -> None:
         """Test that mixing valid and invalid categories raises error."""
         import typer
+
         with pytest.raises(typer.BadParameter) as exc_info:
             parse_categories("api_keys,invalid,cloud")
         assert "Invalid category 'invalid'" in str(exc_info.value)
@@ -114,9 +116,7 @@ class TestCategoriesOption:
 
     def test_categories_short_flag(self, temp_directory: Path) -> None:
         """Test that -c works as shorthand for --categories."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-c", "api_keys", "-f", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-c", "api_keys", "-f", "json"])
         # Should not error
         assert result.exit_code in (0, 2)  # 0 = findings, 2 = no findings
 
@@ -137,17 +137,13 @@ class TestCategoriesOption:
 
     def test_invalid_category_shows_error(self, temp_directory: Path) -> None:
         """Test that an invalid category shows an error message."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-c", "invalid_category"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-c", "invalid_category"])
         assert result.exit_code == 1
         assert "invalid_category" in result.output.lower() or "error" in result.output.lower()
 
     def test_categories_with_verbose_shows_info(self, temp_directory: Path) -> None:
         """Test that verbose mode shows category information."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-c", "api_keys", "-v"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-c", "api_keys", "-v"])
         assert result.exit_code in (0, 2)
         # Verbose should show the categories being used
         assert "api_keys" in result.output or "Categories" in result.output
@@ -155,9 +151,7 @@ class TestCategoriesOption:
     def test_categories_filters_findings(self, temp_directory: Path) -> None:
         """Test that --categories filters findings to specified categories."""
         # First, scan with all patterns to establish baseline
-        result_all = runner.invoke(
-            app, ["scan", str(temp_directory), "-f", "json"]
-        )
+        result_all = runner.invoke(app, ["scan", str(temp_directory), "-f", "json"])
         assert result_all.exit_code == 0
 
         # Now scan with only network category (should have fewer findings)
@@ -204,9 +198,7 @@ class TestNoCategoriesOption:
 
     def test_invalid_no_category_shows_error(self, temp_directory: Path) -> None:
         """Test that an invalid category in --no-categories shows error."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "--no-categories", "not_real"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "--no-categories", "not_real"])
         assert result.exit_code == 1
         assert "not_real" in result.output.lower() or "error" in result.output.lower()
 
@@ -222,9 +214,12 @@ class TestCategoriesCombinations:
             [
                 "scan",
                 str(temp_directory),
-                "-c", "api_keys,credentials,cloud",
-                "--no-categories", "cloud",
-                "-f", "json",
+                "-c",
+                "api_keys,credentials,cloud",
+                "--no-categories",
+                "cloud",
+                "-f",
+                "json",
             ],
         )
         # This should work - enable 3, exclude 1
@@ -233,9 +228,7 @@ class TestCategoriesCombinations:
     def test_all_categories(self, temp_directory: Path) -> None:
         """Test enabling all categories explicitly."""
         all_cats = ",".join(c.value for c in PatternCategory)
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-c", all_cats, "-f", "json"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-c", all_cats, "-f", "json"])
         assert result.exit_code in (0, 2)
 
 
@@ -244,20 +237,20 @@ class TestCategoriesVerboseOutput:
 
     def test_verbose_shows_pattern_count(self, temp_directory: Path) -> None:
         """Test that verbose mode shows pattern count when using categories."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-c", "api_keys", "-v"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-c", "api_keys", "-v"])
         assert result.exit_code in (0, 2)
         # Should show pattern count in verbose mode
-        assert "pattern" in result.output.lower() or "loaded" in result.output.lower() or "categories" in result.output.lower()
+        assert (
+            "pattern" in result.output.lower()
+            or "loaded" in result.output.lower()
+            or "categories" in result.output.lower()
+        )
 
 
 class TestCategoriesWithOtherOptions:
     """Test --categories with other CLI options."""
 
-    def test_categories_with_output_file(
-        self, temp_directory: Path, tmp_path: Path
-    ) -> None:
+    def test_categories_with_output_file(self, temp_directory: Path, tmp_path: Path) -> None:
         """Test --categories with --output file."""
         output_file = tmp_path / "output.json"
         result = runner.invoke(
@@ -265,9 +258,12 @@ class TestCategoriesWithOtherOptions:
             [
                 "scan",
                 str(temp_directory),
-                "-c", "api_keys",
-                "-f", "json",
-                "-o", str(output_file),
+                "-c",
+                "api_keys",
+                "-f",
+                "json",
+                "-o",
+                str(output_file),
             ],
         )
         assert result.exit_code in (0, 2)
@@ -278,9 +274,7 @@ class TestCategoriesWithOtherOptions:
 
     def test_categories_with_quiet(self, temp_directory: Path) -> None:
         """Test --categories with --quiet."""
-        result = runner.invoke(
-            app, ["scan", str(temp_directory), "-c", "api_keys", "-q"]
-        )
+        result = runner.invoke(app, ["scan", str(temp_directory), "-c", "api_keys", "-q"])
         assert result.exit_code in (0, 2)
         # Quiet mode should produce no output
         assert result.output == ""

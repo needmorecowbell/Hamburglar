@@ -137,7 +137,33 @@ This phase replaces the legacy threading model with modern async/await patterns 
       - Integration with AsyncScanner patterns
     - All 2062 tests pass with 4 warnings
 
-- [ ] Update `src/hamburglar/detectors/yara_detector.py` to: support async detect method via thread pool, implement rule caching, add scan timeout configuration, support streaming match results
+- [x] Update `src/hamburglar/detectors/yara_detector.py` to: support async detect method via thread pool, implement rule caching, add scan timeout configuration, support streaming match results
+  - **Completed:** Updated `YaraDetector` with comprehensive async and caching capabilities:
+    - Added `detect_async()` method using `asyncio.to_thread()` for non-blocking async detection
+    - Added `detect_bytes_async()` method for async binary content detection
+    - Implemented class-level rule caching with SHA-256 hash of rule files:
+      - `_RULE_CACHE` stores compiled rules with content hash and mtime for invalidation
+      - `use_cache` parameter (default True) to enable/disable caching
+      - `cache_key` property to access the current cache key
+      - `get_cache_stats()` class method for cache statistics
+      - `clear_cache()` class method to clear all cached rules
+    - Scan timeout already implemented via YARA's native `timeout` parameter
+    - Added `detect_stream()` async generator for streaming match results in real-time
+    - Added `detect_batch()` for efficient batch detection of multiple files
+    - Added `detect_batch_async()` with configurable `concurrency_limit` and semaphore-based concurrency
+    - Added `get_detector_stats()` method for detector configuration analytics
+    - `reload_rules()` now invalidates cache entry before recompiling
+    - Created 49 comprehensive tests in `tests/test_yara_detector_async.py` covering:
+      - Async detection (basic, concurrent, binary handling, file paths)
+      - Async bytes detection (binary data, empty content, concurrent)
+      - Batch detection (sync and async, concurrency control, large batches)
+      - Streaming detection (single/multiple rules, metadata extraction)
+      - Rule caching (enable/disable, reuse, invalidation, stats)
+      - Timeout behavior in async context
+      - Edge cases (unicode, null bytes, duplicate paths, max file size)
+      - Integration with bundled YARA rules
+      - Severity mapping and metadata extraction in async methods
+    - All 2111 tests pass with 3 warnings
 
 - [ ] Create `src/hamburglar/core/stats.py` with a `ScanStats` class that tracks: total files scanned, total bytes processed, files skipped (and reasons), findings by detector, findings by severity, scan duration, files per second throughput
 

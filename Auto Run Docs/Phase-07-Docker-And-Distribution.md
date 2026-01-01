@@ -25,7 +25,17 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Resource limits section (commented out) for container constraints
   - Validated with `docker compose config`
 
-- [ ] Create `.dockerignore` file excluding: __pycache__, *.pyc, .git, .pytest_cache, .mypy_cache, .ruff_cache, *.egg-info, dist/, build/, .env, tests/ (for production image)
+- [x] Create `.dockerignore` file excluding: __pycache__, *.pyc, .git, .pytest_cache, .mypy_cache, .ruff_cache, *.egg-info, dist/, build/, .env, tests/ (for production image)
+  - Created comprehensive .dockerignore with all required exclusions
+  - Excludes Python bytecode (__pycache__, *.pyc, *.pyo, *.py[cod])
+  - Excludes virtual environments (.venv/, venv/, env/)
+  - Excludes VCS (.git/, .gitignore)
+  - Excludes testing artifacts (.pytest_cache/, .coverage, htmlcov/, tests/)
+  - Excludes type checking/linting caches (.mypy_cache/, .ruff_cache/)
+  - Excludes build artifacts (*.egg-info/, dist/, build/)
+  - Excludes environment files (.env) for security
+  - Excludes IDE files (.vscode/, .idea/, *.swp)
+  - All existing tests pass (3445 passed)
 
 - [ ] Update `pyproject.toml` with complete PyPI metadata: description, long_description from README, author and maintainer info, project URLs (homepage, repository, documentation), classifiers (Development Status, License, Programming Language versions, Topic), keywords for discoverability
 

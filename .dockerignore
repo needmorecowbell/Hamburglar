@@ -1,0 +1,58 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Type checking and linting
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Environment files (may contain secrets)
+.env
+.env.*
+*.env
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation build
+docs/_build/
+
+# Auto Run Docs (development only)
+Auto Run Docs/
+
+# Miscellaneous
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db

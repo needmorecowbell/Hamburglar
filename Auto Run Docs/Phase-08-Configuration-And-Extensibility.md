@@ -59,9 +59,25 @@ This phase implements a robust configuration system and plugin architecture, all
   - Includes metadata properties: `description`, `version`, `author`
   - Created `tests/test_detector_plugin.py` with 52 comprehensive tests at 98% coverage
 
-- [ ] Create `src/hamburglar/plugins/output_plugin.py` with `OutputPlugin` base class that: defines required interface (name, format method), supports configuration via plugin config section, integrates with the output registry
+- [x] Create `src/hamburglar/plugins/output_plugin.py` with `OutputPlugin` base class that: defines required interface (name, format method), supports configuration via plugin config section, integrates with the output registry
+  - Implemented `OutputPlugin` abstract base class extending `BaseOutput`
+  - Supports configuration via constructor kwargs with `config` property and `get_config()` method
+  - Added utility methods: `format_finding()`, `format_result()`, `get_summary()` for structured output
+  - Added `format_as_json()` and `format_as_lines()` convenience methods
+  - Added `group_by_file()`, `group_by_severity()`, `group_by_detector()` for grouped output
+  - Added `file_extension` property for output format extension hints
+  - Added `register()` and `unregister()` for output registry integration
+  - Includes metadata properties: `description`, `version`, `author`
+  - Created `tests/test_output_plugin.py` with 53 comprehensive tests
 
-- [ ] Create example plugin `examples/plugins/custom_detector.py` that: demonstrates creating a custom detector, includes inline documentation, shows configuration usage, can be installed via pip or file copy
+- [x] Create example plugin `examples/plugins/custom_detector.py` that: demonstrates creating a custom detector, includes inline documentation, shows configuration usage, can be installed via pip or file copy
+  - Implemented `CustomAPIKeyDetector` class extending `DetectorPlugin` with comprehensive inline documentation
+  - Demonstrates configuration via constructor kwargs: min_key_length, check_entropy, min_entropy, key_prefixes, case_sensitive
+  - Shows installation methods: file copy to plugin directory or pip entry points
+  - Includes entropy-based filtering to reduce false positives
+  - Demonstrates severity assessment based on key characteristics (production vs staging)
+  - Shows usage of base class utility methods: match_pattern, match_patterns, match_literal, create_finding
+  - Created `tests/test_example_custom_detector.py` with 22 comprehensive tests
 
 - [ ] Create example config file `examples/hamburglar.example.yml` with: all configuration options documented with comments, example custom patterns, example plugin configuration, common use case configurations
 

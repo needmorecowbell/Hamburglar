@@ -24,7 +24,8 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
 - [x] Create `docs/configuration.md` with: configuration file format and location, all configuration options with types and defaults, environment variables reference, configuration precedence explanation, example configurations for common scenarios
   - Completely rewrote docs/configuration.md with accurate documentation matching the actual implementation. Documented all 4 configuration sections (scan, detector, output, yara) plus global settings, all 15 environment variables with correct mappings, supported file names and locations, configuration precedence, file size parsing formats, and 5 common scenario examples (CI/CD, large repo, security audit, pre-commit hook, specific file types)
 
-- [ ] Create `docs/detectors.md` with: list of all detection patterns, pattern categories explanation, severity levels explanation, confidence scores explanation, adding custom patterns, YARA rules usage
+- [x] Create `docs/detectors.md` with: list of all detection patterns, pattern categories explanation, severity levels explanation, confidence scores explanation, adding custom patterns, YARA rules usage
+  - Completely rewrote docs/detectors.md with comprehensive documentation based on actual codebase. Documented all 3 detection methods (Regex, Entropy, YARA), all 7 pattern categories with 196+ patterns total (api_keys: 38, credentials: 30, private_keys: 16, cloud: 24, crypto: 33, network: 26, generic: 29), 5 severity levels, 3 confidence levels with examples, 4 methods for adding custom patterns (YAML, JSON, programmatic, configuration), 19 built-in YARA rules, entropy detector options and false positive exclusions
 
 - [ ] Create `docs/outputs.md` with: all output format descriptions, SARIF integration guide, CSV usage guide, HTML report customization, database storage guide, integration examples
 

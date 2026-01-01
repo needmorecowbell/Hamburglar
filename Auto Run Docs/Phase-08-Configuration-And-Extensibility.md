@@ -101,9 +101,21 @@ This phase implements a robust configuration system and plugin architecture, all
   - `config validate`: Validates config file syntax and schema, auto-detects config file if not specified
   - Created `tests/test_cli_config.py` with 31 comprehensive tests covering all subcommands and edge cases
 
-- [ ] Update CLI to add `plugins` command group with: `plugins list` - shows installed plugins, `plugins info <name>` - shows plugin details
+- [x] Update CLI to add `plugins` command group with: `plugins list` - shows installed plugins, `plugins info <name>` - shows plugin details
+  - Implemented `plugins_app` Typer sub-application with two commands: `list`, `info`
+  - `plugins list`: Shows detector/output plugins in table/json/plain formats with `--type`, `--verbose`, `--discover`, `--quiet` options
+  - `plugins info <name>`: Displays comprehensive plugin details in table/json/plain formats
+  - Created `tests/test_cli_plugins.py` with 24 comprehensive tests covering all subcommands and edge cases
 
-- [ ] Update CLI to respect config file settings, with CLI args overriding config
+- [x] Update CLI to respect config file settings, with CLI args overriding config
+  - Updated `scan`, `scan-git`, and `scan-web` commands to load configuration from config files
+  - Added `--config` / `-C` option to all three commands to specify explicit config file path
+  - Implemented priority: CLI args > environment variables > config file > defaults
+  - Made options nullable (Optional[bool]/Optional[str]/etc.) to distinguish "not specified" from explicit values
+  - Added `--no-yara` flag to scan command to explicitly disable YARA even if enabled in config
+  - Updated `--recursive`, `--verbose`, `--quiet`, `--save-to-db` to use flag pairs (e.g., `--recursive/--no-recursive`)
+  - Added `get_effective_config()` helper function for loading and merging configurations
+  - All 3809 tests pass with the new implementation
 
 - [ ] Create `tests/test_config_loading.py` with tests for: config file is found and loaded, environment variables override config file, CLI args override environment variables, invalid config raises helpful error, missing config file uses defaults
 

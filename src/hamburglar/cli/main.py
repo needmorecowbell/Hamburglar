@@ -58,6 +58,13 @@ from hamburglar.outputs.markdown_output import MarkdownOutput
 from hamburglar.outputs import BaseOutput
 from hamburglar.storage import ScanStatistics, StorageError
 from hamburglar.storage.sqlite import SqliteStorage
+from hamburglar.config import (
+    get_config,
+    load_config,
+    reset_config,
+    HamburglarConfig,
+    ConfigLoader,
+)
 
 # Valid output formats for CLI parsing
 VALID_FORMATS = {fmt.value: fmt for fmt in OutputFormat}
@@ -178,6 +185,42 @@ def get_db_path(custom_path: Path | None = None) -> Path:
     if custom_path is not None:
         return custom_path.resolve()
     return DEFAULT_DB_PATH
+
+
+def get_effective_config(
+    config_file: Path | None = None,
+    cli_args: dict | None = None,
+    quiet: bool = False,
+    verbose: bool = False,
+) -> HamburglarConfig:
+    """Load configuration with CLI argument overrides.
+
+    This function loads configuration from all sources (defaults, config file,
+    environment variables) and applies CLI argument overrides on top.
+
+    Args:
+        config_file: Optional explicit path to a config file.
+        cli_args: Dictionary of CLI argument overrides.
+        quiet: Whether to suppress output.
+        verbose: Whether to show verbose output.
+
+    Returns:
+        Merged HamburglarConfig with all settings resolved.
+    """
+    try:
+        config = load_config(config_path=config_file, cli_args=cli_args)
+        if verbose and not quiet:
+            # Check if a config file was found
+            loader = ConfigLoader()
+            found_path = config_file or loader.find_config_file()
+            if found_path:
+                console.print(f"[dim]Using config:[/dim] {found_path}")
+        return config
+    except Exception as e:
+        if not quiet:
+            _display_error(ConfigError(f"Failed to load configuration: {e}"))
+        # Fall back to defaults
+        return HamburglarConfig()
 
 
 def save_to_database(
@@ -415,14 +458,26 @@ def scan(
             resolve_path=True,
         ),
     ],
-    recursive: Annotated[
-        bool,
+    config_file: Annotated[
+        Optional[Path],
         typer.Option(
-            "--recursive",
-            "-r",
-            help="Scan directories recursively",
+            "--config",
+            "-C",
+            help="Path to configuration file. If not specified, searches for "
+            ".hamburglar.yml, .hamburglar.yaml, .hamburglar.toml, or hamburglar.config.json "
+            "in the current directory and ~/.config/hamburglar/",
+            exists=True,
+            resolve_path=True,
         ),
-    ] = True,
+    ] = None,
+    recursive: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--recursive/--no-recursive",
+            "-r/-R",
+            help="Scan directories recursively (default: from config or True)",
+        ),
+    ] = None,
     output: Annotated[
         Optional[Path],
         typer.Option(
@@ -441,14 +496,14 @@ def scan(
         ),
     ] = None,
     format: Annotated[
-        str,
+        Optional[str],
         typer.Option(
             "--format",
             "-f",
-            help="Output format (json, table, sarif, csv, html, markdown)",
+            help="Output format (json, table, sarif, csv, html, markdown). Default: from config or table",
             case_sensitive=False,
         ),
-    ] = "table",
+    ] = None,
     yara: Annotated[
         Optional[Path],
         typer.Option(
@@ -459,22 +514,29 @@ def scan(
             resolve_path=True,
         ),
     ] = None,
+    no_yara: Annotated[
+        bool,
+        typer.Option(
+            "--no-yara",
+            help="Disable YARA scanning even if enabled in config",
+        ),
+    ] = False,
     verbose: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--verbose",
-            "-v",
-            help="Enable verbose output",
+            "--verbose/--no-verbose",
+            "-v/-V",
+            help="Enable verbose output (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     quiet: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--quiet",
-            "-q",
-            help="Suppress non-error output (only show errors)",
+            "--quiet/--no-quiet",
+            "-q/-Q",
+            help="Suppress non-error output (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     categories: Annotated[
         Optional[str],
         typer.Option(
@@ -503,16 +565,15 @@ def scan(
         ),
     ] = None,
     concurrency: Annotated[
-        int,
+        Optional[int],
         typer.Option(
             "--concurrency",
             "-j",
-            help="Maximum number of files to scan concurrently. "
-            f"Default: {DEFAULT_CONCURRENCY}",
+            help="Maximum number of files to scan concurrently. Default: from config or 50",
             min=1,
             max=1000,
         ),
-    ] = DEFAULT_CONCURRENCY,
+    ] = None,
     stream: Annotated[
         bool,
         typer.Option(
@@ -530,13 +591,14 @@ def scan(
         ),
     ] = False,
     save_to_db: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--save-to-db",
-            help="Save findings to SQLite database. Default location: ~/.hamburglar/findings.db. "
+            "--save-to-db/--no-save-to-db",
+            help="Save findings to SQLite database (default: from config or False). "
+            "Default location: ~/.hamburglar/findings.db. "
             "Use --db-path to specify a custom database path.",
         ),
-    ] = False,
+    ] = None,
     db_path: Annotated[
         Optional[Path],
         typer.Option(
@@ -561,22 +623,98 @@ def scan(
     Hamburglar scans files for patterns that may indicate sensitive data
     such as API keys, credentials, private keys, and other secrets.
 
+    Configuration is loaded from (in priority order, highest first):
+    1. CLI arguments (--format, --recursive, etc.)
+    2. Environment variables (HAMBURGLAR_*)
+    3. Config file (.hamburglar.yml, etc.)
+    4. Built-in defaults
+
     Exit codes:
         0: Success (findings found)
         1: Error occurred during scan
         2: No findings found
     """
+    # Build CLI arguments dictionary for config override (only non-None values)
+    cli_args: dict = {}
+    if recursive is not None:
+        cli_args["recursive"] = recursive
+    if format is not None:
+        cli_args["format"] = format
+    if concurrency is not None:
+        cli_args["concurrency"] = concurrency
+    if verbose is not None:
+        cli_args["verbose"] = verbose
+    if quiet is not None:
+        cli_args["quiet"] = quiet
+    if save_to_db is not None:
+        cli_args["save_to_db"] = save_to_db
+    if db_path is not None:
+        cli_args["db_path"] = db_path
+    if output is not None:
+        cli_args["output"] = output
+    if categories is not None:
+        cli_args["categories"] = categories
+    if min_confidence is not None:
+        cli_args["min_confidence"] = min_confidence
+    # Handle YARA settings
+    if yara is not None:
+        cli_args["yara"] = True
+        cli_args["yara_rules"] = yara
+    if no_yara:
+        cli_args["yara"] = False
+
+    # Load configuration with CLI overrides
+    # Use temporary quiet/verbose values for config loading message
+    temp_quiet = quiet if quiet is not None else False
+    temp_verbose = verbose if verbose is not None else False
+    cfg = get_effective_config(
+        config_file=config_file,
+        cli_args=cli_args if cli_args else None,
+        quiet=temp_quiet,
+        verbose=temp_verbose,
+    )
+
+    # Resolve effective values (CLI > config)
+    eff_recursive = recursive if recursive is not None else cfg.scan.recursive
+    eff_format = format if format is not None else cfg.output.format.value
+    eff_concurrency = concurrency if concurrency is not None else cfg.scan.concurrency
+    eff_verbose = verbose if verbose is not None else cfg.output.verbose
+    eff_quiet = quiet if quiet is not None else cfg.output.quiet
+    eff_save_to_db = save_to_db if save_to_db is not None else cfg.output.save_to_db
+    eff_db_path = db_path if db_path is not None else cfg.output.db_path
+    eff_output = output if output is not None else cfg.output.output_path
+    eff_min_confidence = min_confidence if min_confidence is not None else cfg.detector.min_confidence
+
+    # Handle YARA: CLI --yara path takes precedence, then --no-yara, then config
+    if yara is not None:
+        eff_use_yara = True
+        eff_yara_path = yara
+    elif no_yara:
+        eff_use_yara = False
+        eff_yara_path = None
+    else:
+        eff_use_yara = cfg.yara.enabled
+        eff_yara_path = cfg.yara.rules_path
+
+    # Handle categories: CLI overrides config
+    if categories is not None:
+        eff_categories = categories
+    elif cfg.detector.enabled_categories:
+        eff_categories = ",".join(cfg.detector.enabled_categories)
+    else:
+        eff_categories = None
+
     # Set up logging based on verbosity (quiet mode suppresses all non-error output)
-    if not quiet:
-        setup_logging(verbose=verbose)
+    if not eff_quiet:
+        setup_logging(verbose=eff_verbose)
 
     # Validate format option
-    format_lower = format.lower()
+    format_lower = eff_format.lower()
     if format_lower not in VALID_FORMATS:
         valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
         _display_error(
             ConfigError(
-                f"Invalid format '{format}'. Valid formats: {valid_names}",
+                f"Invalid format '{eff_format}'. Valid formats: {valid_names}",
                 config_key="format",
             )
         )
@@ -585,7 +723,7 @@ def scan(
     output_format = VALID_FORMATS[format_lower]
 
     # Validate that --output and --output-dir are not used together
-    if output and output_dir:
+    if eff_output and output_dir:
         _display_error(
             ConfigError(
                 "Cannot use both --output and --output-dir. Use one or the other.",
@@ -596,20 +734,20 @@ def scan(
 
     # Handle --output-dir: create directory and generate filename
     if output_dir:
-        ensure_output_dir(output_dir, quiet=quiet)
+        ensure_output_dir(output_dir, quiet=eff_quiet)
         filename = generate_output_filename(str(path), output_format, scan_type="scan")
-        output = output_dir / filename
-        if verbose and not quiet:
-            console.print(f"[dim]Output file:[/dim] {output}")
+        eff_output = output_dir / filename
+        if eff_verbose and not eff_quiet:
+            console.print(f"[dim]Output file:[/dim] {eff_output}")
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
     disabled_categories: list[PatternCategory] | None = None
     use_expanded_patterns = False
 
-    if categories:
+    if eff_categories:
         try:
-            enabled_categories = parse_categories(categories)
+            enabled_categories = parse_categories(eff_categories)
             use_expanded_patterns = True  # Use expanded patterns when filtering by category
         except typer.BadParameter as e:
             _display_error(ConfigError(str(e), config_key="categories"))
@@ -625,19 +763,19 @@ def scan(
 
     # Parse minimum confidence level
     confidence_filter: Confidence | None = None
-    if min_confidence:
+    if eff_min_confidence:
         try:
-            confidence_filter = parse_confidence(min_confidence)
+            confidence_filter = parse_confidence(eff_min_confidence)
             use_expanded_patterns = True  # Use expanded patterns when filtering by confidence
         except typer.BadParameter as e:
             _display_error(ConfigError(str(e), config_key="min_confidence"))
             raise typer.Exit(code=EXIT_ERROR) from None
 
-    if verbose and not quiet:
+    if eff_verbose and not eff_quiet:
         console.print(f"[dim]Scanning:[/dim] {path}")
-        console.print(f"[dim]Recursive:[/dim] {recursive}")
+        console.print(f"[dim]Recursive:[/dim] {eff_recursive}")
         console.print(f"[dim]Format:[/dim] {output_format.value}")
-        console.print(f"[dim]Concurrency:[/dim] {concurrency}")
+        console.print(f"[dim]Concurrency:[/dim] {eff_concurrency}")
         if stream:
             console.print("[dim]Mode:[/dim] Streaming (NDJSON)")
         if enabled_categories:
@@ -646,15 +784,15 @@ def scan(
             console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
         if confidence_filter:
             console.print(f"[dim]Min confidence:[/dim] {confidence_filter.value}")
-        if yara:
-            console.print(f"[dim]YARA rules:[/dim] {yara}")
+        if eff_use_yara and eff_yara_path:
+            console.print(f"[dim]YARA rules:[/dim] {eff_yara_path}")
 
     # Build scan configuration
-    config = ScanConfig(
+    scan_config = ScanConfig(
         target_path=path,
-        recursive=recursive,
-        use_yara=yara is not None,
-        yara_rules_path=yara,
+        recursive=eff_recursive,
+        use_yara=eff_use_yara and eff_yara_path is not None,
+        yara_rules_path=eff_yara_path,
         output_format=output_format,
     )
 
@@ -667,14 +805,14 @@ def scan(
     )
     detectors: list[BaseDetector] = [regex_detector]
 
-    if verbose and not quiet and use_expanded_patterns:
+    if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
 
-    if yara:
+    if eff_use_yara and eff_yara_path:
         try:
-            yara_detector = YaraDetector(yara)
+            yara_detector = YaraDetector(eff_yara_path)
             detectors.append(yara_detector)
-            if verbose and not quiet:
+            if eff_verbose and not eff_quiet:
                 console.print(f"[dim]Loaded {yara_detector.rule_count} YARA rule file(s)[/dim]")
         except YaraCompilationError as e:
             _display_error(e)
@@ -695,21 +833,21 @@ def scan(
     # Handle streaming mode
     if stream:
         asyncio.run(_run_streaming_scan(
-            config, detectors, concurrency, output, quiet, verbose
+            scan_config, detectors, eff_concurrency, eff_output, eff_quiet, eff_verbose
         ))
         return
 
     # Handle benchmark mode
     if benchmark:
         asyncio.run(_run_benchmark_scan(
-            config, detectors, concurrency, quiet
+            scan_config, detectors, eff_concurrency, eff_quiet
         ))
         return
 
     # Run the scan with progress bar (non-streaming mode)
     try:
         result = asyncio.run(_run_scan_with_progress(
-            config, detectors, concurrency, quiet, verbose
+            scan_config, detectors, eff_concurrency, eff_quiet, eff_verbose
         ))
     except ScanError as e:
         _display_error(e)
@@ -721,7 +859,7 @@ def scan(
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
     except KeyboardInterrupt:
-        if not quiet:
+        if not eff_quiet:
             error_console.print("\n[yellow]Scan interrupted by user[/yellow]")
         raise typer.Exit(code=EXIT_ERROR) from None
     except Exception as e:
@@ -741,18 +879,18 @@ def scan(
         raise typer.Exit(code=EXIT_ERROR) from None
 
     # Write to file or stdout (unless quiet mode and no findings)
-    if output:
+    if eff_output:
         try:
-            output.write_text(formatted_output)
-            if not quiet:
-                console.print(f"[green]Output written to:[/green] {output}")
+            eff_output.write_text(formatted_output)
+            if not eff_quiet:
+                console.print(f"[green]Output written to:[/green] {eff_output}")
         except PermissionError as e:
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(eff_output)))
             raise typer.Exit(code=EXIT_ERROR) from None
-    elif not quiet:
+    elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
         # Rich's text wrapping which can break parsing. For table, HTML, and markdown
         # use Rich console for proper formatting.
@@ -762,9 +900,9 @@ def scan(
             console.print(formatted_output)
 
     # Save to database if requested
-    if save_to_db:
-        resolved_db_path = get_db_path(db_path)
-        save_to_database(result, resolved_db_path, quiet=quiet, verbose=verbose)
+    if eff_save_to_db:
+        resolved_db_path = get_db_path(eff_db_path)
+        save_to_database(result, resolved_db_path, quiet=eff_quiet, verbose=eff_verbose)
 
     # Determine exit code based on findings
     if len(result.findings) == 0:
@@ -776,7 +914,7 @@ def scan(
     high_severity_count = sum(
         1 for f in result.findings if f.severity in (Severity.CRITICAL, Severity.HIGH)
     )
-    if high_severity_count > 0 and verbose and not quiet:
+    if high_severity_count > 0 and eff_verbose and not eff_quiet:
         console.print(
             f"[yellow]Warning:[/yellow] Found {high_severity_count} high/critical severity finding(s)"
         )
@@ -1062,6 +1200,16 @@ def scan_git(
             help="Git repository URL (HTTP/SSH) or local path to git directory",
         ),
     ],
+    config_file: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--config",
+            "-C",
+            help="Path to configuration file",
+            exists=True,
+            resolve_path=True,
+        ),
+    ] = None,
     depth: Annotated[
         Optional[int],
         typer.Option(
@@ -1112,30 +1260,30 @@ def scan_git(
         ),
     ] = None,
     format: Annotated[
-        str,
+        Optional[str],
         typer.Option(
             "--format",
             "-f",
-            help="Output format (json, table, sarif, csv, html, markdown)",
+            help="Output format (json, table, sarif, csv, html, markdown). Default: from config or table",
             case_sensitive=False,
         ),
-    ] = "table",
+    ] = None,
     verbose: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--verbose",
-            "-v",
-            help="Enable verbose output",
+            "--verbose/--no-verbose",
+            "-v/-V",
+            help="Enable verbose output (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     quiet: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--quiet",
-            "-q",
-            help="Suppress non-error output (only show errors)",
+            "--quiet/--no-quiet",
+            "-q/-Q",
+            help="Suppress non-error output (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     stream: Annotated[
         bool,
         typer.Option(
@@ -1166,13 +1314,12 @@ def scan_git(
         ),
     ] = None,
     save_to_db: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--save-to-db",
-            help="Save findings to SQLite database. Default location: ~/.hamburglar/findings.db. "
-            "Use --db-path to specify a custom database path.",
+            "--save-to-db/--no-save-to-db",
+            help="Save findings to SQLite database (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     db_path: Annotated[
         Optional[Path],
         typer.Option(
@@ -1200,17 +1347,63 @@ def scan_git(
         1: Error occurred during scan
         2: No findings found
     """
+    # Build CLI arguments dictionary for config override (only non-None values)
+    cli_args: dict = {}
+    if format is not None:
+        cli_args["format"] = format
+    if verbose is not None:
+        cli_args["verbose"] = verbose
+    if quiet is not None:
+        cli_args["quiet"] = quiet
+    if save_to_db is not None:
+        cli_args["save_to_db"] = save_to_db
+    if db_path is not None:
+        cli_args["db_path"] = db_path
+    if output is not None:
+        cli_args["output"] = output
+    if categories is not None:
+        cli_args["categories"] = categories
+    if min_confidence is not None:
+        cli_args["min_confidence"] = min_confidence
+
+    # Load configuration with CLI overrides
+    temp_quiet = quiet if quiet is not None else False
+    temp_verbose = verbose if verbose is not None else False
+    cfg = get_effective_config(
+        config_file=config_file,
+        cli_args=cli_args if cli_args else None,
+        quiet=temp_quiet,
+        verbose=temp_verbose,
+    )
+
+    # Resolve effective values (CLI > config)
+    eff_format = format if format is not None else cfg.output.format.value
+    eff_verbose = verbose if verbose is not None else cfg.output.verbose
+    eff_quiet = quiet if quiet is not None else cfg.output.quiet
+    eff_save_to_db = save_to_db if save_to_db is not None else cfg.output.save_to_db
+    eff_db_path = db_path if db_path is not None else cfg.output.db_path
+    eff_output = output if output is not None else cfg.output.output_path
+    eff_min_confidence = min_confidence if min_confidence is not None else cfg.detector.min_confidence
+
+    # Handle categories: CLI overrides config
+    if categories is not None:
+        eff_categories = categories
+    elif cfg.detector.enabled_categories:
+        eff_categories = ",".join(cfg.detector.enabled_categories)
+    else:
+        eff_categories = None
+
     # Set up logging based on verbosity
-    if not quiet:
-        setup_logging(verbose=verbose)
+    if not eff_quiet:
+        setup_logging(verbose=eff_verbose)
 
     # Validate format option
-    format_lower = format.lower()
+    format_lower = eff_format.lower()
     if format_lower not in VALID_FORMATS:
         valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
         _display_error(
             ConfigError(
-                f"Invalid format '{format}'. Valid formats: {valid_names}",
+                f"Invalid format '{eff_format}'. Valid formats: {valid_names}",
                 config_key="format",
             )
         )
@@ -1219,7 +1412,7 @@ def scan_git(
     output_format = VALID_FORMATS[format_lower]
 
     # Validate that --output and --output-dir are not used together
-    if output and output_dir:
+    if eff_output and output_dir:
         _display_error(
             ConfigError(
                 "Cannot use both --output and --output-dir. Use one or the other.",
@@ -1230,20 +1423,20 @@ def scan_git(
 
     # Handle --output-dir: create directory and generate filename
     if output_dir:
-        ensure_output_dir(output_dir, quiet=quiet)
+        ensure_output_dir(output_dir, quiet=eff_quiet)
         filename = generate_output_filename(target, output_format, scan_type="git")
-        output = output_dir / filename
-        if verbose and not quiet:
-            console.print(f"[dim]Output file:[/dim] {output}")
+        eff_output = output_dir / filename
+        if eff_verbose and not eff_quiet:
+            console.print(f"[dim]Output file:[/dim] {eff_output}")
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
     disabled_categories: list[PatternCategory] | None = None
     use_expanded_patterns = False
 
-    if categories:
+    if eff_categories:
         try:
-            enabled_categories = parse_categories(categories)
+            enabled_categories = parse_categories(eff_categories)
             use_expanded_patterns = True
         except typer.BadParameter as e:
             _display_error(ConfigError(str(e), config_key="categories"))
@@ -1259,15 +1452,15 @@ def scan_git(
 
     # Parse minimum confidence level
     confidence_filter: Confidence | None = None
-    if min_confidence:
+    if eff_min_confidence:
         try:
-            confidence_filter = parse_confidence(min_confidence)
+            confidence_filter = parse_confidence(eff_min_confidence)
             use_expanded_patterns = True
         except typer.BadParameter as e:
             _display_error(ConfigError(str(e), config_key="min_confidence"))
             raise typer.Exit(code=EXIT_ERROR) from None
 
-    if verbose and not quiet:
+    if eff_verbose and not eff_quiet:
         console.print(f"[dim]Target:[/dim] {target}")
         console.print(f"[dim]Include History:[/dim] {include_history}")
         if depth:
@@ -1295,20 +1488,20 @@ def scan_git(
     )
     detectors: list[BaseDetector] = [regex_detector]
 
-    if verbose and not quiet and use_expanded_patterns:
+    if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
 
     # Handle streaming mode
     if stream:
         asyncio.run(_run_git_streaming_scan(
-            target, detectors, depth, branch, include_history, clone_dir, output, quiet, verbose
+            target, detectors, depth, branch, include_history, clone_dir, eff_output, eff_quiet, eff_verbose
         ))
         return
 
     # Run the scan with progress bar (non-streaming mode)
     try:
         result = asyncio.run(_run_git_scan_with_progress(
-            target, detectors, depth, branch, include_history, clone_dir, quiet, verbose
+            target, detectors, depth, branch, include_history, clone_dir, eff_quiet, eff_verbose
         ))
     except ScanError as e:
         _display_error(e)
@@ -1320,7 +1513,7 @@ def scan_git(
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
     except KeyboardInterrupt:
-        if not quiet:
+        if not eff_quiet:
             error_console.print("\n[yellow]Scan interrupted by user[/yellow]")
         raise typer.Exit(code=EXIT_ERROR) from None
     except Exception as e:
@@ -1340,18 +1533,18 @@ def scan_git(
         raise typer.Exit(code=EXIT_ERROR) from None
 
     # Write to file or stdout
-    if output:
+    if eff_output:
         try:
-            output.write_text(formatted_output)
-            if not quiet:
-                console.print(f"[green]Output written to:[/green] {output}")
+            eff_output.write_text(formatted_output)
+            if not eff_quiet:
+                console.print(f"[green]Output written to:[/green] {eff_output}")
         except PermissionError as e:
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(eff_output)))
             raise typer.Exit(code=EXIT_ERROR) from None
-    elif not quiet:
+    elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
         # Rich's text wrapping which can break parsing. For table, HTML, and markdown
         # use Rich console for proper formatting.
@@ -1361,9 +1554,9 @@ def scan_git(
             console.print(formatted_output)
 
     # Save to database if requested
-    if save_to_db:
-        resolved_db_path = get_db_path(db_path)
-        save_to_database(result, resolved_db_path, quiet=quiet, verbose=verbose)
+    if eff_save_to_db:
+        resolved_db_path = get_db_path(eff_db_path)
+        save_to_database(result, resolved_db_path, quiet=eff_quiet, verbose=eff_verbose)
 
     # Determine exit code based on findings
     if len(result.findings) == 0:
@@ -1375,7 +1568,7 @@ def scan_git(
     high_severity_count = sum(
         1 for f in result.findings if f.severity in (Severity.CRITICAL, Severity.HIGH)
     )
-    if high_severity_count > 0 and verbose and not quiet:
+    if high_severity_count > 0 and eff_verbose and not eff_quiet:
         console.print(
             f"[yellow]Warning:[/yellow] Found {high_severity_count} high/critical severity finding(s)"
         )
@@ -1574,6 +1767,16 @@ def scan_web(
             help="URL to scan for secrets",
         ),
     ],
+    config_file: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--config",
+            "-C",
+            help="Path to configuration file",
+            exists=True,
+            resolve_path=True,
+        ),
+    ] = None,
     depth: Annotated[
         int,
         typer.Option(
@@ -1641,30 +1844,30 @@ def scan_web(
         ),
     ] = None,
     format: Annotated[
-        str,
+        Optional[str],
         typer.Option(
             "--format",
             "-f",
-            help="Output format (json, table, sarif, csv, html, markdown)",
+            help="Output format (json, table, sarif, csv, html, markdown). Default: from config or table",
             case_sensitive=False,
         ),
-    ] = "table",
+    ] = None,
     verbose: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--verbose",
-            "-v",
-            help="Enable verbose output",
+            "--verbose/--no-verbose",
+            "-v/-V",
+            help="Enable verbose output (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     quiet: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--quiet",
-            "-q",
-            help="Suppress non-error output (only show errors)",
+            "--quiet/--no-quiet",
+            "-q/-Q",
+            help="Suppress non-error output (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     stream: Annotated[
         bool,
         typer.Option(
@@ -1695,13 +1898,12 @@ def scan_web(
         ),
     ] = None,
     save_to_db: Annotated[
-        bool,
+        Optional[bool],
         typer.Option(
-            "--save-to-db",
-            help="Save findings to SQLite database. Default location: ~/.hamburglar/findings.db. "
-            "Use --db-path to specify a custom database path.",
+            "--save-to-db/--no-save-to-db",
+            help="Save findings to SQLite database (default: from config or False)",
         ),
-    ] = False,
+    ] = None,
     db_path: Annotated[
         Optional[Path],
         typer.Option(
@@ -1729,17 +1931,63 @@ def scan_web(
         1: Error occurred during scan
         2: No findings found
     """
+    # Build CLI arguments dictionary for config override (only non-None values)
+    cli_args: dict = {}
+    if format is not None:
+        cli_args["format"] = format
+    if verbose is not None:
+        cli_args["verbose"] = verbose
+    if quiet is not None:
+        cli_args["quiet"] = quiet
+    if save_to_db is not None:
+        cli_args["save_to_db"] = save_to_db
+    if db_path is not None:
+        cli_args["db_path"] = db_path
+    if output is not None:
+        cli_args["output"] = output
+    if categories is not None:
+        cli_args["categories"] = categories
+    if min_confidence is not None:
+        cli_args["min_confidence"] = min_confidence
+
+    # Load configuration with CLI overrides
+    temp_quiet = quiet if quiet is not None else False
+    temp_verbose = verbose if verbose is not None else False
+    cfg = get_effective_config(
+        config_file=config_file,
+        cli_args=cli_args if cli_args else None,
+        quiet=temp_quiet,
+        verbose=temp_verbose,
+    )
+
+    # Resolve effective values (CLI > config)
+    eff_format = format if format is not None else cfg.output.format.value
+    eff_verbose = verbose if verbose is not None else cfg.output.verbose
+    eff_quiet = quiet if quiet is not None else cfg.output.quiet
+    eff_save_to_db = save_to_db if save_to_db is not None else cfg.output.save_to_db
+    eff_db_path = db_path if db_path is not None else cfg.output.db_path
+    eff_output = output if output is not None else cfg.output.output_path
+    eff_min_confidence = min_confidence if min_confidence is not None else cfg.detector.min_confidence
+
+    # Handle categories: CLI overrides config
+    if categories is not None:
+        eff_categories = categories
+    elif cfg.detector.enabled_categories:
+        eff_categories = ",".join(cfg.detector.enabled_categories)
+    else:
+        eff_categories = None
+
     # Set up logging based on verbosity
-    if not quiet:
-        setup_logging(verbose=verbose)
+    if not eff_quiet:
+        setup_logging(verbose=eff_verbose)
 
     # Validate format option
-    format_lower = format.lower()
+    format_lower = eff_format.lower()
     if format_lower not in VALID_FORMATS:
         valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
         _display_error(
             ConfigError(
-                f"Invalid format '{format}'. Valid formats: {valid_names}",
+                f"Invalid format '{eff_format}'. Valid formats: {valid_names}",
                 config_key="format",
             )
         )
@@ -1748,7 +1996,7 @@ def scan_web(
     output_format = VALID_FORMATS[format_lower]
 
     # Validate that --output and --output-dir are not used together
-    if output and output_dir:
+    if eff_output and output_dir:
         _display_error(
             ConfigError(
                 "Cannot use both --output and --output-dir. Use one or the other.",
@@ -1759,20 +2007,20 @@ def scan_web(
 
     # Handle --output-dir: create directory and generate filename
     if output_dir:
-        ensure_output_dir(output_dir, quiet=quiet)
+        ensure_output_dir(output_dir, quiet=eff_quiet)
         filename = generate_output_filename(url, output_format, scan_type="web")
-        output = output_dir / filename
-        if verbose and not quiet:
-            console.print(f"[dim]Output file:[/dim] {output}")
+        eff_output = output_dir / filename
+        if eff_verbose and not eff_quiet:
+            console.print(f"[dim]Output file:[/dim] {eff_output}")
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
     disabled_categories: list[PatternCategory] | None = None
     use_expanded_patterns = False
 
-    if categories:
+    if eff_categories:
         try:
-            enabled_categories = parse_categories(categories)
+            enabled_categories = parse_categories(eff_categories)
             use_expanded_patterns = True
         except typer.BadParameter as e:
             _display_error(ConfigError(str(e), config_key="categories"))
@@ -1788,9 +2036,9 @@ def scan_web(
 
     # Parse minimum confidence level
     confidence_filter: Confidence | None = None
-    if min_confidence:
+    if eff_min_confidence:
         try:
-            confidence_filter = parse_confidence(min_confidence)
+            confidence_filter = parse_confidence(eff_min_confidence)
             use_expanded_patterns = True
         except typer.BadParameter as e:
             _display_error(ConfigError(str(e), config_key="min_confidence"))
@@ -1810,7 +2058,7 @@ def scan_web(
         parts = auth.split(":", 1)
         auth_tuple = (parts[0], parts[1])
 
-    if verbose and not quiet:
+    if eff_verbose and not eff_quiet:
         console.print(f"[dim]URL:[/dim] {url}")
         console.print(f"[dim]Depth:[/dim] {depth}")
         console.print(f"[dim]Include Scripts:[/dim] {include_scripts}")
@@ -1839,14 +2087,14 @@ def scan_web(
     )
     detectors: list[BaseDetector] = [regex_detector]
 
-    if verbose and not quiet and use_expanded_patterns:
+    if eff_verbose and not eff_quiet and use_expanded_patterns:
         console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
 
     # Handle streaming mode
     if stream:
         asyncio.run(_run_web_streaming_scan(
             url, detectors, depth, include_scripts, user_agent, timeout,
-            respect_robots, auth_tuple, output, quiet, verbose
+            respect_robots, auth_tuple, eff_output, eff_quiet, eff_verbose
         ))
         return
 
@@ -1854,7 +2102,7 @@ def scan_web(
     try:
         result = asyncio.run(_run_web_scan_with_progress(
             url, detectors, depth, include_scripts, user_agent, timeout,
-            respect_robots, auth_tuple, quiet, verbose
+            respect_robots, auth_tuple, eff_quiet, eff_verbose
         ))
     except ScanError as e:
         _display_error(e)
@@ -1866,7 +2114,7 @@ def scan_web(
         _display_error(e)
         raise typer.Exit(code=EXIT_ERROR) from None
     except KeyboardInterrupt:
-        if not quiet:
+        if not eff_quiet:
             error_console.print("\n[yellow]Scan interrupted by user[/yellow]")
         raise typer.Exit(code=EXIT_ERROR) from None
     except Exception as e:
@@ -1886,18 +2134,18 @@ def scan_web(
         raise typer.Exit(code=EXIT_ERROR) from None
 
     # Write to file or stdout
-    if output:
+    if eff_output:
         try:
-            output.write_text(formatted_output)
-            if not quiet:
-                console.print(f"[green]Output written to:[/green] {output}")
+            eff_output.write_text(formatted_output)
+            if not eff_quiet:
+                console.print(f"[green]Output written to:[/green] {eff_output}")
         except PermissionError as e:
             _display_error(e)
             raise typer.Exit(code=EXIT_ERROR) from None
         except OSError as e:
-            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(eff_output)))
             raise typer.Exit(code=EXIT_ERROR) from None
-    elif not quiet:
+    elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
         # Rich's text wrapping which can break parsing. For table, HTML, and markdown
         # use Rich console for proper formatting.
@@ -1907,9 +2155,9 @@ def scan_web(
             console.print(formatted_output)
 
     # Save to database if requested
-    if save_to_db:
-        resolved_db_path = get_db_path(db_path)
-        save_to_database(result, resolved_db_path, quiet=quiet, verbose=verbose)
+    if eff_save_to_db:
+        resolved_db_path = get_db_path(eff_db_path)
+        save_to_database(result, resolved_db_path, quiet=eff_quiet, verbose=eff_verbose)
 
     # Determine exit code based on findings
     if len(result.findings) == 0:
@@ -1921,7 +2169,7 @@ def scan_web(
     high_severity_count = sum(
         1 for f in result.findings if f.severity in (Severity.CRITICAL, Severity.HIGH)
     )
-    if high_severity_count > 0 and verbose and not quiet:
+    if high_severity_count > 0 and eff_verbose and not eff_quiet:
         console.print(
             f"[yellow]Warning:[/yellow] Found {high_severity_count} high/critical severity finding(s)"
         )

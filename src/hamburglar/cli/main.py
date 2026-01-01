@@ -49,6 +49,39 @@ VALID_CONFIDENCE_LEVELS = {conf.value: conf for conf in Confidence}
 
 from hamburglar.outputs.json_output import JsonOutput
 from hamburglar.outputs.table_output import TableOutput
+from hamburglar.outputs.sarif import SarifOutput
+from hamburglar.outputs.csv_output import CsvOutput
+from hamburglar.outputs.html_output import HtmlOutput
+from hamburglar.outputs.markdown_output import MarkdownOutput
+from hamburglar.outputs import BaseOutput
+
+# Valid output formats for CLI parsing
+VALID_FORMATS = {fmt.value: fmt for fmt in OutputFormat}
+
+# Mapping of output formats to their formatter classes
+FORMAT_FORMATTERS: dict[OutputFormat, type[BaseOutput]] = {
+    OutputFormat.JSON: JsonOutput,
+    OutputFormat.TABLE: TableOutput,
+    OutputFormat.SARIF: SarifOutput,
+    OutputFormat.CSV: CsvOutput,
+    OutputFormat.HTML: HtmlOutput,
+    OutputFormat.MARKDOWN: MarkdownOutput,
+}
+
+
+def get_formatter(output_format: OutputFormat) -> BaseOutput:
+    """Get the appropriate output formatter for the given format.
+
+    Args:
+        output_format: The output format enum value.
+
+    Returns:
+        An instance of the corresponding formatter class.
+    """
+    formatter_class = FORMAT_FORMATTERS.get(output_format)
+    if formatter_class is None:
+        raise ValueError(f"Unsupported output format: {output_format}")
+    return formatter_class()
 
 # Default concurrency limit for async scanning
 DEFAULT_CONCURRENCY = 50
@@ -230,7 +263,7 @@ def scan(
         typer.Option(
             "--format",
             "-f",
-            help="Output format",
+            help="Output format (json, table, sarif, csv, html, markdown)",
             case_sensitive=False,
         ),
     ] = "table",
@@ -340,16 +373,17 @@ def scan(
 
     # Validate format option
     format_lower = format.lower()
-    if format_lower not in ("json", "table"):
+    if format_lower not in VALID_FORMATS:
+        valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
         _display_error(
             ConfigError(
-                f"Invalid format '{format}'. Choose 'json' or 'table'.",
+                f"Invalid format '{format}'. Valid formats: {valid_names}",
                 config_key="format",
             )
         )
         raise typer.Exit(code=EXIT_ERROR)
 
-    output_format = OutputFormat.JSON if format_lower == "json" else OutputFormat.TABLE
+    output_format = VALID_FORMATS[format_lower]
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
@@ -478,7 +512,7 @@ def scan(
         raise typer.Exit(code=EXIT_ERROR) from None
 
     # Format output
-    formatter = JsonOutput() if output_format == OutputFormat.JSON else TableOutput()
+    formatter = get_formatter(output_format)
 
     try:
         formatted_output = formatter.format(result)
@@ -502,10 +536,10 @@ def scan(
             _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not quiet:
-        # For JSON output, use print() directly to avoid Rich's text wrapping
-        # which can break JSON parsing. For table output, use Rich console
-        # for proper formatting.
-        if output_format == OutputFormat.JSON:
+        # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
+        # Rich's text wrapping which can break parsing. For table, HTML, and markdown
+        # use Rich console for proper formatting.
+        if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
             print(formatted_output)
         else:
             console.print(formatted_output)
@@ -851,7 +885,7 @@ def scan_git(
         typer.Option(
             "--format",
             "-f",
-            help="Output format",
+            help="Output format (json, table, sarif, csv, html, markdown)",
             case_sensitive=False,
         ),
     ] = "table",
@@ -924,16 +958,17 @@ def scan_git(
 
     # Validate format option
     format_lower = format.lower()
-    if format_lower not in ("json", "table"):
+    if format_lower not in VALID_FORMATS:
+        valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
         _display_error(
             ConfigError(
-                f"Invalid format '{format}'. Choose 'json' or 'table'.",
+                f"Invalid format '{format}'. Valid formats: {valid_names}",
                 config_key="format",
             )
         )
         raise typer.Exit(code=EXIT_ERROR)
 
-    output_format = OutputFormat.JSON if format_lower == "json" else OutputFormat.TABLE
+    output_format = VALID_FORMATS[format_lower]
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
@@ -1027,7 +1062,7 @@ def scan_git(
         raise typer.Exit(code=EXIT_ERROR) from None
 
     # Format output
-    formatter = JsonOutput() if output_format == OutputFormat.JSON else TableOutput()
+    formatter = get_formatter(output_format)
 
     try:
         formatted_output = formatter.format(result)
@@ -1051,7 +1086,10 @@ def scan_git(
             _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not quiet:
-        if output_format == OutputFormat.JSON:
+        # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
+        # Rich's text wrapping which can break parsing. For table, HTML, and markdown
+        # use Rich console for proper formatting.
+        if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
             print(formatted_output)
         else:
             console.print(formatted_output)
@@ -1327,7 +1365,7 @@ def scan_web(
         typer.Option(
             "--format",
             "-f",
-            help="Output format",
+            help="Output format (json, table, sarif, csv, html, markdown)",
             case_sensitive=False,
         ),
     ] = "table",
@@ -1400,16 +1438,17 @@ def scan_web(
 
     # Validate format option
     format_lower = format.lower()
-    if format_lower not in ("json", "table"):
+    if format_lower not in VALID_FORMATS:
+        valid_names = ", ".join(sorted(VALID_FORMATS.keys()))
         _display_error(
             ConfigError(
-                f"Invalid format '{format}'. Choose 'json' or 'table'.",
+                f"Invalid format '{format}'. Valid formats: {valid_names}",
                 config_key="format",
             )
         )
         raise typer.Exit(code=EXIT_ERROR)
 
-    output_format = OutputFormat.JSON if format_lower == "json" else OutputFormat.TABLE
+    output_format = VALID_FORMATS[format_lower]
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
@@ -1520,7 +1559,7 @@ def scan_web(
         raise typer.Exit(code=EXIT_ERROR) from None
 
     # Format output
-    formatter = JsonOutput() if output_format == OutputFormat.JSON else TableOutput()
+    formatter = get_formatter(output_format)
 
     try:
         formatted_output = formatter.format(result)
@@ -1544,7 +1583,10 @@ def scan_web(
             _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not quiet:
-        if output_format == OutputFormat.JSON:
+        # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
+        # Rich's text wrapping which can break parsing. For table, HTML, and markdown
+        # use Rich console for proper formatting.
+        if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
             print(formatted_output)
         else:
             console.print(formatted_output)

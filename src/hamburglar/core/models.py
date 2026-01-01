@@ -27,6 +27,10 @@ class OutputFormat(str, Enum):
 
     JSON = "json"
     TABLE = "table"
+    SARIF = "sarif"
+    CSV = "csv"
+    HTML = "html"
+    MARKDOWN = "markdown"
 
 
 class Finding(BaseModel):

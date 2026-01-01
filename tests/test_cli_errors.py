@@ -181,14 +181,15 @@ class TestInvalidFormatOption:
 
     def test_invalid_format_mentions_valid_options(self, temp_directory: Path) -> None:
         """Test that the error suggests valid format options."""
-        result = runner.invoke(app, ["scan", str(temp_directory), "--format", "csv"])
+        result = runner.invoke(app, ["scan", str(temp_directory), "--format", "yaml"])
         assert result.exit_code == 1
         # Error should mention it's a config error or invalid format
         assert "format" in result.output.lower()
 
     def test_various_invalid_formats(self, temp_directory: Path) -> None:
         """Test various invalid format values."""
-        invalid_formats = ["xml", "csv", "yaml", "html", "md", "plaintext", "123"]
+        # xml, yaml, md (not markdown), plaintext, and numeric values are invalid
+        invalid_formats = ["xml", "yaml", "md", "plaintext", "123"]
         for fmt in invalid_formats:
             result = runner.invoke(app, ["scan", str(temp_directory), "--format", fmt])
             assert result.exit_code == 1, f"Expected exit 1 for format '{fmt}'"

@@ -192,7 +192,17 @@ This phase completes the modernization by ensuring all functionality from the or
     - TOML validity validation (3 tests)
   - All 4325 tests pass (64 skipped)
 
-- [ ] Archive original files: move hamburglar.py to `archive/hamburglar_v1.py`, move ham.conf to `archive/ham_v1.conf`, move utils/magic_sig_scraper.py to `archive/`, add README in archive explaining these are preserved for reference
+- [x] Archive original files: move hamburglar.py to `archive/hamburglar_v1.py`, move ham.conf to `archive/ham_v1.conf`, move utils/magic_sig_scraper.py to `archive/`, add README in archive explaining these are preserved for reference
+  - Created `archive/` directory for v1 legacy files
+  - Moved `hamburglar.py` to `archive/hamburglar_v1.py` using `git mv` to preserve history
+  - Moved `ham.conf` to `archive/ham_v1.conf` using `git mv`
+  - Moved `utils/magic_sig_scraper.py` to `archive/magic_sig_scraper_v1.py` using `git mv`
+  - Removed empty `utils/` directory (new utils are in `src/hamburglar/utils/`)
+  - Created `archive/README.md` explaining:
+    - Purpose of each archived file and its original functionality
+    - Why files are preserved (reference, pattern verification, migration support)
+    - Warning that archived files are not functional in v2
+    - Quick reference for v2 command equivalents
 
 - [ ] Update `.gitignore` to remove outdated entries, add new entries for modern tooling (.ruff_cache, .mypy_cache, etc.)
 

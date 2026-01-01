@@ -1,25 +1,23 @@
-import requests
 import lxml.html as lh
 import pandas as pd
+import requests
 import sqlalchemy as db
-import re
-
 
 # magic_sig_scraper scrapes the dynamic list of magic numbers from wikipedia, storing it in a database.
-# this database can then be used to supplement hamburglar.py 
+# this database can then be used to supplement hamburglar.py
 # It does not need to be updated very regularly, but you can set this on a cron job
-url='https://en.wikipedia.org/wiki/List_of_file_signatures'
+url = "https://en.wikipedia.org/wiki/List_of_file_signatures"
 
-#Create a handle, page, to handle the contents of the website
+# Create a handle, page, to handle the contents of the website
 page = requests.get(url)
 
-#Store the contents of the website under doc
+# Store the contents of the website under doc
 doc = lh.fromstring(page.content)
 
-#Parse data that are stored between <tr>..</tr> of HTML
-tr_elements = doc.xpath('//tr')
+# Parse data that are stored between <tr>..</tr> of HTML
+tr_elements = doc.xpath("//tr")
 
-#Create empty list
+# Create empty list
 col = []
 i = 0
 
@@ -47,13 +45,15 @@ for j in range(1, len(tr_elements)):
 
         i += 1
 
-Dict = {title:column for (title, column) in col}
+Dict = {title: column for (title, column) in col}
 df = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in Dict.items()]))
 
-engine = db.create_engine('mysql+pymysql://hamman:deadbeef@localhost/fileSign')
+engine = db.create_engine("mysql+pymysql://hamman:deadbeef@localhost/fileSign")
 conn = engine.connect()
 
-df.to_sql("signatures", engine, if_exists='replace')
-db_string = engine.execute("SELECT `Hex signature` FROM `signatures` WHERE signatures.index=0").fetchall()
+df.to_sql("signatures", engine, if_exists="replace")
+db_string = engine.execute(
+    "SELECT `Hex signature` FROM `signatures` WHERE signatures.index=0"
+).fetchall()
 
 print(db_string)

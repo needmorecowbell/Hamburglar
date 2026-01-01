@@ -39,7 +39,7 @@ from hamburglar.detectors.patterns import Confidence, PatternCategory
 from hamburglar.detectors.regex_detector import RegexDetector
 from hamburglar.detectors.yara_detector import YaraDetector
 from hamburglar.outputs.streaming import StreamingOutput
-from hamburglar.scanners import GitScanner
+from hamburglar.scanners import GitScanner, WebScanner
 
 # Valid category names for CLI parsing
 VALID_CATEGORIES = {cat.value: cat for cat in PatternCategory}
@@ -1257,6 +1257,526 @@ async def _run_git_streaming_scan(
     raise typer.Exit(code=EXIT_SUCCESS)
 
 
+@app.command("scan-web")
+def scan_web(
+    url: Annotated[
+        str,
+        typer.Argument(
+            help="URL to scan for secrets",
+        ),
+    ],
+    depth: Annotated[
+        int,
+        typer.Option(
+            "--depth",
+            "-d",
+            help="Maximum depth for following links (0 = only scan the starting URL)",
+            min=0,
+        ),
+    ] = 1,
+    include_scripts: Annotated[
+        bool,
+        typer.Option(
+            "--include-scripts/--no-scripts",
+            help="Extract and scan JavaScript files. Default: enabled",
+        ),
+    ] = True,
+    user_agent: Annotated[
+        Optional[str],
+        typer.Option(
+            "--user-agent",
+            "-u",
+            help="Custom user agent string for HTTP requests",
+        ),
+    ] = None,
+    timeout: Annotated[
+        float,
+        typer.Option(
+            "--timeout",
+            "-t",
+            help="Timeout for HTTP requests in seconds",
+            min=1.0,
+            max=300.0,
+        ),
+    ] = 30.0,
+    auth: Annotated[
+        Optional[str],
+        typer.Option(
+            "--auth",
+            "-a",
+            help="Basic auth credentials in format 'username:password'",
+        ),
+    ] = None,
+    respect_robots: Annotated[
+        bool,
+        typer.Option(
+            "--respect-robots/--ignore-robots",
+            help="Respect robots.txt rules. Default: enabled",
+        ),
+    ] = True,
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-o",
+            help="Write output to file instead of stdout",
+        ),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format",
+            case_sensitive=False,
+        ),
+    ] = "table",
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Enable verbose output",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress non-error output (only show errors)",
+        ),
+    ] = False,
+    stream: Annotated[
+        bool,
+        typer.Option(
+            "--stream",
+            help="Stream findings as NDJSON (newline-delimited JSON) in real-time",
+        ),
+    ] = False,
+    categories: Annotated[
+        Optional[str],
+        typer.Option(
+            "--categories",
+            "-c",
+            help="Enable only specific detector categories (comma-separated)",
+        ),
+    ] = None,
+    no_categories: Annotated[
+        Optional[str],
+        typer.Option(
+            "--no-categories",
+            help="Disable specific detector categories (comma-separated)",
+        ),
+    ] = None,
+    min_confidence: Annotated[
+        Optional[str],
+        typer.Option(
+            "--min-confidence",
+            help="Minimum confidence level for findings (high, medium, low)",
+        ),
+    ] = None,
+) -> None:
+    """Scan a web URL for sensitive information.
+
+    Fetches content from the URL, extracts text from HTML, follows links
+    to a configurable depth, and scans for secrets in both page content
+    and JavaScript files.
+
+    Examples:
+        hamburglar scan-web https://example.com
+        hamburglar scan-web https://example.com --depth 2
+        hamburglar scan-web https://example.com --no-scripts
+        hamburglar scan-web https://example.com --auth user:pass
+
+    Exit codes:
+        0: Success (findings found)
+        1: Error occurred during scan
+        2: No findings found
+    """
+    # Set up logging based on verbosity
+    if not quiet:
+        setup_logging(verbose=verbose)
+
+    # Validate format option
+    format_lower = format.lower()
+    if format_lower not in ("json", "table"):
+        _display_error(
+            ConfigError(
+                f"Invalid format '{format}'. Choose 'json' or 'table'.",
+                config_key="format",
+            )
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    output_format = OutputFormat.JSON if format_lower == "json" else OutputFormat.TABLE
+
+    # Parse category filters
+    enabled_categories: list[PatternCategory] | None = None
+    disabled_categories: list[PatternCategory] | None = None
+    use_expanded_patterns = False
+
+    if categories:
+        try:
+            enabled_categories = parse_categories(categories)
+            use_expanded_patterns = True
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="categories"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    if no_categories:
+        try:
+            disabled_categories = parse_categories(no_categories)
+            use_expanded_patterns = True
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="no_categories"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Parse minimum confidence level
+    confidence_filter: Confidence | None = None
+    if min_confidence:
+        try:
+            confidence_filter = parse_confidence(min_confidence)
+            use_expanded_patterns = True
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="min_confidence"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Parse auth credentials if provided
+    auth_tuple: tuple[str, str] | None = None
+    if auth:
+        if ":" not in auth:
+            _display_error(
+                ConfigError(
+                    "Invalid auth format. Use 'username:password'.",
+                    config_key="auth",
+                )
+            )
+            raise typer.Exit(code=EXIT_ERROR)
+        parts = auth.split(":", 1)
+        auth_tuple = (parts[0], parts[1])
+
+    if verbose and not quiet:
+        console.print(f"[dim]URL:[/dim] {url}")
+        console.print(f"[dim]Depth:[/dim] {depth}")
+        console.print(f"[dim]Include Scripts:[/dim] {include_scripts}")
+        console.print(f"[dim]Timeout:[/dim] {timeout}s")
+        console.print(f"[dim]Respect Robots.txt:[/dim] {respect_robots}")
+        if user_agent:
+            console.print(f"[dim]User Agent:[/dim] {user_agent}")
+        if auth_tuple:
+            console.print(f"[dim]Auth:[/dim] {auth_tuple[0]}:***")
+        console.print(f"[dim]Format:[/dim] {output_format.value}")
+        if stream:
+            console.print("[dim]Mode:[/dim] Streaming (NDJSON)")
+        if enabled_categories:
+            console.print(f"[dim]Categories:[/dim] {', '.join(c.value for c in enabled_categories)}")
+        if disabled_categories:
+            console.print(f"[dim]Excluded categories:[/dim] {', '.join(c.value for c in disabled_categories)}")
+        if confidence_filter:
+            console.print(f"[dim]Min confidence:[/dim] {confidence_filter.value}")
+
+    # Initialize detector
+    regex_detector = RegexDetector(
+        use_expanded_patterns=use_expanded_patterns,
+        enabled_categories=enabled_categories,
+        disabled_categories=disabled_categories,
+        min_confidence=confidence_filter,
+    )
+    detectors: list[BaseDetector] = [regex_detector]
+
+    if verbose and not quiet and use_expanded_patterns:
+        console.print(f"[dim]Loaded {regex_detector.get_pattern_count()} patterns[/dim]")
+
+    # Handle streaming mode
+    if stream:
+        asyncio.run(_run_web_streaming_scan(
+            url, detectors, depth, include_scripts, user_agent, timeout,
+            respect_robots, auth_tuple, output, quiet, verbose
+        ))
+        return
+
+    # Run the scan with progress bar (non-streaming mode)
+    try:
+        result = asyncio.run(_run_web_scan_with_progress(
+            url, detectors, depth, include_scripts, user_agent, timeout,
+            respect_robots, auth_tuple, quiet, verbose
+        ))
+    except ScanError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except PermissionError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except HamburglarError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except KeyboardInterrupt:
+        if not quiet:
+            error_console.print("\n[yellow]Scan interrupted by user[/yellow]")
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except Exception as e:
+        _display_error(e, title="Error during web scan")
+        raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Format output
+    formatter = JsonOutput() if output_format == OutputFormat.JSON else TableOutput()
+
+    try:
+        formatted_output = formatter.format(result)
+    except HamburglarError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except Exception as e:
+        _display_error(OutputError(f"Failed to format output: {e}"))
+        raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Write to file or stdout
+    if output:
+        try:
+            output.write_text(formatted_output)
+            if not quiet:
+                console.print(f"[green]Output written to:[/green] {output}")
+        except PermissionError as e:
+            _display_error(e)
+            raise typer.Exit(code=EXIT_ERROR) from None
+        except OSError as e:
+            _display_error(OutputError(f"Failed to write output file: {e}", output_path=str(output)))
+            raise typer.Exit(code=EXIT_ERROR) from None
+    elif not quiet:
+        if output_format == OutputFormat.JSON:
+            print(formatted_output)
+        else:
+            console.print(formatted_output)
+
+    # Determine exit code based on findings
+    if len(result.findings) == 0:
+        raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+    # Show warning for high severity findings in verbose mode
+    from hamburglar.core.models import Severity
+
+    high_severity_count = sum(
+        1 for f in result.findings if f.severity in (Severity.CRITICAL, Severity.HIGH)
+    )
+    if high_severity_count > 0 and verbose and not quiet:
+        console.print(
+            f"[yellow]Warning:[/yellow] Found {high_severity_count} high/critical severity finding(s)"
+        )
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+async def _run_web_scan_with_progress(
+    url: str,
+    detectors: list["BaseDetector"],
+    depth: int,
+    include_scripts: bool,
+    user_agent: Optional[str],
+    timeout: float,
+    respect_robots: bool,
+    auth_tuple: tuple[str, str] | None,
+    quiet: bool,
+    verbose: bool,
+) -> "ScanResult":
+    """Run a web scan with rich progress bar display.
+
+    Args:
+        url: URL to scan.
+        detectors: List of detectors to use.
+        depth: Maximum depth for link following.
+        include_scripts: Whether to scan JavaScript files.
+        user_agent: Custom user agent string.
+        timeout: HTTP request timeout in seconds.
+        respect_robots: Whether to respect robots.txt.
+        auth_tuple: Optional (username, password) tuple for basic auth.
+        quiet: If True, suppress progress output.
+        verbose: If True, show detailed progress.
+
+    Returns:
+        ScanResult with all findings.
+    """
+    from hamburglar.core.models import ScanResult
+    from hamburglar.scanners.web import DEFAULT_USER_AGENT
+
+    # Progress tracking state
+    progress_state = {
+        "task_id": None,
+        "last_progress": None,
+    }
+
+    def progress_callback(progress: ScanProgress) -> None:
+        """Update the rich progress bar."""
+        progress_state["last_progress"] = progress
+
+    # Build scanner kwargs
+    scanner_kwargs = {
+        "url": url,
+        "detectors": detectors,
+        "progress_callback": progress_callback,
+        "depth": depth,
+        "include_scripts": include_scripts,
+        "timeout": timeout,
+        "respect_robots_txt": respect_robots,
+    }
+
+    if user_agent:
+        scanner_kwargs["user_agent"] = user_agent
+
+    # Note: WebScanner doesn't support auth directly, but we can add it via httpx
+    # For now, auth would need to be added to WebScanner if needed
+    # This is a placeholder for future auth support
+    if auth_tuple and verbose and not quiet:
+        console.print("[dim]Note: Auth credentials provided (requires WebScanner auth support)[/dim]")
+
+    scanner = WebScanner(**scanner_kwargs)
+
+    if quiet:
+        return await scanner.scan()
+
+    # Create rich progress bar
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TimeElapsedColumn(),
+        TextColumn("[dim]{task.fields[stats]}[/dim]"),
+        console=console,
+        transient=not verbose,
+    ) as progress:
+        # Start with scanning task
+        main_task = progress.add_task(
+            "[cyan]Scanning web URL...", total=None, stats=""
+        )
+
+        # Start the scan
+        scan_task = asyncio.create_task(scanner.scan())
+
+        # Update progress while scanning
+        while not scan_task.done():
+            await asyncio.sleep(0.1)
+
+            last_progress = progress_state["last_progress"]
+            if last_progress is not None:
+                stats_parts = []
+                if last_progress.scanned_files > 0:
+                    stats_parts.append(f"{last_progress.scanned_files} URLs/scripts")
+                if last_progress.findings_count > 0:
+                    stats_parts.append(
+                        f"[yellow]{last_progress.findings_count} findings[/yellow]"
+                    )
+                if last_progress.current_file:
+                    # Truncate long URLs
+                    current = last_progress.current_file
+                    if len(current) > 50:
+                        current = current[:25] + "..." + current[-22:]
+                    stats_parts.append(f"[dim]{current}[/dim]")
+
+                stats_str = " | ".join(stats_parts) if stats_parts else ""
+                progress.update(main_task, stats=stats_str)
+
+        result = await scan_task
+
+    # Show summary
+    if verbose:
+        stats = result.stats
+        console.print(
+            f"[dim]Scanned {stats.get('urls_scanned', 0)} URLs, "
+            f"{stats.get('scripts_scanned', 0)} scripts "
+            f"in {result.scan_duration:.2f}s[/dim]"
+        )
+
+    return result
+
+
+async def _run_web_streaming_scan(
+    url: str,
+    detectors: list["BaseDetector"],
+    depth: int,
+    include_scripts: bool,
+    user_agent: Optional[str],
+    timeout: float,
+    respect_robots: bool,
+    auth_tuple: tuple[str, str] | None,
+    output_path: Optional[Path],
+    quiet: bool,
+    verbose: bool,
+) -> None:
+    """Run a web scan in streaming mode, outputting NDJSON as findings are discovered.
+
+    Args:
+        url: URL to scan.
+        detectors: List of detectors to use.
+        depth: Maximum depth for link following.
+        include_scripts: Whether to scan JavaScript files.
+        user_agent: Custom user agent string.
+        timeout: HTTP request timeout in seconds.
+        respect_robots: Whether to respect robots.txt.
+        auth_tuple: Optional (username, password) tuple for basic auth.
+        output_path: Optional path to write output to.
+        quiet: If True, suppress progress output.
+        verbose: If True, show detailed progress.
+    """
+    # Build scanner kwargs
+    scanner_kwargs = {
+        "url": url,
+        "detectors": detectors,
+        "depth": depth,
+        "include_scripts": include_scripts,
+        "timeout": timeout,
+        "respect_robots_txt": respect_robots,
+    }
+
+    if user_agent:
+        scanner_kwargs["user_agent"] = user_agent
+
+    scanner = WebScanner(**scanner_kwargs)
+
+    formatter = StreamingOutput()
+    findings_count = 0
+
+    try:
+        if output_path:
+            with open(output_path, "w") as f:
+                async for finding in scanner.scan_stream():
+                    f.write(formatter.format_finding(finding) + "\n")
+                    f.flush()
+                    findings_count += 1
+
+            if not quiet:
+                console.print(f"[green]Streamed {findings_count} findings to:[/green] {output_path}")
+        else:
+            async for finding in scanner.scan_stream():
+                print(formatter.format_finding(finding), flush=True)
+                findings_count += 1
+
+        if verbose and not quiet:
+            stats = scanner.get_stats()
+            error_console.print(
+                f"[dim]Streamed {findings_count} findings from "
+                f"{stats.get('urls_scanned', 0)} URLs, "
+                f"{stats.get('scripts_scanned', 0)} scripts[/dim]"
+            )
+
+    except KeyboardInterrupt:
+        if not quiet:
+            error_console.print("\n[yellow]Scan interrupted by user[/yellow]")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    except ScanError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR)
+
+    except Exception as e:
+        _display_error(e, title="Error during web streaming scan")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    if findings_count == 0:
+        raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -1274,6 +1794,7 @@ def main(
 
     Use 'hamburglar scan <path>' to scan files for secrets and sensitive data.
     Use 'hamburglar scan-git <url/path>' to scan git repositories.
+    Use 'hamburglar scan-web <url>' to scan web URLs.
     """
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())

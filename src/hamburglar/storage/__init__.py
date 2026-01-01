@@ -350,11 +350,13 @@ class StorageRegistry:
 default_registry = StorageRegistry()
 
 # Lazy imports to avoid circular import issues
+from hamburglar.storage.json_file import JsonFileStorage
 from hamburglar.storage.sqlite import SqliteStorage
 
 __all__ = [
     "BaseStorage",
     "FindingFilter",
+    "JsonFileStorage",
     "ScanFilter",
     "ScanStatistics",
     "SqliteStorage",

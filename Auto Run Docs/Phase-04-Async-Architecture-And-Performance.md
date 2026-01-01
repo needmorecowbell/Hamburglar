@@ -30,7 +30,26 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Created 50 comprehensive tests in `tests/test_file_reader.py`
     - All 1870 tests pass with 93% coverage
 
-- [ ] Create `src/hamburglar/core/progress.py` with a `ScanProgress` dataclass (total_files, scanned_files, current_file, bytes_processed, findings_count, elapsed_time) and `ProgressReporter` protocol for pluggable progress reporting
+- [x] Create `src/hamburglar/core/progress.py` with a `ScanProgress` dataclass (total_files, scanned_files, current_file, bytes_processed, findings_count, elapsed_time) and `ProgressReporter` protocol for pluggable progress reporting
+  - **Completed:** Created `progress.py` module with comprehensive progress tracking capabilities:
+    - `ScanProgress` dataclass with all required fields plus computed properties:
+      - `files_remaining` (auto-computed)
+      - `percent_complete` property (0-100%)
+      - `files_per_second` throughput calculation
+      - `bytes_per_second` throughput calculation
+      - `estimated_time_remaining` property
+      - `to_dict()` method for serialization
+    - `ProgressReporter` protocol with `@runtime_checkable` decorator for pluggable reporting:
+      - `on_progress(progress: ScanProgress)` for progress updates
+      - `on_start(total_files: int)` for scan start notification
+      - `on_complete(progress: ScanProgress)` for scan completion
+      - `on_error(error: str, file_path: str | None)` for error reporting
+    - `NullProgressReporter` class for no-op reporting (avoids None checks)
+    - `CallbackProgressReporter` class for backward compatibility with callback-based reporting
+    - Refactored `async_scanner.py` to import `ScanProgress` from `progress.py` (avoiding duplication)
+    - Exported all classes from `hamburglar.core` package `__init__.py`
+    - Created 42 comprehensive tests in `tests/test_progress.py` covering all functionality
+    - All 1912 tests pass with 93% overall coverage (progress.py at 96%)
 
 - [ ] Create `src/hamburglar/outputs/streaming.py` with a `StreamingOutput` class that: yields findings as they're discovered, supports NDJSON (newline-delimited JSON) format, provides async iterator interface, allows real-time piping to other tools
 

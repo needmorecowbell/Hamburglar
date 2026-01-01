@@ -10,12 +10,12 @@ import asyncio
 import fnmatch
 import logging
 import time
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, AsyncIterator, Callable
 
 from hamburglar.core.exceptions import ScanError
 from hamburglar.core.models import Finding, ScanConfig, ScanResult
+from hamburglar.core.progress import ScanProgress
 
 if TYPE_CHECKING:
     from hamburglar.detectors import BaseDetector
@@ -23,34 +23,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Type alias for progress callback
-ProgressCallback = Callable[["ScanProgress"], None]
-
-
-@dataclass
-class ScanProgress:
-    """Dataclass tracking scan progress information.
-
-    Attributes:
-        total_files: Total number of files to scan.
-        scanned_files: Number of files already scanned.
-        current_file: Path of the file currently being scanned.
-        bytes_processed: Total bytes processed so far.
-        findings_count: Number of findings discovered so far.
-        elapsed_time: Time elapsed since scan started (in seconds).
-        files_remaining: Number of files yet to be scanned.
-    """
-
-    total_files: int = 0
-    scanned_files: int = 0
-    current_file: str = ""
-    bytes_processed: int = 0
-    findings_count: int = 0
-    elapsed_time: float = 0.0
-    files_remaining: int = field(init=False)
-
-    def __post_init__(self) -> None:
-        """Calculate derived fields after initialization."""
-        self.files_remaining = self.total_files - self.scanned_files
+ProgressCallback = Callable[[ScanProgress], None]
 
 
 class AsyncScanner:

@@ -179,6 +179,13 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Tests executed using pytest 9.0.2 on Python 3.13.11
   - Warnings are non-critical (coroutine cleanup, resource warnings)
 
-- [ ] Build Docker image locally and verify `docker run hamburglar --version` works
+- [x] Build Docker image locally and verify `docker run hamburglar --version` works
+  - Successfully built Docker image using multi-stage Dockerfile (tag: hamburglar:local)
+  - Verified `docker run --rm hamburglar:local --version` outputs "Hamburglar version 2.0.0"
+  - Additional smoke tests passed:
+    - `--help` displays CLI interface with all commands (scan, scan-git, scan-web, history, report)
+    - Container runs as non-root user (uid 1000) for security
+    - `scan --help` confirms scan subcommand is functional
+  - Build completed with python:3.11-slim base, includes libyara-dev and git dependencies
 
 - [ ] Build wheel with `python -m build` and verify it installs correctly in clean virtualenv

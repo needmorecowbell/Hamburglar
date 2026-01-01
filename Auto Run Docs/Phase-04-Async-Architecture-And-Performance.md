@@ -234,7 +234,17 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - `TestEdgeCases` (5 tests): whitespace, unicode names, long lines, mixed line endings, high-bit characters
     - All 50 tests pass in 0.15s execution time
 
-- [ ] Create `tests/test_performance.py` with performance benchmarks: scan speed with 100 files, scan speed with 1000 files, memory usage stays bounded, concurrent scanning is faster than sequential
+- [x] Create `tests/test_performance.py` with performance benchmarks: scan speed with 100 files, scan speed with 1000 files, memory usage stays bounded, concurrent scanning is faster than sequential
+  - **Completed:** Created comprehensive performance benchmark test suite with 22 tests covering:
+    - `TestScanSpeed100Files` (3 tests): completion, throughput (≥10 files/sec), findings detection
+    - `TestScanSpeed1000Files` (4 tests): completion, throughput (≥20 files/sec), bytes processed, streaming
+    - `TestMemoryBoundedness` (4 tests): memory bounded for 100/1000 files, peak tracking, no leaks on repeated scans
+    - `TestConcurrencyPerformance` (4 tests): concurrent faster than sequential, limit variations, semaphore respected, no-detector speed
+    - `TestBenchmarkMetrics` (3 tests): bytes/second, findings/file, duration reporting
+    - `TestScalabilityBehavior` (4 tests): linear scaling, empty directory, large files, nested directories
+    - All tests use the `MemoryProfiler` from `profiling.py` for memory tracking
+    - Tests skip gracefully when `psutil` is not available for memory tracking
+    - All 2248 tests pass with 3 skipped (memory tests when psutil unavailable)
 
 - [ ] Create `tests/test_streaming.py` with tests for: NDJSON output format is correct, findings stream as discovered, stream can be interrupted, backpressure is handled correctly
 

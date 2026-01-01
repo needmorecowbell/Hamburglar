@@ -11,7 +11,13 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Includes default `scan_stream()` implementation, `cancel()`, `is_cancelled`, and `_report_progress()` helper
   - Added comprehensive test suite in `tests/test_base_scanner.py` (15 tests)
 
-- [ ] Create `src/hamburglar/scanners/directory.py` by refactoring the existing `AsyncScanner` into this module, implementing `BaseScanner` interface
+- [x] Create `src/hamburglar/scanners/directory.py` by refactoring the existing `AsyncScanner` into this module, implementing `BaseScanner` interface
+  - Created DirectoryScanner class implementing BaseScanner abstract class
+  - Features: async file discovery, configurable concurrency (default 50), progress tracking, cancellation support, streaming output
+  - Added `scanner_type` property returning "directory"
+  - Exported from `hamburglar.scanners` module
+  - Comprehensive test suite with 52 tests covering all functionality
+  - Test coverage at 92% for the new module, overall project at 94%+
 
 - [ ] Create `src/hamburglar/scanners/git.py` with a `GitScanner` class that: clones repositories to temp directory (supports HTTP/SSH URLs), extracts all commits using `git log --all -p`, scans current HEAD files, scans commit diffs for removed secrets, scans commit messages for sensitive info, cleans up temp directory after scan, supports local git directories (not just URLs)
 

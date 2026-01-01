@@ -124,7 +124,18 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - YAML syntax validated successfully
   - All 3500 existing tests pass
 
-- [ ] Create GitHub Actions workflow `.github/workflows/docker.yml` that: builds Docker image on push to main, pushes to GitHub Container Registry, tags with commit SHA and latest
+- [x] Create GitHub Actions workflow `.github/workflows/docker.yml` that: builds Docker image on push to main, pushes to GitHub Container Registry, tags with commit SHA and latest
+  - Created docker.yml workflow in .github/workflows/ for continuous Docker builds
+  - Triggers on push to main/master branches
+  - Pushes to GitHub Container Registry (ghcr.io)
+  - Uses docker/metadata-action to generate tags: commit SHA and 'latest'
+  - Multi-platform builds for linux/amd64 and linux/arm64
+  - Includes smoke tests (version, help, non-root user verification)
+  - Uses GitHub Actions cache for faster builds
+  - Outputs image information to job summary with pull commands
+  - Concurrency control to prevent parallel builds per branch
+  - YAML syntax validated successfully
+  - All 3500 existing tests pass
 
 - [ ] Create `tests/test_docker.py` with tests for: Docker image builds successfully (requires docker), container runs and produces output, volume mounts work correctly, non-root user is used (marked as integration tests, skipped if docker unavailable)
 

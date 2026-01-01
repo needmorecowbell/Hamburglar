@@ -22,9 +22,27 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Created comprehensive test suite `tests/test_patterns_api_keys.py` with 159 tests (2+ positive and 2+ negative cases per pattern)
   - All patterns validated with both positive matches and negative rejection cases
 
-- [ ] Create `src/hamburglar/detectors/patterns/cloud.py` with patterns for: Azure Storage Key, Azure Connection String, Azure SAS Token, GCP Service Account Key (JSON structure detection), GCP API Key, AWS Session Token, AWS ARN, Firebase URL, Firebase API Key, Cloudflare API Key, Alibaba Cloud Access Key, IBM Cloud API Key, Oracle Cloud OCID
+- [x] Create `src/hamburglar/detectors/patterns/cloud.py` with patterns for: Azure Storage Key, Azure Connection String, Azure SAS Token, GCP Service Account Key (JSON structure detection), GCP API Key, AWS Session Token, AWS ARN, Firebase URL, Firebase API Key, Cloudflare API Key, Alibaba Cloud Access Key, IBM Cloud API Key, Oracle Cloud OCID
+  - Implemented 24 cloud provider credential patterns covering all specified services plus additional patterns
+  - Azure: Storage Key, Connection String, SAS Token, AD Client Secret, Subscription Key
+  - GCP: Service Account Key (JSON structure), API Key, OAuth Client Secret
+  - AWS: Session Token, ARN, MWS Key (additional to api_keys.py)
+  - Firebase: URL, API Key, Config object detection
+  - Cloudflare: API Key, API Token, Origin CA Key
+  - Alibaba Cloud: Access Key ID, Secret Key
+  - IBM Cloud: API Key, COS HMAC Key
+  - Oracle Cloud: OCID, API Key, Tenancy OCID
+  - Each pattern includes severity level, confidence rating, and description
 
-- [ ] Create `src/hamburglar/detectors/patterns/private_keys.py` with patterns for: RSA Private Key (BEGIN RSA PRIVATE KEY), OpenSSH Private Key (BEGIN OPENSSH PRIVATE KEY), EC Private Key (BEGIN EC PRIVATE KEY), DSA Private Key, PGP Private Key Block, PKCS#8 Private Key, Encrypted Private Key, SSH Private Key (various formats), X.509 Certificate, SSL/TLS Private Key
+- [x] Create `src/hamburglar/detectors/patterns/private_keys.py` with patterns for: RSA Private Key (BEGIN RSA PRIVATE KEY), OpenSSH Private Key (BEGIN OPENSSH PRIVATE KEY), EC Private Key (BEGIN EC PRIVATE KEY), DSA Private Key, PGP Private Key Block, PKCS#8 Private Key, Encrypted Private Key, SSH Private Key (various formats), X.509 Certificate, SSL/TLS Private Key
+  - Implemented 16 private key patterns covering all specified formats plus additional patterns
+  - RSA, OpenSSH, EC, DSA, PGP, PKCS#8 (unencrypted and encrypted) private keys
+  - SSH generic header detection, SSH2 format, PuTTY PPK format
+  - X.509 Certificate and Certificate Request (CSR) detection
+  - SSL/TLS private key context detection, private key variable assignments
+  - Private key file path detection (id_rsa, id_ecdsa, id_ed25519, etc.)
+  - AWS EC2 key pair name detection
+  - Each pattern includes severity level, confidence rating, and description
 
 - [ ] Create `src/hamburglar/detectors/patterns/credentials.py` with patterns for: Generic Password Assignment (password = , passwd:, pwd:), Database Connection Strings (postgres://, mysql://, mongodb://), HTTP Basic Auth Header, JWT Token (eyJ prefix), Bearer Token, OAuth Token, API Token generic patterns, Credentials in URLs (user:pass@host), .env file patterns (KEY=value), Docker registry auth
 
@@ -43,9 +61,16 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
 - [x] Create `tests/test_patterns_api_keys.py` with at least 2 positive and 2 negative test cases for each API key pattern (use fake but realistic-looking patterns)
   - Created as part of the api_keys.py implementation above
 
-- [ ] Create `tests/test_patterns_cloud.py` with at least 2 positive and 2 negative test cases for each cloud pattern
+- [x] Create `tests/test_patterns_cloud.py` with at least 2 positive and 2 negative test cases for each cloud pattern
+  - Created comprehensive test suite with 104 tests covering all 24 cloud patterns
+  - Each pattern has 2+ positive and 2+ negative test cases
+  - Tests validate pattern matching, metadata properties, and collection integrity
 
-- [ ] Create `tests/test_patterns_private_keys.py` with at least 2 positive and 2 negative test cases for each private key pattern
+- [x] Create `tests/test_patterns_private_keys.py` with at least 2 positive and 2 negative test cases for each private key pattern
+  - Created comprehensive test suite with 95 tests covering all 16 private key patterns
+  - Each pattern has 2+ positive and 2+ negative test cases
+  - Tests validate pattern matching, metadata properties, and collection integrity
+  - Uses intentionally fake/example key content to avoid triggering secret scanners
 
 - [ ] Create `tests/test_patterns_credentials.py` with at least 2 positive and 2 negative test cases for each credential pattern
 

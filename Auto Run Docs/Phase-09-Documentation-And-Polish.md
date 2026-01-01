@@ -15,7 +15,8 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
 - [x] Create `docs/installation.md` with: pip installation instructions, Docker installation, building from source, development setup, system requirements, optional dependencies explanation
   - Verified and updated existing docs/installation.md with accurate dependency information matching pyproject.toml, removed incorrect [all] install option, added complete dependency table
 
-- [ ] Create `docs/quickstart.md` with: basic scan example, output format examples, common use cases (scanning directories, git repos, URLs), interpreting results, next steps links
+- [x] Create `docs/quickstart.md` with: basic scan example, output format examples, common use cases (scanning directories, git repos, URLs), interpreting results, next steps links
+  - Verified and corrected existing docs/quickstart.md: Fixed command names (scan-url → scan-web), fixed CLI flags (--output-format → --format, --history → --include-history/--no-history, --max-commits → --depth, --min-severity → --min-confidence), removed non-existent --include/--exclude CLI options (replaced with config file reference), added info severity level
 
 - [ ] Create `docs/cli-reference.md` with: complete CLI documentation auto-generated from Typer, all commands and subcommands, all options with descriptions, exit codes explanation, examples for each command
 

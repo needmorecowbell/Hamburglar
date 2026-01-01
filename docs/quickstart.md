@@ -37,17 +37,9 @@ Scan completed: 2 findings in 150 files
 hamburglar scan /path/to/file.py
 ```
 
-### Scan with Specific File Types
+### Filtering Files
 
-```bash
-hamburglar scan /path/to/code --include "*.py" --include "*.js"
-```
-
-### Exclude Files or Directories
-
-```bash
-hamburglar scan /path/to/code --exclude "node_modules" --exclude "*.min.js"
-```
+File filtering is configured via configuration files rather than CLI flags. See [Configuration](configuration.md) for setting up `whitelist` and `blacklist` patterns.
 
 ## Scanning Git Repositories
 
@@ -65,16 +57,16 @@ hamburglar scan-git /path/to/local/repo
 
 ### Scan Git History
 
-Find secrets in past commits:
+History scanning is enabled by default. To limit the number of commits scanned:
 
 ```bash
-hamburglar scan-git https://github.com/user/repo --history
+hamburglar scan-git https://github.com/user/repo --depth 100
 ```
 
-Limit history depth:
+To skip history and scan only the current state:
 
 ```bash
-hamburglar scan-git https://github.com/user/repo --history --max-commits 100
+hamburglar scan-git https://github.com/user/repo --no-history
 ```
 
 ## Scanning URLs
@@ -82,7 +74,7 @@ hamburglar scan-git https://github.com/user/repo --history --max-commits 100
 Scan web content for exposed secrets:
 
 ```bash
-hamburglar scan-url https://example.com/config.js
+hamburglar scan-web https://example.com/config.js
 ```
 
 ## Output Formats
@@ -90,19 +82,19 @@ hamburglar scan-url https://example.com/config.js
 ### JSON Output
 
 ```bash
-hamburglar scan /path/to/code --output-format json
+hamburglar scan /path/to/code --format json
 ```
 
 Save to file:
 
 ```bash
-hamburglar scan /path/to/code --output-format json --output findings.json
+hamburglar scan /path/to/code --format json --output findings.json
 ```
 
 ### CSV Output
 
 ```bash
-hamburglar scan /path/to/code --output-format csv --output findings.csv
+hamburglar scan /path/to/code --format csv --output findings.csv
 ```
 
 ### HTML Report
@@ -110,7 +102,7 @@ hamburglar scan /path/to/code --output-format csv --output findings.csv
 Generate a human-readable HTML report:
 
 ```bash
-hamburglar scan /path/to/code --output-format html --output report.html
+hamburglar scan /path/to/code --format html --output report.html
 ```
 
 ### SARIF Output (CI/CD)
@@ -118,7 +110,7 @@ hamburglar scan /path/to/code --output-format html --output report.html
 For GitHub Advanced Security integration:
 
 ```bash
-hamburglar scan /path/to/code --output-format sarif --output results.sarif
+hamburglar scan /path/to/code --format sarif --output results.sarif
 ```
 
 ## Common Use Cases
@@ -138,7 +130,7 @@ hamburglar scan $(git diff --cached --name-only)
 - name: Scan for secrets
   run: |
     pip install hamburglar
-    hamburglar scan . --output-format sarif --output results.sarif
+    hamburglar scan . --format sarif --output results.sarif
 
 - name: Upload SARIF
   uses: github/codeql-action/upload-sarif@v2
@@ -161,7 +153,8 @@ docker run -v /path/to/code:/data hamburglar/hamburglar scan /data
 - **critical**: Highly sensitive secrets (private keys, database credentials)
 - **high**: API keys, tokens, passwords
 - **medium**: Potential secrets requiring verification
-- **low**: Informational findings
+- **low**: Lower confidence matches or less sensitive data
+- **info**: Informational findings
 
 ### Confidence Scores
 
@@ -170,11 +163,11 @@ docker run -v /path/to/code:/data hamburglar/hamburglar scan /data
 - **0.50-0.69**: Medium confidence, may be a false positive
 - **Below 0.50**: Low confidence, review manually
 
-### Filtering by Severity
+### Filtering by Confidence
 
 ```bash
-# Only show high and critical findings
-hamburglar scan /path/to/code --min-severity high
+# Only show high confidence findings
+hamburglar scan /path/to/code --min-confidence high
 ```
 
 ## Next Steps

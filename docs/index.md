@@ -43,7 +43,7 @@ hamburglar scan /path/to/code
 hamburglar scan-git https://github.com/user/repo
 
 # Scan with JSON output
-hamburglar scan /path/to/code --output-format json
+hamburglar scan /path/to/code --format json
 ```
 
 See the [Quickstart Guide](quickstart.md) for more examples.

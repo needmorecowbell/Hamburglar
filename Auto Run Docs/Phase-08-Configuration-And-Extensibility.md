@@ -135,7 +135,14 @@ This phase implements a robust configuration system and plugin architecture, all
   - `TestConfigExtraFields`: Tests that extra fields are ignored correctly
   - All 3869 tests pass with 83 new tests added
 
-- [ ] Create `tests/test_plugins.py` with tests for: plugin discovery finds installed plugins, detector plugin can be loaded and used, output plugin can be loaded and used, invalid plugin raises helpful error, plugin config is passed correctly
+- [x] Create `tests/test_plugins.py` with tests for: plugin discovery finds installed plugins, detector plugin can be loaded and used, output plugin can be loaded and used, invalid plugin raises helpful error, plugin config is passed correctly
+  - File already existed from task 5 with 50 comprehensive tests organized into 10 test classes
+  - `TestPluginDiscovery`: Tests plugin discovery with 4 tests (empty, directory, skips private, force rediscover)
+  - `TestPluginManager`: Tests plugin registration and retrieval with 26 tests
+  - `TestPluginIntegration`: Tests that loaded detector/output plugins actually work
+  - `TestDecoratorPlugins`: Tests invalid plugins raise helpful errors (missing detect/format/name)
+  - `TestPluginWithConfig`: Tests plugin config is passed correctly (2 tests)
+  - All 50 tests pass successfully
 
 - [ ] Create `tests/fixtures/configs/` with test config files in various formats (YAML, TOML, JSON)
 

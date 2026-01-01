@@ -16,7 +16,19 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Added 36 comprehensive tests in `tests/test_async_scanner.py` covering all functionality
     - All 1820 tests pass with 95% coverage
 
-- [ ] Create `src/hamburglar/core/file_reader.py` with an `AsyncFileReader` class that: reads files asynchronously with configurable chunk size, detects encoding automatically (chardet/charset-normalizer), handles memory-mapped files for large file support, provides async context manager interface, implements file type detection (binary vs text)
+- [x] Create `src/hamburglar/core/file_reader.py` with an `AsyncFileReader` class that: reads files asynchronously with configurable chunk size, detects encoding automatically (chardet/charset-normalizer), handles memory-mapped files for large file support, provides async context manager interface, implements file type detection (binary vs text)
+  - **Completed:** Created `AsyncFileReader` class with comprehensive async file reading capabilities:
+    - `asyncio.to_thread()` for non-blocking file I/O operations in thread pool
+    - Configurable chunk size (default 8KB) with `read_chunks()` async generator
+    - Automatic encoding detection using charset-normalizer with fallback heuristics
+    - Memory-mapped file support via `mmap` module for large files (configurable threshold, default 10MB)
+    - Full async context manager interface (`async with AsyncFileReader(...) as reader`)
+    - File type detection with `FileType` enum (TEXT, BINARY, UNKNOWN) and UTF-16 BOM handling
+    - `FileInfo` dataclass with path, file_type, encoding, size, and encoding_confidence
+    - Convenience class methods: `read_file()`, `read_file_bytes()`, `is_binary()`, `is_text()`
+    - Added charset-normalizer>=3.0.0 to pyproject.toml dependencies
+    - Created 50 comprehensive tests in `tests/test_file_reader.py`
+    - All 1870 tests pass with 93% coverage
 
 - [ ] Create `src/hamburglar/core/progress.py` with a `ScanProgress` dataclass (total_files, scanned_files, current_file, bytes_processed, findings_count, elapsed_time) and `ProgressReporter` protocol for pluggable progress reporting
 

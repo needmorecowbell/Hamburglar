@@ -37,7 +37,16 @@ This phase implements a robust configuration system and plugin architecture, all
   - Includes global `get_plugin_manager()` and `reset_plugin_manager()` functions
   - Created `tests/test_plugins.py` with 50 comprehensive tests covering all functionality
 
-- [ ] Create `src/hamburglar/plugins/discovery.py` with plugin discovery that: scans configured plugin directories, loads plugins from Python packages via entry points, validates plugins implement required interfaces, provides plugin listing command
+- [x] Create `src/hamburglar/plugins/discovery.py` with plugin discovery that: scans configured plugin directories, loads plugins from Python packages via entry points, validates plugins implement required interfaces, provides plugin listing command
+  - Implemented `discover_plugins()` as the main entry point for all discovery sources
+  - Added `discover_entry_points()` for Python package entry point discovery
+  - Added `discover_directory()` for scanning plugin directories
+  - Implemented `validate_plugin_interface()` for validating detector/output interfaces
+  - Added `list_plugins()` and `get_plugin_details()` for plugin listing CLI support
+  - Added `format_plugin_list()` and `format_plugin_details()` for formatted output
+  - Created `DiscoveryResult` dataclass for discovery operation results
+  - Created `PluginListEntry` dataclass for CLI listing display
+  - Added `tests/test_plugin_discovery.py` with 30 comprehensive tests
 
 - [ ] Create `src/hamburglar/plugins/detector_plugin.py` with `DetectorPlugin` base class that: defines required interface (name, detect method), supports configuration via plugin config section, provides utility methods for pattern matching, integrates with the detector registry
 

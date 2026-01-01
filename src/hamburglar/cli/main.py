@@ -56,6 +56,8 @@ from hamburglar.outputs.csv_output import CsvOutput
 from hamburglar.outputs.html_output import HtmlOutput
 from hamburglar.outputs.markdown_output import MarkdownOutput
 from hamburglar.outputs import BaseOutput
+from hamburglar.storage import StorageError
+from hamburglar.storage.sqlite import SqliteStorage
 
 # Valid output formats for CLI parsing
 VALID_FORMATS = {fmt.value: fmt for fmt in OutputFormat}
@@ -159,6 +161,75 @@ def generate_output_filename(
 
 # Default concurrency limit for async scanning
 DEFAULT_CONCURRENCY = 50
+
+# Default database path for storing findings
+DEFAULT_DB_PATH = Path.home() / ".hamburglar" / "findings.db"
+
+
+def get_db_path(custom_path: Path | None = None) -> Path:
+    """Get the database path, using custom path or default.
+
+    Args:
+        custom_path: Optional custom database path. If None, uses default.
+
+    Returns:
+        The resolved database path.
+    """
+    if custom_path is not None:
+        return custom_path.resolve()
+    return DEFAULT_DB_PATH
+
+
+def save_to_database(
+    result: "ScanResult",
+    db_path: Path,
+    quiet: bool = False,
+    verbose: bool = False,
+) -> str | None:
+    """Save scan results to SQLite database.
+
+    Args:
+        result: The scan result to save.
+        db_path: Path to the SQLite database file.
+        quiet: If True, suppress output messages.
+        verbose: If True, show detailed output.
+
+    Returns:
+        The scan ID if successful, None otherwise.
+
+    Raises:
+        typer.Exit: If saving fails.
+    """
+    try:
+        # Create the database directory if it doesn't exist
+        db_dir = db_path.parent
+        if not db_dir.exists():
+            db_dir.mkdir(parents=True, exist_ok=True)
+            if verbose and not quiet:
+                console.print(f"[dim]Created database directory:[/dim] {db_dir}")
+
+        # Save to database
+        with SqliteStorage(db_path) as storage:
+            scan_id = storage.save_scan(result)
+
+        if not quiet:
+            console.print(f"[green]Saved to database:[/green] {db_path}")
+            if verbose:
+                console.print(f"[dim]Scan ID:[/dim] {scan_id}")
+
+        return scan_id
+
+    except StorageError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except PermissionError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except OSError as e:
+        _display_error(
+            OutputError(f"Failed to save to database: {e}", output_path=str(db_path))
+        )
+        raise typer.Exit(code=EXIT_ERROR) from None
 
 
 def parse_categories(value: str) -> list[PatternCategory]:
@@ -458,6 +529,23 @@ def scan(
             "Scans without generating normal output.",
         ),
     ] = False,
+    save_to_db: Annotated[
+        bool,
+        typer.Option(
+            "--save-to-db",
+            help="Save findings to SQLite database. Default location: ~/.hamburglar/findings.db. "
+            "Use --db-path to specify a custom database path.",
+        ),
+    ] = False,
+    db_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--db-path",
+            help="Custom path for SQLite database file. Creates the file and directory if they don't exist. "
+            "Only used when --save-to-db is enabled.",
+            resolve_path=True,
+        ),
+    ] = None,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -672,6 +760,11 @@ def scan(
             print(formatted_output)
         else:
             console.print(formatted_output)
+
+    # Save to database if requested
+    if save_to_db:
+        resolved_db_path = get_db_path(db_path)
+        save_to_database(result, resolved_db_path, quiet=quiet, verbose=verbose)
 
     # Determine exit code based on findings
     if len(result.findings) == 0:
@@ -1072,6 +1165,23 @@ def scan_git(
             help="Minimum confidence level for findings (high, medium, low)",
         ),
     ] = None,
+    save_to_db: Annotated[
+        bool,
+        typer.Option(
+            "--save-to-db",
+            help="Save findings to SQLite database. Default location: ~/.hamburglar/findings.db. "
+            "Use --db-path to specify a custom database path.",
+        ),
+    ] = False,
+    db_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--db-path",
+            help="Custom path for SQLite database file. Creates the file and directory if they don't exist. "
+            "Only used when --save-to-db is enabled.",
+            resolve_path=True,
+        ),
+    ] = None,
 ) -> None:
     """Scan a git repository for sensitive information.
 
@@ -1249,6 +1359,11 @@ def scan_git(
             print(formatted_output)
         else:
             console.print(formatted_output)
+
+    # Save to database if requested
+    if save_to_db:
+        resolved_db_path = get_db_path(db_path)
+        save_to_database(result, resolved_db_path, quiet=quiet, verbose=verbose)
 
     # Determine exit code based on findings
     if len(result.findings) == 0:
@@ -1579,6 +1694,23 @@ def scan_web(
             help="Minimum confidence level for findings (high, medium, low)",
         ),
     ] = None,
+    save_to_db: Annotated[
+        bool,
+        typer.Option(
+            "--save-to-db",
+            help="Save findings to SQLite database. Default location: ~/.hamburglar/findings.db. "
+            "Use --db-path to specify a custom database path.",
+        ),
+    ] = False,
+    db_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--db-path",
+            help="Custom path for SQLite database file. Creates the file and directory if they don't exist. "
+            "Only used when --save-to-db is enabled.",
+            resolve_path=True,
+        ),
+    ] = None,
 ) -> None:
     """Scan a web URL for sensitive information.
 
@@ -1773,6 +1905,11 @@ def scan_web(
             print(formatted_output)
         else:
             console.print(formatted_output)
+
+    # Save to database if requested
+    if save_to_db:
+        resolved_db_path = get_db_path(db_path)
+        save_to_database(result, resolved_db_path, quiet=quiet, verbose=verbose)
 
     # Determine exit code based on findings
     if len(result.findings) == 0:

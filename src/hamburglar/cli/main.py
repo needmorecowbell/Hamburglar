@@ -3276,6 +3276,305 @@ def report(
 
 
 # ============================================================================
+# Plugins command group
+# ============================================================================
+
+plugins_app = typer.Typer(
+    name="plugins",
+    help="Plugin management commands.",
+    no_args_is_help=True,
+)
+app.add_typer(plugins_app, name="plugins")
+
+
+@plugins_app.command("list")
+def plugins_list(
+    plugin_type: Annotated[
+        Optional[str],
+        typer.Option(
+            "--type",
+            "-t",
+            help="Filter by plugin type (detector or output)",
+            case_sensitive=False,
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show detailed information including author and source",
+        ),
+    ] = False,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (table, json, plain)",
+            case_sensitive=False,
+        ),
+    ] = "table",
+    discover: Annotated[
+        bool,
+        typer.Option(
+            "--discover",
+            "-d",
+            help="Force plugin discovery before listing",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress informational messages",
+        ),
+    ] = False,
+) -> None:
+    """List all installed plugins.
+
+    Shows detector and output plugins that are currently registered with
+    Hamburglar, including both built-in plugins and external ones loaded
+    from entry points or plugin directories.
+    """
+    from hamburglar.plugins import get_plugin_manager, reset_plugin_manager
+    from hamburglar.plugins.discovery import (
+        discover_plugins,
+        format_plugin_list,
+        list_plugins,
+        PluginListEntry,
+    )
+
+    # Validate plugin type if specified
+    if plugin_type is not None:
+        plugin_type_lower = plugin_type.lower()
+        if plugin_type_lower not in ("detector", "output"):
+            error_console.print(
+                f"[red]Error:[/red] Invalid plugin type '{plugin_type}'. "
+                "Use 'detector' or 'output'."
+            )
+            raise typer.Exit(code=EXIT_ERROR)
+        plugin_type = plugin_type_lower
+
+    # Get or reset the plugin manager
+    if discover:
+        reset_plugin_manager()
+
+    manager = get_plugin_manager()
+
+    # Ensure plugins are discovered
+    if not manager._discovered or discover:
+        manager.discover(force=discover)
+
+    # Collect plugins
+    plugins = list(list_plugins(plugin_type=plugin_type, manager=manager))
+
+    # Handle no plugins found
+    if not plugins:
+        if plugin_type:
+            msg = f"No {plugin_type} plugins found."
+        else:
+            msg = "No plugins found."
+        if not quiet:
+            console.print(f"[yellow]{msg}[/yellow]")
+        raise typer.Exit(code=EXIT_SUCCESS)
+
+    # Output based on format
+    format_lower = format.lower()
+    if format_lower == "json":
+        import json
+        plugin_dicts = [
+            {
+                "name": p.name,
+                "type": p.plugin_type,
+                "version": p.version,
+                "author": p.author,
+                "description": p.description,
+                "source": p.source,
+                "enabled": p.enabled,
+            }
+            for p in plugins
+        ]
+        console.print(json.dumps(plugin_dicts, indent=2))
+    elif format_lower == "plain":
+        # Use the format_plugin_list function
+        output = format_plugin_list(plugins, verbose=verbose)
+        console.print(output)
+    else:
+        # Default to table format
+        _display_plugins_table(plugins, verbose=verbose)
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+def _display_plugins_table(
+    plugins: list["PluginListEntry"], verbose: bool = False
+) -> None:
+    """Display plugins in a rich table format.
+
+    Args:
+        plugins: List of plugins to display.
+        verbose: If True, show additional columns.
+    """
+    from rich.table import Table
+    from hamburglar.plugins.discovery import PluginListEntry
+
+    # Separate by type
+    detectors = [p for p in plugins if p.plugin_type == "detector"]
+    outputs = [p for p in plugins if p.plugin_type == "output"]
+
+    if detectors:
+        table = Table(title="Detector Plugins", show_header=True, header_style="bold cyan")
+        table.add_column("Name", style="green")
+        table.add_column("Version", style="dim")
+        table.add_column("Description")
+        if verbose:
+            table.add_column("Author", style="dim")
+            table.add_column("Source", style="dim")
+
+        for p in sorted(detectors, key=lambda x: x.name):
+            if verbose:
+                table.add_row(p.name, p.version, p.description or "", p.author or "-", p.source)
+            else:
+                table.add_row(p.name, p.version, p.description or "")
+
+        console.print(table)
+        console.print()
+
+    if outputs:
+        table = Table(title="Output Plugins", show_header=True, header_style="bold cyan")
+        table.add_column("Name", style="green")
+        table.add_column("Version", style="dim")
+        table.add_column("Description")
+        if verbose:
+            table.add_column("Author", style="dim")
+            table.add_column("Source", style="dim")
+
+        for p in sorted(outputs, key=lambda x: x.name):
+            if verbose:
+                table.add_row(p.name, p.version, p.description or "", p.author or "-", p.source)
+            else:
+                table.add_row(p.name, p.version, p.description or "")
+
+        console.print(table)
+        console.print()
+
+    # Summary
+    console.print(
+        f"[dim]Total: {len(detectors)} detector(s), {len(outputs)} output(s)[/dim]"
+    )
+
+
+@plugins_app.command("info")
+def plugins_info(
+    name: Annotated[
+        str,
+        typer.Argument(
+            help="Name of the plugin to show details for",
+        ),
+    ],
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (table, json, plain)",
+            case_sensitive=False,
+        ),
+    ] = "table",
+) -> None:
+    """Show detailed information about a specific plugin.
+
+    Displays comprehensive information about a plugin including its name,
+    type, version, author, description, source, and any configuration options.
+    """
+    from hamburglar.plugins import get_plugin_manager
+    from hamburglar.plugins.discovery import (
+        format_plugin_details,
+        get_plugin_details,
+    )
+
+    manager = get_plugin_manager()
+
+    # Ensure plugins are discovered
+    if not manager._discovered:
+        manager.discover()
+
+    # Get plugin details
+    plugin = get_plugin_details(name, manager=manager)
+
+    if plugin is None:
+        error_console.print(f"[red]Error:[/red] Plugin '{name}' not found.")
+        error_console.print("\nUse 'hamburglar plugins list' to see available plugins.")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Output based on format
+    format_lower = format.lower()
+    if format_lower == "json":
+        import json
+        plugin_dict = {
+            "name": plugin.name,
+            "type": plugin.plugin_type,
+            "version": plugin.version,
+            "author": plugin.author,
+            "description": plugin.description,
+            "source": plugin.source,
+            "enabled": plugin.enabled,
+            "config": plugin.config,
+        }
+        console.print(json.dumps(plugin_dict, indent=2))
+    elif format_lower == "plain":
+        output = format_plugin_details(plugin)
+        console.print(output)
+    else:
+        # Default to table/panel format
+        _display_plugin_details(plugin)
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+def _display_plugin_details(plugin: "PluginListEntry") -> None:
+    """Display plugin details in a rich panel format.
+
+    Args:
+        plugin: The plugin to display details for.
+    """
+    from rich.panel import Panel
+    from rich.table import Table
+    from hamburglar.plugins.discovery import PluginListEntry
+
+    # Build content
+    lines = []
+    lines.append(f"[bold cyan]Type:[/bold cyan] {plugin.plugin_type}")
+    lines.append(f"[bold cyan]Version:[/bold cyan] {plugin.version}")
+
+    if plugin.author:
+        lines.append(f"[bold cyan]Author:[/bold cyan] {plugin.author}")
+
+    if plugin.description:
+        lines.append(f"[bold cyan]Description:[/bold cyan] {plugin.description}")
+
+    lines.append(f"[bold cyan]Source:[/bold cyan] {plugin.source}")
+    lines.append(
+        f"[bold cyan]Enabled:[/bold cyan] {'[green]Yes[/green]' if plugin.enabled else '[red]No[/red]'}"
+    )
+
+    if plugin.config:
+        lines.append("")
+        lines.append("[bold cyan]Configuration:[/bold cyan]")
+        for key, value in plugin.config.items():
+            lines.append(f"  [dim]{key}:[/dim] {value}")
+
+    panel = Panel(
+        "\n".join(lines),
+        title=f"[bold green]{plugin.name}[/bold green]",
+        border_style="cyan",
+    )
+    console.print(panel)
+
+
+# ============================================================================
 # Config command group
 # ============================================================================
 
@@ -3604,6 +3903,7 @@ def main(
     Use 'hamburglar scan-web <url>' to scan web URLs.
     Use 'hamburglar history' to view stored findings from previous scans.
     Use 'hamburglar report' to generate summary reports from stored data.
+    Use 'hamburglar plugins' to list and inspect installed plugins.
     Use 'hamburglar config' to manage configuration settings.
     """
     if ctx.invoked_subcommand is None:

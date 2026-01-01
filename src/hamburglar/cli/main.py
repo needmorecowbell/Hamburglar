@@ -26,6 +26,17 @@ from rich.progress import (
 
 from hamburglar import __version__
 from hamburglar.core.async_scanner import AsyncScanner
+from hamburglar.cli.errors import (
+    CONTEXT_HINTS,
+    DOC_LINKS,
+    format_doc_reference,
+    get_command_suggestion,
+    get_context_hint,
+    get_option_suggestion,
+    get_subcommand_suggestion,
+    format_available_commands,
+    format_help_footer,
+)
 from hamburglar.core.exceptions import (
     ConfigError,
     DetectorError,
@@ -348,13 +359,33 @@ console = Console()
 error_console = Console(stderr=True)
 
 
-def _display_error(error: Exception, title: str = "Error") -> None:
-    """Display an error with rich formatting.
+def _display_error(
+    error: Exception,
+    title: str = "Error",
+    hint: str | None = None,
+    doc_topic: str | None = None,
+    suggestion: str | None = None,
+) -> None:
+    """Display an error with rich formatting, hints, and documentation links.
 
     Args:
         error: The exception to display.
         title: The title for the error panel.
+        hint: Optional hint text to help the user fix the issue.
+        doc_topic: Optional documentation topic key for a reference link.
+        suggestion: Optional suggested command or fix.
     """
+    # Build help section if any context is provided
+    help_section = ""
+    if suggestion:
+        help_section += f"\n\n[cyan]Did you mean:[/cyan] {suggestion}"
+    if hint:
+        help_section += f"\n\n[yellow]Hint:[/yellow] {hint}"
+    if doc_topic:
+        doc_link = DOC_LINKS.get(doc_topic)
+        if doc_link:
+            help_section += f"\n\n[dim]Documentation:[/dim] {doc_link}"
+
     if isinstance(error, YaraCompilationError):
         message = f"[bold red]YARA Compilation Error[/bold red]\n\n{error.message}"
         if error.rule_file:
@@ -363,50 +394,76 @@ def _display_error(error: Exception, title: str = "Error") -> None:
             for key, value in error.context.items():
                 if key != "rule_file":
                     message += f"\n[dim]{key}:[/dim] {value}"
+        # Add YARA-specific hint
+        yara_hint = hint or get_context_hint("yara_compile_error")
+        message += f"\n\n[yellow]Hint:[/yellow] {yara_hint}"
+        message += f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('yara', '')}"
         error_console.print(Panel(message, title="[red]YARA Error[/red]", border_style="red"))
     elif isinstance(error, ScanError):
         message = f"[bold red]Scan Error[/bold red]\n\n{error.message}"
         if error.path:
             message += f"\n\n[dim]Path:[/dim] {error.path}"
+        message += help_section or f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('cli', '')}"
         error_console.print(Panel(message, title="[red]Scan Error[/red]", border_style="red"))
     elif isinstance(error, ConfigError):
         message = f"[bold red]Configuration Error[/bold red]\n\n{error.message}"
         if error.config_key:
             message += f"\n\n[dim]Config key:[/dim] {error.config_key}"
+            # Provide specific hints for known config keys
+            if error.config_key == "format":
+                message += f"\n\n[yellow]Hint:[/yellow] {get_context_hint('invalid_format')}"
+            elif error.config_key == "categories":
+                message += f"\n\n[yellow]Hint:[/yellow] {get_context_hint('invalid_category')}"
+            elif error.config_key == "min_confidence":
+                message += f"\n\n[yellow]Hint:[/yellow] {get_context_hint('invalid_confidence')}"
+        message += help_section or f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('configuration', '')}"
         error_console.print(Panel(message, title="[red]Config Error[/red]", border_style="red"))
     elif isinstance(error, OutputError):
         message = f"[bold red]Output Error[/bold red]\n\n{error.message}"
         if error.output_path:
             message += f"\n\n[dim]Output path:[/dim] {error.output_path}"
+        out_hint = hint or get_context_hint("output_permission")
+        message += f"\n\n[yellow]Hint:[/yellow] {out_hint}"
+        message += f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('outputs', '')}"
         error_console.print(Panel(message, title="[red]Output Error[/red]", border_style="red"))
     elif isinstance(error, DetectorError):
         message = f"[bold red]Detector Error[/bold red]\n\n{error.message}"
         if error.detector_name:
             message += f"\n\n[dim]Detector:[/dim] {error.detector_name}"
+        message += help_section or f"\n\n[dim]Documentation:[/dim] {DOC_LINKS.get('detectors', '')}"
         error_console.print(Panel(message, title="[red]Detector Error[/red]", border_style="red"))
     elif isinstance(error, HamburglarError):
         message = f"[bold red]Error[/bold red]\n\n{error.message}"
+        message += help_section
         error_console.print(Panel(message, title=f"[red]{title}[/red]", border_style="red"))
     elif isinstance(error, PermissionError):
+        perm_hint = hint or get_context_hint("permission_denied")
+        message = f"[bold red]Permission Denied[/bold red]\n\n{error}"
+        message += f"\n\n[yellow]Hint:[/yellow] {perm_hint}"
         error_console.print(
             Panel(
-                f"[bold red]Permission Denied[/bold red]\n\n{error}",
+                message,
                 title="[red]Permission Error[/red]",
                 border_style="red",
             )
         )
     elif isinstance(error, FileNotFoundError):
+        path_hint = hint or get_context_hint("path_not_found")
+        message = f"[bold red]Path Not Found[/bold red]\n\n{error}"
+        message += f"\n\n[yellow]Hint:[/yellow] {path_hint}"
         error_console.print(
             Panel(
-                f"[bold red]Path Not Found[/bold red]\n\n{error}",
+                message,
                 title="[red]File Not Found[/red]",
                 border_style="red",
             )
         )
     else:
+        message = f"[bold red]{title}[/bold red]\n\n{error}"
+        message += help_section
         error_console.print(
             Panel(
-                f"[bold red]{title}[/bold red]\n\n{error}",
+                message,
                 title="[red]Error[/red]",
                 border_style="red",
             )
@@ -4620,5 +4677,57 @@ def main(
         console.print(ctx.get_help())
 
 
+def run_cli() -> None:
+    """Run the CLI with custom error handling for unknown commands.
+
+    This wrapper catches Click's UsageError for unknown commands and provides
+    helpful suggestions for typos.
+    """
+    import click
+
+    try:
+        app()
+    except click.exceptions.UsageError as e:
+        # Check if this is an unknown command error
+        error_msg = str(e)
+        if "No such command" in error_msg:
+            # Extract the invalid command name from the error
+            # Format: "Error: No such command 'xyz'."
+            import re
+            match = re.search(r"No such command ['\"]([^'\"]+)['\"]", error_msg)
+            if match:
+                invalid_cmd = match.group(1)
+                suggested = get_command_suggestion(invalid_cmd)
+
+                error_console.print()
+                if suggested:
+                    error_console.print(
+                        f"[red]Error:[/red] Unknown command '[bold]{invalid_cmd}[/bold]'."
+                    )
+                    error_console.print(
+                        f"[cyan]Did you mean:[/cyan] [bold green]{suggested}[/bold green]"
+                    )
+                    error_console.print()
+                    error_console.print(
+                        f"[dim]Run:[/dim] hamburglar {suggested} --help"
+                    )
+                else:
+                    error_console.print(
+                        f"[red]Error:[/red] Unknown command '[bold]{invalid_cmd}[/bold]'."
+                    )
+                    error_console.print(format_available_commands())
+
+                error_console.print()
+                error_console.print(
+                    f"[dim]For help:[/dim] hamburglar --help"
+                )
+                error_console.print(
+                    f"[dim]Docs:[/dim] {DOC_LINKS.get('cli', '')}"
+                )
+                raise SystemExit(2) from None
+        # Re-raise other usage errors
+        raise
+
+
 if __name__ == "__main__":
-    app()
+    run_cli()

@@ -53,9 +53,30 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
   - Added TestShellCompletion class with 3 tests in tests/test_cli.py verifying --install-completion and --show-completion options
   - Updated docs/cli-reference.md with comprehensive Shell Completion section including: Global Options table update, Installation instructions, Manual installation steps, and Supported shells table (bash/zsh/fish)
 
-- [ ] Add `hamburglar doctor` command that: checks Python version, checks dependencies installed correctly, checks YARA installation, validates default config, reports any issues with suggestions
+- [x] Add `hamburglar doctor` command that: checks Python version, checks dependencies installed correctly, checks YARA installation, validates default config, reports any issues with suggestions
+  - Implemented comprehensive doctor command with 7 diagnostic checks: Python version (3.9+), required dependencies with version checking, YARA installation and functionality, config file validation, plugin system status, data directory (~/.hamburglar), and built-in YARA rules
+  - Added --verbose, --fix, and --quiet flags for flexible output control
+  - Display results in rich table with status icons (✓ passed, ! warning, ✗ error, ↻ fixed)
+  - Provides helpful suggestions for fixing any detected issues
+  - Added 23 tests in tests/test_cli_doctor.py covering all check scenarios
+  - Updated docs/cli-reference.md with full command documentation including examples and exit codes
 
-- [ ] Add helpful error messages throughout: suggest similar commands for typos, provide context-aware help, include documentation links in errors
+- [x] Add helpful error messages throughout: suggest similar commands for typos, provide context-aware help, include documentation links in errors
+  - Created src/hamburglar/cli/errors.py with comprehensive error handling utilities:
+    - Command suggestion using difflib.get_close_matches for typos (e.g., "scna" → "scan")
+    - 30+ command aliases for common alternatives (e.g., "check" → "scan", "git" → "scan-git")
+    - Subcommand suggestions for plugins and config command groups
+    - Option suggestions for misspelled CLI flags
+  - Enhanced _display_error() in main.py with context-aware hints and doc links:
+    - Added 17 context-specific hints (invalid_format, yara_compile_error, permission_denied, etc.)
+    - Added documentation links for 14 topics (cli, configuration, yara, outputs, etc.)
+    - Error messages now include Hint and Documentation sections automatically
+  - Added run_cli() wrapper with custom unknown command handling:
+    - Catches Click's UsageError and provides "Did you mean?" suggestions
+    - Shows list of available commands when no close match found
+    - Includes documentation links in all error messages
+  - Added 49 tests in tests/test_cli_error_suggestions.py covering all error handling scenarios
+  - All 4079 existing tests continue to pass
 
 - [ ] Add `--dry-run` flag to scan command that: shows what would be scanned without scanning, useful for testing patterns and configs
 

@@ -74,7 +74,19 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Blockchain explorer keys: Etherscan, Infura, Alchemy
   - Each pattern includes severity level, confidence rating, and description
 
-- [ ] Create `src/hamburglar/detectors/patterns/network.py` with patterns for: IPv4 Address, IPv6 Address, Private IP Ranges (10.x, 172.16-31.x, 192.168.x), MAC Address, URL with credentials, Internal hostnames, S3 Bucket URLs, Azure Blob URLs, GCS URLs, Localhost references with ports
+- [x] Create `src/hamburglar/detectors/patterns/network.py` with patterns for: IPv4 Address, IPv6 Address, Private IP Ranges (10.x, 172.16-31.x, 192.168.x), MAC Address, URL with credentials, Internal hostnames, S3 Bucket URLs, Azure Blob URLs, GCS URLs, Localhost references with ports
+  - Implemented 26 network detection patterns covering all specified types plus additional patterns
+  - IPv4: Standard address and address with port patterns
+  - Private IP Ranges: 10.x.x.x (Class A), 172.16-31.x.x (Class B), 192.168.x.x (Class C)
+  - IPv6: Full address and compressed notation formats
+  - MAC Address: Standard colon/hyphen format and Cisco dot notation
+  - Internal hostnames: .local, .internal, .private, .corp, .intranet, .lan, .home suffixes
+  - Cloud storage URLs: S3 (virtual-hosted, path-style, ARN), Azure Blob/Storage, GCS (path, virtual, gsutil)
+  - Localhost: localhost, 127.0.0.1, [::1] with optional ports and paths
+  - URL credentials: HTTP and FTP URLs with embedded user:pass
+  - Container patterns: Kubernetes service URLs, Docker host.docker.internal
+  - Created comprehensive test suite `tests/test_patterns_network.py` with 120 tests
+  - Each pattern has 2+ positive and 2+ negative test cases
 
 - [ ] Create `src/hamburglar/detectors/patterns/generic.py` with patterns for: Generic API Key (api[_-]?key), Generic Secret (secret[_-]?key), Generic Token (token =), Hardcoded Password patterns, Base64 encoded secrets (high entropy detection), Hex encoded secrets (32+ chars), UUID patterns, Hash patterns (MD5, SHA1, SHA256 formats)
 

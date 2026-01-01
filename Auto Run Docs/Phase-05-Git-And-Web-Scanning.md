@@ -44,7 +44,17 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Exported from hamburglar.scanners module
   - Test coverage at 93% for git_history.py, overall project at 94.02%
 
-- [ ] Create `src/hamburglar/scanners/web.py` with a `WebScanner` class that: fetches URL content with configurable user agent, extracts text from HTML using BeautifulSoup, follows links to configurable depth (default 1), respects robots.txt, extracts and scans JavaScript files, extracts and scans inline scripts, handles common encodings
+- [x] Create `src/hamburglar/scanners/web.py` with a `WebScanner` class that: fetches URL content with configurable user agent, extracts text from HTML using BeautifulSoup, follows links to configurable depth (default 1), respects robots.txt, extracts and scans JavaScript files, extracts and scans inline scripts, handles common encodings
+  - Created WebScanner class implementing BaseScanner interface
+  - Features: async HTTP fetching with httpx, HTML text extraction using BeautifulSoup, inline script scanning, external JavaScript file scanning
+  - URL normalization (removes fragments, handles trailing slashes), same-domain link filtering
+  - Configurable options: depth (default 1), include_scripts (default True), user_agent (default Hamburglar user agent), timeout (default 30s), respect_robots_txt (default True)
+  - Robots.txt parsing with support for Disallow, Allow (takes precedence), and Crawl-delay directives
+  - Progress tracking, cancellation support, streaming output via scan_stream()
+  - Error handling for timeouts, HTTP status errors, request errors, and encoding issues
+  - Comprehensive test suite with 59 tests in tests/test_web_scanner.py
+  - Exported from hamburglar.scanners module
+  - Test coverage at 92% for web.py, overall project at 94%
 
 - [ ] Create `src/hamburglar/core/http_client.py` with an async HTTP client using httpx that: supports rate limiting, handles redirects, supports authentication (basic, bearer), has configurable timeout, implements retry logic with backoff, caches responses optionally
 

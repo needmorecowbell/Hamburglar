@@ -305,6 +305,14 @@ def scan(
             "Findings are output immediately as they're discovered.",
         ),
     ] = False,
+    benchmark: Annotated[
+        bool,
+        typer.Option(
+            "--benchmark",
+            help="Run a quick performance test and report throughput (files/second). "
+            "Scans without generating normal output.",
+        ),
+    ] = False,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -436,6 +444,13 @@ def scan(
     if stream:
         asyncio.run(_run_streaming_scan(
             config, detectors, concurrency, output, quiet, verbose
+        ))
+        return
+
+    # Handle benchmark mode
+    if benchmark:
+        asyncio.run(_run_benchmark_scan(
+            config, detectors, concurrency, quiet
         ))
         return
 
@@ -697,6 +712,87 @@ async def _run_streaming_scan(
     # Determine exit code
     if findings_count == 0:
         raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+async def _run_benchmark_scan(
+    config: ScanConfig,
+    detectors: list["BaseDetector"],
+    concurrency: int,
+    quiet: bool,
+) -> None:
+    """Run a benchmark scan and report performance metrics.
+
+    Args:
+        config: Scan configuration.
+        detectors: List of detectors to use.
+        concurrency: Maximum concurrent file operations.
+        quiet: If True, suppress progress output.
+    """
+    import time
+
+    scanner = AsyncScanner(
+        config,
+        detectors,
+        concurrency_limit=concurrency,
+    )
+
+    try:
+        if not quiet:
+            console.print("[cyan]Running performance benchmark...[/cyan]")
+
+        start_time = time.time()
+        result = await scanner.scan()
+        elapsed_time = time.time() - start_time
+
+        files_scanned = result.stats.get("files_scanned", 0)
+        bytes_processed = result.stats.get("bytes_processed", 0)
+        findings_count = len(result.findings)
+
+        # Calculate throughput metrics
+        files_per_second = files_scanned / elapsed_time if elapsed_time > 0 else 0
+        bytes_per_second = bytes_processed / elapsed_time if elapsed_time > 0 else 0
+
+        # Format bytes for human readability
+        def format_bytes(num_bytes: float) -> str:
+            """Format bytes into human-readable string."""
+            for unit in ["B", "KB", "MB", "GB"]:
+                if num_bytes < 1024:
+                    return f"{num_bytes:.2f} {unit}"
+                num_bytes /= 1024
+            return f"{num_bytes:.2f} TB"
+
+        # Display benchmark results
+        console.print()
+        console.print(
+            Panel(
+                f"[bold]Files Scanned:[/bold] {files_scanned:,}\n"
+                f"[bold]Bytes Processed:[/bold] {format_bytes(bytes_processed)}\n"
+                f"[bold]Findings:[/bold] {findings_count:,}\n"
+                f"[bold]Duration:[/bold] {elapsed_time:.3f}s\n"
+                f"[bold]Concurrency:[/bold] {concurrency}\n"
+                f"\n"
+                f"[bold green]Throughput:[/bold green]\n"
+                f"  [green]{files_per_second:.2f} files/second[/green]\n"
+                f"  [green]{format_bytes(bytes_per_second)}/second[/green]",
+                title="[bold cyan]Benchmark Results[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+
+    except KeyboardInterrupt:
+        if not quiet:
+            error_console.print("\n[yellow]Benchmark interrupted by user[/yellow]")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    except ScanError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR)
+
+    except Exception as e:
+        _display_error(e, title="Error during benchmark scan")
+        raise typer.Exit(code=EXIT_ERROR)
 
     raise typer.Exit(code=EXIT_SUCCESS)
 

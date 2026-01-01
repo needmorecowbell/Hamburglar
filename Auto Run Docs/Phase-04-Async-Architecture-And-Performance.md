@@ -269,6 +269,31 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - All 2248 tests pass with 3 skipped and 4 warnings
     - pytest-asyncio `asyncio_mode = "auto"` correctly auto-detects async tests
 
-- [ ] Add `--benchmark` CLI flag that runs a quick performance test and reports files/second throughput
+- [x] Add `--benchmark` CLI flag that runs a quick performance test and reports files/second throughput
+  - **Completed:** Added `--benchmark` CLI flag with comprehensive performance reporting:
+    - Added `--benchmark` option to the `scan` command in `src/hamburglar/cli/main.py`
+    - Implemented `_run_benchmark_scan()` async function that:
+      - Displays "Running performance benchmark..." message
+      - Runs a full scan using AsyncScanner with the specified detectors and concurrency
+      - Calculates files/second and bytes/second throughput metrics
+      - Displays a rich panel with all metrics:
+        - Files Scanned (with comma formatting for large numbers)
+        - Bytes Processed (human-readable: KB, MB, GB, etc.)
+        - Findings count
+        - Duration (in seconds with 3 decimal precision)
+        - Concurrency setting
+        - Throughput: files/second and bytes/second
+    - Always returns exit code 0 (success) for benchmark mode
+    - Supports custom concurrency via `-j` option
+    - Works with all detector options (YARA rules, categories, etc.)
+    - Created 13 comprehensive tests in `tests/test_cli_async.py::TestBenchmarkOption`:
+      - Help text verification
+      - Results panel content verification
+      - Files scanned/bytes processed/duration/throughput display
+      - Custom concurrency support
+      - Empty directory handling
+      - Exit code behavior
+      - JSON format override behavior
+    - All 2261 tests pass (40 in test_cli_async.py, 13 new benchmark tests)
 
 - [ ] Run pytest and ensure all tests pass with maintained 95%+ coverage, including async tests

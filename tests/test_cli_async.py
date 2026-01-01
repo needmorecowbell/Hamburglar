@@ -360,3 +360,126 @@ class TestCombinedOptions:
         content = output_file.read_text()
         data = json.loads(content)
         assert "findings" in data
+
+
+class TestBenchmarkOption:
+    """Tests for the --benchmark option."""
+
+    def test_benchmark_option_in_help(self) -> None:
+        """Test that --benchmark option appears in help."""
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+        assert "--benchmark" in result.output
+        assert "performance" in result.output.lower()
+
+    def test_benchmark_produces_results_panel(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark produces a results panel with throughput."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        # Should show benchmark results panel
+        assert "Benchmark Results" in result.output
+        assert "files/second" in result.output
+
+    def test_benchmark_shows_files_scanned(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows files scanned count."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Files Scanned" in result.output
+
+    def test_benchmark_shows_bytes_processed(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows bytes processed."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Bytes Processed" in result.output
+
+    def test_benchmark_shows_duration(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows duration."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Duration" in result.output
+
+    def test_benchmark_shows_throughput(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows throughput metrics."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Throughput" in result.output
+        # Check for files/second metric
+        assert "files/second" in result.output
+        # Check for bytes/second metric (should show KB/s, MB/s, etc.)
+        assert "/second" in result.output
+
+    def test_benchmark_shows_findings_count(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows findings count."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Findings" in result.output
+
+    def test_benchmark_shows_concurrency(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows concurrency setting."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Concurrency" in result.output
+
+    def test_benchmark_with_custom_concurrency(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark works with custom concurrency."""
+        result = runner.invoke(
+            app, ["scan", str(temp_directory), "--benchmark", "-j", "10"]
+        )
+        assert result.exit_code == 0
+        assert "Benchmark Results" in result.output
+        assert "10" in result.output  # Concurrency value should be shown
+
+    def test_benchmark_shows_running_message(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark shows 'Running performance benchmark' message."""
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+        assert "Running performance benchmark" in result.output
+
+    def test_benchmark_empty_directory(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that --benchmark handles empty directory correctly."""
+        result = runner.invoke(app, ["scan", str(tmp_path), "--benchmark"])
+        # Should still succeed even with no files
+        assert result.exit_code == 0
+        assert "Files Scanned" in result.output
+        assert "0" in result.output  # Zero files scanned
+
+    def test_benchmark_exit_code_always_success(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark always returns exit code 0 (unlike normal scan)."""
+        # Benchmark should return 0 even if there are no findings
+        result = runner.invoke(app, ["scan", str(temp_directory), "--benchmark"])
+        assert result.exit_code == 0
+
+    def test_benchmark_no_json_output(
+        self, temp_directory: Path
+    ) -> None:
+        """Test that --benchmark doesn't produce JSON findings output."""
+        result = runner.invoke(
+            app, ["scan", str(temp_directory), "--benchmark", "--format", "json"]
+        )
+        assert result.exit_code == 0
+        # Should not have JSON array output
+        output = result.output.strip()
+        assert not output.startswith("{")  # Not JSON object
+        assert "Benchmark Results" in output  # Has benchmark panel instead

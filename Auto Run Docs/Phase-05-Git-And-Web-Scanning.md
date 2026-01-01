@@ -30,7 +30,19 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Exported from `hamburglar.scanners` module
   - Test coverage at 95% for git.py, overall project at 94%+
 
-- [ ] Create `src/hamburglar/scanners/git_history.py` with a `GitHistoryScanner` class that: parses git log output efficiently, identifies files changed per commit, detects secrets that were added then removed, tracks secret lifetime (first seen, last seen commits), generates timeline of secret exposure
+- [x] Create `src/hamburglar/scanners/git_history.py` with a `GitHistoryScanner` class that: parses git log output efficiently, identifies files changed per commit, detects secrets that were added then removed, tracks secret lifetime (first seen, last seen commits), generates timeline of secret exposure
+  - Created GitHistoryScanner class implementing BaseScanner interface
+  - Efficient commit parsing with `_get_commit_list()` and `_get_commit_info()` methods
+  - Diff parsing with `_parse_diff_output()` extracting additions and deletions per file with line numbers
+  - SecretTimeline dataclass tracks: secret_hash, secret_preview, first_seen, last_seen, is_removed, exposure_duration, affected_files
+  - SecretOccurrence dataclass tracks: commit_hash, author, date, file_path, line_type (+/-), line_number
+  - Automatic detection of removed secrets based on last occurrence being a deletion
+  - Exposure duration calculated in seconds between first addition and last removal
+  - Helper methods: get_secret_timelines(), get_removed_secrets(), get_active_secrets(), generate_timeline_report()
+  - Scans commit messages for secrets alongside diff content
+  - Comprehensive test suite with 51 tests in tests/test_git_history.py
+  - Exported from hamburglar.scanners module
+  - Test coverage at 93% for git_history.py, overall project at 94.02%
 
 - [ ] Create `src/hamburglar/scanners/web.py` with a `WebScanner` class that: fetches URL content with configurable user agent, extracts text from HTML using BeautifulSoup, follows links to configurable depth (default 1), respects robots.txt, extracts and scans JavaScript files, extracts and scans inline scripts, handles common encodings
 

@@ -269,8 +269,10 @@ class TestRegexDetectorEdgeCases:
         mock_pattern = MagicMock()
         mock_pattern.findall.side_effect = RuntimeError("Pattern match failed")
 
-        # Inject the mock pattern
-        detector._compiled_patterns["Test Pattern"] = (mock_pattern, Severity.HIGH, "Test")
+        # Inject the mock pattern (5-tuple: compiled, severity, description, category, confidence)
+        detector._compiled_patterns["Test Pattern"] = (
+            mock_pattern, Severity.HIGH, "Test", "", "medium"
+        )
 
         # Should not raise, should return findings from other patterns
         findings = detector.detect("AKIAIOSFODNN7EXAMPLE", "test.txt")

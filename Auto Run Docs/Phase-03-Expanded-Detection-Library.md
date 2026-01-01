@@ -104,7 +104,21 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Each pattern has 2+ positive and 2+ negative test cases
   - All patterns validated with severity, confidence, and category metadata
 
-- [ ] Update `src/hamburglar/detectors/regex_detector.py` to: import all pattern modules, register patterns by category, support enabling/disabling categories, support custom pattern files (JSON/YAML), add confidence scoring based on pattern specificity
+- [x] Update `src/hamburglar/detectors/regex_detector.py` to: import all pattern modules, register patterns by category, support enabling/disabling categories, support custom pattern files (JSON/YAML), add confidence scoring based on pattern specificity
+  - Imported all 7 pattern modules: api_keys, cloud, credentials, crypto, generic, network, private_keys
+  - Added `ALL_PATTERN_CATEGORIES` dict mapping `PatternCategory` enums to pattern lists
+  - Added `get_all_patterns()` and `get_patterns_by_category()` helper functions
+  - Added `use_expanded_patterns` flag to use the full pattern library (200+ patterns)
+  - Added `enabled_categories` parameter to filter by specific categories
+  - Added `disabled_categories` parameter to exclude specific categories
+  - Added `min_confidence` parameter to filter by confidence level (HIGH > MEDIUM > LOW)
+  - Added `custom_pattern_files` parameter to load patterns from JSON/YAML files
+  - Added `load_patterns_from_file()` function supporting JSON and YAML pattern files
+  - Extended findings metadata to include `category` and `confidence` fields
+  - Added query methods: `get_enabled_categories()`, `get_disabled_categories()`, `get_min_confidence()`, `get_pattern_count()`, `get_patterns_by_category()`, `get_patterns_by_confidence()`
+  - Extended `add_pattern()` to accept category and confidence parameters
+  - Created comprehensive test suite `tests/test_regex_detector_expanded.py` with 38 tests covering all new features
+  - All 1629 tests pass
 
 - [ ] Create `src/hamburglar/detectors/entropy_detector.py` with an `EntropyDetector` class that: calculates Shannon entropy of strings, identifies high-entropy strings that may be secrets, supports configurable entropy thresholds, excludes known false positives (UUIDs, hashes in comments)
 

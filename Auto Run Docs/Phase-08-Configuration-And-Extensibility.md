@@ -27,7 +27,15 @@ This phase implements a robust configuration system and plugin architecture, all
   - Already created as part of task 1; verified complete with all required env vars
   - Also includes: HAMBURGLAR_MAX_FILE_SIZE, HAMBURGLAR_TIMEOUT, HAMBURGLAR_RECURSIVE, HAMBURGLAR_YARA_ENABLED, HAMBURGLAR_SAVE_TO_DB, HAMBURGLAR_MIN_CONFIDENCE, HAMBURGLAR_QUIET, HAMBURGLAR_VERBOSE
 
-- [ ] Create `src/hamburglar/plugins/__init__.py` with plugin system base: `PluginManager` class, `@detector_plugin` decorator, `@output_plugin` decorator, plugin discovery from entry points and directories
+- [x] Create `src/hamburglar/plugins/__init__.py` with plugin system base: `PluginManager` class, `@detector_plugin` decorator, `@output_plugin` decorator, plugin discovery from entry points and directories
+  - Implemented comprehensive `PluginManager` class with full lifecycle management
+  - Added `@detector_plugin` and `@output_plugin` decorators with validation
+  - Supports plugin discovery from Python entry points (`hamburglar.plugins.detectors`/`hamburglar.plugins.outputs`)
+  - Supports plugin discovery from configured plugin directories
+  - Added `PluginInfo` dataclass for plugin metadata
+  - Added `PluginError` exception for plugin-related errors
+  - Includes global `get_plugin_manager()` and `reset_plugin_manager()` functions
+  - Created `tests/test_plugins.py` with 50 comprehensive tests covering all functionality
 
 - [ ] Create `src/hamburglar/plugins/discovery.py` with plugin discovery that: scans configured plugin directories, loads plugins from Python packages via entry points, validates plugins implement required interfaces, provides plugin listing command
 

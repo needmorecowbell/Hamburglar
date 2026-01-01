@@ -3275,6 +3275,315 @@ def report(
     raise typer.Exit(code=EXIT_SUCCESS)
 
 
+# ============================================================================
+# Config command group
+# ============================================================================
+
+config_app = typer.Typer(
+    name="config",
+    help="Configuration management commands.",
+    no_args_is_help=True,
+)
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("show")
+def config_show(
+    show_sources: Annotated[
+        bool,
+        typer.Option(
+            "--sources",
+            "-s",
+            help="Show which source each setting came from",
+        ),
+    ] = False,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (yaml, json, toml)",
+            case_sensitive=False,
+        ),
+    ] = "yaml",
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress informational messages",
+        ),
+    ] = False,
+) -> None:
+    """Display current configuration with sources.
+
+    Shows the merged configuration from all sources (defaults, config file,
+    environment variables, and CLI arguments) with optional source tracking.
+    """
+    from hamburglar.config import (
+        ConfigPriority,
+        get_config,
+        get_config_source,
+        load_config,
+        reset_config,
+    )
+    from hamburglar.config.loader import ConfigLoader
+
+    # Reset and reload to get fresh config with source tracking
+    reset_config()
+    config = load_config()
+
+    # Display info about config file if found
+    if not quiet:
+        loader = ConfigLoader()
+        config_file = loader.find_config_file()
+        if config_file:
+            console.print(f"[dim]Config file:[/dim] {config_file}")
+        else:
+            console.print("[dim]No config file found, using defaults[/dim]")
+        console.print()
+
+    # Convert config to dict
+    config_dict = config.model_dump()
+
+    # Output in requested format
+    format_lower = format.lower()
+    if format_lower == "json":
+        import json
+        output = json.dumps(config_dict, indent=2, default=str)
+        console.print(output)
+    elif format_lower == "toml":
+        try:
+            import tomli_w
+            output = tomli_w.dumps(config_dict)
+            console.print(output)
+        except ImportError:
+            # Fallback to a simple TOML-like format
+            console.print("[yellow]Note: tomli-w not installed, using basic format[/yellow]")
+            _print_config_as_toml(config_dict)
+    else:  # Default to yaml
+        try:
+            import yaml
+            output = yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
+            console.print(output)
+        except ImportError:
+            console.print("[yellow]Note: pyyaml not installed, using JSON format[/yellow]")
+            import json
+            output = json.dumps(config_dict, indent=2, default=str)
+            console.print(output)
+
+    # Show sources if requested
+    if show_sources:
+        console.print("\n[bold]Configuration Sources:[/bold]")
+        _print_config_sources(config_dict)
+
+
+def _print_config_as_toml(config_dict: dict, prefix: str = "") -> None:
+    """Print config dict in a basic TOML-like format."""
+    for key, value in config_dict.items():
+        if isinstance(value, dict):
+            console.print(f"\n[{prefix}{key}]")
+            _print_config_as_toml(value, f"{prefix}{key}.")
+        elif isinstance(value, list):
+            if value:
+                items = ", ".join(f'"{v}"' if isinstance(v, str) else str(v) for v in value)
+                console.print(f"{key} = [{items}]")
+            else:
+                console.print(f"{key} = []")
+        elif isinstance(value, str):
+            console.print(f'{key} = "{value}"')
+        elif isinstance(value, bool):
+            console.print(f"{key} = {str(value).lower()}")
+        elif value is None:
+            console.print(f"# {key} = null")
+        else:
+            console.print(f"{key} = {value}")
+
+
+def _print_config_sources(config_dict: dict, path: str = "") -> None:
+    """Print the source for each configuration key."""
+    from hamburglar.config import get_config_source, ConfigPriority
+
+    source_colors = {
+        ConfigPriority.DEFAULT: "dim",
+        ConfigPriority.CONFIG_FILE: "cyan",
+        ConfigPriority.ENVIRONMENT: "yellow",
+        ConfigPriority.CLI: "green",
+    }
+
+    for key, value in config_dict.items():
+        current_path = f"{path}.{key}" if path else key
+        if isinstance(value, dict):
+            _print_config_sources(value, current_path)
+        else:
+            source = get_config_source(current_path)
+            if source:
+                color = source_colors.get(source, "white")
+                console.print(f"  [{color}]{current_path}[/{color}]: {source.value}")
+
+
+@config_app.command("init")
+def config_init(
+    path: Annotated[
+        Optional[Path],
+        typer.Argument(
+            help="Directory to create config file in (default: current directory)",
+        ),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Config file format (yaml, json, toml)",
+            case_sensitive=False,
+        ),
+    ] = "yaml",
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing config file",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress informational messages",
+        ),
+    ] = False,
+) -> None:
+    """Create a default config file in the current directory.
+
+    Creates a new .hamburglar.yml (or .toml/.json based on --format) file
+    with all configuration options documented with comments.
+    """
+    from hamburglar.config.loader import get_default_config_content
+
+    # Determine target directory
+    target_dir = Path(path) if path else Path.cwd()
+    if not target_dir.exists():
+        error_console.print(f"[red]Error:[/red] Directory does not exist: {target_dir}")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Determine filename based on format
+    format_lower = format.lower()
+    filenames = {
+        "yaml": ".hamburglar.yml",
+        "yml": ".hamburglar.yml",
+        "json": "hamburglar.config.json",
+        "toml": ".hamburglar.toml",
+    }
+
+    if format_lower not in filenames:
+        error_console.print(
+            f"[red]Error:[/red] Unknown format '{format}'. Use 'yaml', 'json', or 'toml'."
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    config_file = target_dir / filenames[format_lower]
+
+    # Check if file exists
+    if config_file.exists() and not force:
+        error_console.print(
+            f"[red]Error:[/red] Config file already exists: {config_file}\n"
+            "Use --force to overwrite."
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Get default content based on format
+    try:
+        # Map format to loader format name
+        loader_format = "yaml" if format_lower in ("yaml", "yml") else format_lower
+        content = get_default_config_content(loader_format)
+    except ValueError as e:
+        error_console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Write the file
+    try:
+        config_file.write_text(content, encoding="utf-8")
+    except PermissionError:
+        error_console.print(f"[red]Error:[/red] Permission denied: {config_file}")
+        raise typer.Exit(code=EXIT_ERROR)
+    except OSError as e:
+        error_console.print(f"[red]Error:[/red] Failed to write config file: {e}")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    if not quiet:
+        console.print(f"[green]Created config file:[/green] {config_file}")
+        console.print("[dim]Edit this file to customize Hamburglar's behavior.[/dim]")
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+@config_app.command("validate")
+def config_validate(
+    path: Annotated[
+        Optional[Path],
+        typer.Argument(
+            help="Path to config file to validate (default: auto-detect)",
+            exists=True,
+        ),
+    ] = None,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Only show errors, no success message",
+        ),
+    ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show detailed validation information",
+        ),
+    ] = False,
+) -> None:
+    """Validate configuration file syntax and values.
+
+    Checks that the configuration file has valid syntax and that all
+    values are of the correct type and within allowed ranges.
+    """
+    from hamburglar.config.loader import ConfigLoader
+
+    loader = ConfigLoader()
+
+    # Find config file if not specified
+    if path is None:
+        config_file = loader.find_config_file()
+        if config_file is None:
+            error_console.print(
+                "[yellow]No config file found.[/yellow]\n"
+                "Run 'hamburglar config init' to create one."
+            )
+            raise typer.Exit(code=EXIT_ERROR)
+    else:
+        config_file = path
+
+    if verbose and not quiet:
+        console.print(f"[dim]Validating:[/dim] {config_file}")
+
+    # Validate the config file
+    errors = loader.validate_config_file(config_file)
+
+    if errors:
+        error_console.print(f"[red]Validation failed:[/red] {config_file}\n")
+        for error in errors:
+            error_console.print(f"  [red]•[/red] {error}")
+        raise typer.Exit(code=EXIT_ERROR)
+
+    if not quiet:
+        console.print(f"[green]✓[/green] Config file is valid: {config_file}")
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -3295,6 +3604,7 @@ def main(
     Use 'hamburglar scan-web <url>' to scan web URLs.
     Use 'hamburglar history' to view stored findings from previous scans.
     Use 'hamburglar report' to generate summary reports from stored data.
+    Use 'hamburglar config' to manage configuration settings.
     """
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())

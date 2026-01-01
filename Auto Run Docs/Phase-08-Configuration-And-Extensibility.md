@@ -79,9 +79,27 @@ This phase implements a robust configuration system and plugin architecture, all
   - Shows usage of base class utility methods: match_pattern, match_patterns, match_literal, create_finding
   - Created `tests/test_example_custom_detector.py` with 22 comprehensive tests
 
-- [ ] Create example config file `examples/hamburglar.example.yml` with: all configuration options documented with comments, example custom patterns, example plugin configuration, common use case configurations
+- [x] Create example config file `examples/hamburglar.example.yml` with: all configuration options documented with comments, example custom patterns, example plugin configuration, common use case configurations
+  - Created comprehensive 540+ line example configuration file with detailed documentation
+  - Documented all configuration sections: scan, detector, output, yara, log_level, plugins
+  - Included environment variable mappings and CLI override references for each option
+  - Added comprehensive blacklist with 30+ common exclusion patterns
+  - Added plugin configuration example for custom_api_keys detector
+  - Included 6 common use case configuration examples:
+    1. Quick security scan (high confidence only)
+    2. CI/CD pipeline integration with SARIF output
+    3. Comprehensive security audit with YARA
+    4. Python project only scanning
+    5. JavaScript/Node.js project scanning
+    6. Pre-commit hook configuration
+  - Added 3 tests in test_config_loading.py to validate example file
 
-- [ ] Update CLI to add `config` command group with: `config show` - displays current config with sources, `config init` - creates default config file in current directory, `config validate` - validates config file syntax
+- [x] Update CLI to add `config` command group with: `config show` - displays current config with sources, `config init` - creates default config file in current directory, `config validate` - validates config file syntax
+  - Added `config_app` Typer sub-application with three commands: `show`, `init`, `validate`
+  - `config show`: Displays merged configuration from all sources in YAML/JSON/TOML format, with `--sources` flag to show where each setting came from
+  - `config init`: Creates default config file (.hamburglar.yml/.toml/.json) with documented settings, supports `--force` to overwrite existing files
+  - `config validate`: Validates config file syntax and schema, auto-detects config file if not specified
+  - Created `tests/test_cli_config.py` with 31 comprehensive tests covering all subcommands and edge cases
 
 - [ ] Update CLI to add `plugins` command group with: `plugins list` - shows installed plugins, `plugins info <name>` - shows plugin details
 

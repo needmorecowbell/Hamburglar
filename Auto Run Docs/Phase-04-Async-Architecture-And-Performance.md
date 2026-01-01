@@ -165,7 +165,21 @@ This phase replaces the legacy threading model with modern async/await patterns 
       - Severity mapping and metadata extraction in async methods
     - All 2111 tests pass with 3 warnings
 
-- [ ] Create `src/hamburglar/core/stats.py` with a `ScanStats` class that tracks: total files scanned, total bytes processed, files skipped (and reasons), findings by detector, findings by severity, scan duration, files per second throughput
+- [x] Create `src/hamburglar/core/stats.py` with a `ScanStats` class that tracks: total files scanned, total bytes processed, files skipped (and reasons), findings by detector, findings by severity, scan duration, files per second throughput
+  - **Completed:** Created `ScanStats` class with comprehensive scan statistics tracking:
+    - `ScanStats` dataclass with full statistics tracking:
+      - `total_files_discovered`, `total_files_scanned`, `total_bytes_processed`
+      - `skipped_files` list with `SkippedFile` objects containing file path, reason, and detail
+      - `findings_by_detector` and `findings_by_severity` Counters for categorization
+      - Timing: `scan_start_time`, `scan_end_time`, with `start()` and `stop()` methods
+    - `SkipReason` enum with 11 reasons: permission_denied, file_not_found, read_error, blacklisted, not_whitelisted, binary_file, too_large, encoding_error, detector_error, cancelled, unknown
+    - Computed properties: `scan_duration`, `files_per_second`, `bytes_per_second`, `total_files_skipped`, `total_findings`, `skipped_by_reason`, `is_running`, `is_complete`
+    - Methods: `add_scanned_file()`, `add_skipped_file()`, `add_finding()`, `add_findings()`, `add_error()`, `reset()`, `merge()`, `__add__()` for combining stats
+    - Serialization: `get_summary()`, `to_dict()` methods
+    - Human-readable formatting: `format_duration()`, `format_bytes()`, `format_throughput()`, `__str__()`
+    - Exported `ScanStats`, `SkipReason`, `SkippedFile` from `hamburglar.core` package
+    - Created 46 comprehensive tests in `tests/test_stats.py` covering all functionality
+    - All 2157 tests pass with 99% coverage on stats.py
 
 - [ ] Add memory profiling utilities in `src/hamburglar/core/profiling.py` with: optional memory tracking, peak memory usage reporting, per-detector timing stats, exportable performance report
 

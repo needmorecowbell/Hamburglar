@@ -11,3 +11,8 @@ from hamburglar.core.progress import (
     ProgressReporter,
     ScanProgress,
 )
+from hamburglar.core.stats import (
+    ScanStats,
+    SkipReason,
+    SkippedFile,
+)

@@ -44,7 +44,23 @@ This phase completes the modernization by ensuring all functionality from the or
     - Rich colorized output
     - Compatibility with original hamburglar.py format
 
-- [ ] Add `hexdump` command to CLI that: takes file path argument, outputs hex dump to stdout, supports `--output` to save to file, matches original `hamburglar.py -x` behavior
+- [x] Add `hexdump` command to CLI that: takes file path argument, outputs hex dump to stdout, supports `--output` to save to file, matches original `hamburglar.py -x` behavior
+  - Added `hexdump` command to `src/hamburglar/cli/main.py`
+  - Command takes a file path argument and outputs hex dump to stdout
+  - Supports `--output` / `-o` flag to save to file
+  - Supports `--color` / `--no-color` flag for colorized terminal output (using Rich)
+  - Supports `--quiet` / `-q` flag to suppress informational messages
+  - Proper error handling for non-existent files, directories, and permission errors
+  - Created parent directories for output file if needed
+  - Created comprehensive test suite `tests/test_cli_hexdump.py` with 22 tests covering:
+    - Basic hexdump output, help display
+    - Output to file with `--output` flag
+    - Quiet mode, no-color mode
+    - Error handling (file not found, directory, permission errors)
+    - Format validation (offset padding, hex values, ASCII column)
+    - Special file types (ELF, ZIP magic bytes)
+    - Edge cases (empty files, single byte, partial lines)
+  - All 590 CLI tests pass including the new hexdump tests
 
 - [ ] Create `src/hamburglar/compat/ioc_extract.py` with optional iocextract integration: wrapper around iocextract library, detector implementation using iocextract, graceful fallback when iocextract not installed
 

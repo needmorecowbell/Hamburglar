@@ -4,10 +4,12 @@ This module provides the Typer-based CLI for running Hamburglar scans
 with various options for output format, YARA rules, and verbosity.
 """
 
+from __future__ import annotations
+
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Optional
 from urllib.parse import urlparse
 
 import typer
@@ -970,10 +972,17 @@ def scan(
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
-        # Rich's text wrapping which can break parsing. For table, HTML, and markdown
-        # use Rich console for proper formatting.
+        # Rich's text wrapping which can break parsing. For table format, print
+        # directly to console to handle terminal width correctly. For HTML and
+        # markdown, use the pre-rendered string.
         if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
             print(formatted_output)
+        elif output_format == OutputFormat.TABLE:
+            # Use print_to_console for proper terminal width handling
+            from hamburglar.outputs.table_output import TableOutput
+
+            table_formatter = TableOutput()
+            table_formatter.print_to_console(result, console)
         else:
             console.print(formatted_output)
 
@@ -1021,7 +1030,7 @@ async def _run_scan_with_progress(
     """
 
     # Progress tracking state
-    progress_state = {
+    progress_state: dict[str, Any] = {
         "task_id": None,
         "last_progress": None,
     }
@@ -2097,10 +2106,17 @@ def scan_git(
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
-        # Rich's text wrapping which can break parsing. For table, HTML, and markdown
-        # use Rich console for proper formatting.
+        # Rich's text wrapping which can break parsing. For table format, print
+        # directly to console to handle terminal width correctly. For HTML and
+        # markdown, use the pre-rendered string.
         if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
             print(formatted_output)
+        elif output_format == OutputFormat.TABLE:
+            # Use print_to_console for proper terminal width handling
+            from hamburglar.outputs.table_output import TableOutput
+
+            table_formatter = TableOutput()
+            table_formatter.print_to_console(result, console)
         else:
             console.print(formatted_output)
 
@@ -2154,7 +2170,7 @@ async def _run_git_scan_with_progress(
     """
 
     # Progress tracking state
-    progress_state = {
+    progress_state: dict[str, Any] = {
         "task_id": None,
         "last_progress": None,
     }
@@ -2752,10 +2768,17 @@ def scan_web(
             raise typer.Exit(code=EXIT_ERROR) from None
     elif not eff_quiet:
         # For structured formats (JSON, SARIF, CSV), use print() directly to avoid
-        # Rich's text wrapping which can break parsing. For table, HTML, and markdown
-        # use Rich console for proper formatting.
+        # Rich's text wrapping which can break parsing. For table format, print
+        # directly to console to handle terminal width correctly. For HTML and
+        # markdown, use the pre-rendered string.
         if output_format in (OutputFormat.JSON, OutputFormat.SARIF, OutputFormat.CSV):
             print(formatted_output)
+        elif output_format == OutputFormat.TABLE:
+            # Use print_to_console for proper terminal width handling
+            from hamburglar.outputs.table_output import TableOutput
+
+            table_formatter = TableOutput()
+            table_formatter.print_to_console(result, console)
         else:
             console.print(formatted_output)
 
@@ -2813,7 +2836,7 @@ async def _run_web_scan_with_progress(
     """
 
     # Progress tracking state
-    progress_state = {
+    progress_state: dict[str, Any] = {
         "task_id": None,
         "last_progress": None,
     }
@@ -2844,7 +2867,7 @@ async def _run_web_scan_with_progress(
             "[dim]Note: Auth credentials provided (requires WebScanner auth support)[/dim]"
         )
 
-    scanner = WebScanner(**scanner_kwargs)
+    scanner = WebScanner(**scanner_kwargs)  # type: ignore[arg-type]
 
     if quiet:
         return await scanner.scan()
@@ -2941,7 +2964,7 @@ async def _run_web_streaming_scan(
     if user_agent:
         scanner_kwargs["user_agent"] = user_agent
 
-    scanner = WebScanner(**scanner_kwargs)
+    scanner = WebScanner(**scanner_kwargs)  # type: ignore[arg-type]
 
     formatter = StreamingOutput()
     findings_count = 0
@@ -5215,6 +5238,134 @@ def config_validate(
     raise typer.Exit(code=EXIT_SUCCESS)
 
 
+# ============================================================================
+# Hexdump command
+# ============================================================================
+
+
+@app.command()
+def hexdump(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to file to dump",
+            exists=True,
+            resolve_path=True,
+        ),
+    ],
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-o",
+            help="Write output to file instead of stdout. "
+            "If not specified, outputs to stdout.",
+        ),
+    ] = None,
+    color: Annotated[
+        bool,
+        typer.Option(
+            "--color/--no-color",
+            help="Enable colorized output (only applies to terminal output, not file output)",
+        ),
+    ] = True,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress informational messages",
+        ),
+    ] = False,
+) -> None:
+    """Display a hexadecimal dump of a file.
+
+    Produces output in the standard hexdump format with:
+    - 8-character hex offset
+    - 16 bytes of hex values per line (split into two groups of 8)
+    - ASCII representation of printable characters
+
+    This command matches the behavior of the original 'hamburglar.py -x' flag.
+
+    Examples:
+        hamburglar hexdump binary.dat
+        hamburglar hexdump binary.dat --output dump.txt
+        hamburglar hexdump binary.dat --no-color
+    """
+    from hamburglar.utils.hexdump import hexdump as hexdump_func
+    from hamburglar.utils.hexdump import hexdump_file, hexdump_rich
+
+    # Check if path is a file (not a directory)
+    if path.is_dir():
+        _display_error(
+            ScanError("Cannot hexdump a directory", path=str(path)),
+            hint="Provide a path to a file, not a directory.",
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    try:
+        if output is not None:
+            # Write to file
+            output_path = output.resolve()
+
+            # Create parent directory if needed
+            output_dir = output_path.parent
+            if not output_dir.exists():
+                try:
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    if not quiet:
+                        console.print(f"[dim]Created directory:[/dim] {output_dir}")
+                except PermissionError:
+                    _display_error(
+                        OutputError(
+                            "Permission denied creating output directory",
+                            output_path=str(output_dir),
+                        )
+                    )
+                    raise typer.Exit(code=EXIT_ERROR) from None
+
+            # Write hexdump to file
+            hexdump_file(path, output_path)
+            if not quiet:
+                console.print(f"[green]Hexdump written to:[/green] {output_path}")
+
+        else:
+            # Output to stdout
+            # Use colorized output if terminal supports it and color is enabled
+            if color and console.is_terminal:
+                hexdump_rich(path, console=console)
+            else:
+                # Plain text output
+                output_text = hexdump_func(path)
+                console.print(output_text, highlight=False)
+
+    except FileNotFoundError:
+        _display_error(
+            FileNotFoundError(f"File not found: {path}"),
+            hint="Check that the file path is correct.",
+        )
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except PermissionError:
+        _display_error(
+            PermissionError(f"Permission denied reading file: {path}"),
+            hint="Check file permissions or run with appropriate privileges.",
+        )
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except IsADirectoryError:
+        _display_error(
+            ScanError("Cannot hexdump a directory", path=str(path)),
+            hint="Provide a path to a file, not a directory.",
+        )
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except OSError as e:
+        _display_error(
+            OutputError(f"Error reading file: {e}", output_path=str(path))
+        )
+        raise typer.Exit(code=EXIT_ERROR) from None
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -5233,6 +5384,7 @@ def main(
     Use 'hamburglar scan <path>' to scan files for secrets and sensitive data.
     Use 'hamburglar scan-git <url/path>' to scan git repositories.
     Use 'hamburglar scan-web <url>' to scan web URLs.
+    Use 'hamburglar hexdump <path>' to display a hex dump of a file.
     Use 'hamburglar history' to view stored findings from previous scans.
     Use 'hamburglar report' to generate summary reports from stored data.
     Use 'hamburglar doctor' to check your installation for issues.

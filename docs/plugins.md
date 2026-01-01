@@ -1,394 +1,676 @@
 # Plugins
 
-Hamburglar's plugin system allows you to extend functionality with custom detectors and output formats.
+Hamburglar features a flexible plugin architecture that allows you to extend its capabilities with custom detectors and output formatters without modifying the core codebase.
 
-## Plugin Architecture
+## Plugin Architecture Overview
 
 Hamburglar supports two types of plugins:
 
-1. **Detector Plugins**: Add custom pattern matching logic
-2. **Output Plugins**: Add custom output formats
+1. **Detector Plugins** - Custom pattern detectors for finding specific types of sensitive data
+2. **Output Plugins** - Custom formatters for presenting scan results
 
-Plugins are Python modules that implement specific interfaces and are discovered automatically from configured directories.
+### Plugin Discovery
 
-## Plugin Discovery
+Plugins can be loaded from multiple sources, in order of precedence:
 
-Hamburglar searches for plugins in:
+| Source | Description | Use Case |
+|--------|-------------|----------|
+| **Entry Points** | Pip-installable packages with `hamburglar.plugins.*` entry points | Distributing plugins via PyPI |
+| **Plugin Directories** | Python files in configured directories | Local/private plugins |
+| **Decorators** | Classes decorated with `@detector_plugin` or `@output_plugin` | Quick prototyping |
+| **Manual Registration** | Programmatically registered instances | Runtime plugin loading |
 
-1. Built-in plugins (included with Hamburglar)
-2. User plugins directory: `~/.hamburglar/plugins/`
-3. Project plugins: `./plugins/` in current directory
-4. Custom directories specified in configuration
+### Plugin Manager
 
-Configure plugin directories:
+The `PluginManager` class handles all plugin lifecycle operations:
 
-```yaml
-# hamburglar.yml
-plugins:
-  enabled: true
-  directories:
-    - ~/.hamburglar/plugins
-    - ./plugins
-    - /path/to/shared/plugins
+```python
+from hamburglar.plugins import PluginManager
+
+# Create a manager with custom directories
+manager = PluginManager(
+    plugin_directories=["/path/to/plugins"],
+    auto_discover=True  # Discover plugins on initialization
+)
+
+# Or add directories later
+manager.add_plugin_directory("/another/path")
+manager.discover()
+
+# List all plugins
+for plugin in manager.list_all_plugins():
+    print(f"{plugin.name} v{plugin.version}: {plugin.description}")
 ```
 
 ## Creating a Detector Plugin
 
+Detector plugins extend the `DetectorPlugin` base class to find custom patterns in files.
+
 ### Basic Structure
 
-Create a Python file in your plugins directory:
-
 ```python
-# ~/.hamburglar/plugins/my_detector.py
-
 from hamburglar.plugins.detector_plugin import DetectorPlugin
 from hamburglar.core.models import Finding, Severity
 
-class MyCustomDetector(DetectorPlugin):
-    """Detector for my company's internal secrets."""
+class MySecretDetector(DetectorPlugin):
+    """Detects my organization's custom secrets."""
 
-    name = "my_custom_detector"
-    description = "Detects MyCompany internal secrets"
-    version = "1.0.0"
+    # Plugin metadata
+    __version__ = "1.0.0"
+    __author__ = "Your Name"
 
-    def __init__(self):
-        super().__init__()
-        self.patterns = [
-            {
-                "name": "mycompany_api_key",
-                "pattern": r"MYCO-[A-Z0-9]{32}",
-                "severity": Severity.HIGH,
-                "description": "MyCompany API Key",
-            },
-            {
-                "name": "mycompany_internal_url",
-                "pattern": r"https://internal\.mycompany\.com/[^\s]+",
-                "severity": Severity.MEDIUM,
-                "description": "Internal URL",
-            },
-        ]
+    @property
+    def name(self) -> str:
+        """Unique identifier for this detector."""
+        return "my_secrets"
 
-    def detect(self, content: str, file_path: str = None) -> list[Finding]:
-        """Run detection on content."""
-        findings = []
+    @property
+    def description(self) -> str:
+        """Human-readable description."""
+        return "Detects custom secret patterns"
 
-        for pattern_def in self.patterns:
-            import re
-            for match in re.finditer(pattern_def["pattern"], content):
-                finding = Finding(
-                    pattern_name=pattern_def["name"],
-                    pattern_category="custom",
-                    severity=pattern_def["severity"],
-                    confidence=0.9,
-                    file_path=file_path,
-                    line_number=content[:match.start()].count('\n') + 1,
-                    column_start=match.start(),
-                    column_end=match.end(),
-                    matched_content=match.group(),
-                    description=pattern_def["description"],
-                )
-                findings.append(finding)
-
-        return findings
-
-# Register the plugin
-def register():
-    return MyCustomDetector()
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        """Main detection logic."""
+        # Your detection logic here
+        return []
 ```
 
-### Detector Plugin Interface
+### Required Properties and Methods
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `name` | property | Unique identifier for the detector |
+| `detect(content, file_path)` | method | Returns list of `Finding` objects |
+
+### Optional Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `description` | str | docstring | Human-readable description |
+| `version` | str | `"1.0.0"` | Plugin version |
+| `author` | str | `""` | Author name |
+| `supported_extensions` | list[str] \| None | `None` | File extensions to scan (None = all) |
+
+### Utility Methods
+
+The `DetectorPlugin` base class provides several utility methods:
+
+#### Pattern Matching
 
 ```python
-class DetectorPlugin:
-    """Base class for detector plugins."""
+# Match a single pattern
+findings = self.match_pattern(
+    content=content,
+    file_path=file_path,
+    pattern=r'API_KEY\s*=\s*["\'](\w+)["\']',
+    severity=Severity.HIGH,
+    flags=re.IGNORECASE
+)
 
-    # Required attributes
-    name: str           # Unique plugin identifier
-    description: str    # Human-readable description
-    version: str        # Semantic version
+# Match multiple patterns
+findings = self.match_patterns(
+    content=content,
+    file_path=file_path,
+    patterns=[
+        r'API_KEY\s*=\s*["\'](\w+)["\']',
+        r'SECRET\s*=\s*["\'](\w+)["\']',
+    ],
+    severity=Severity.HIGH
+)
 
-    def detect(self, content: str, file_path: str = None) -> list[Finding]:
-        """
-        Run detection on content.
-
-        Args:
-            content: File content to analyze
-            file_path: Path to the file (optional)
-
-        Returns:
-            List of Finding objects
-        """
-        raise NotImplementedError
-
-    def configure(self, config: dict) -> None:
-        """
-        Configure the plugin with custom settings.
-
-        Args:
-            config: Plugin configuration dictionary
-        """
-        pass
-
-    def supports_file(self, file_path: str) -> bool:
-        """
-        Check if this detector should run on a file.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            True if detector should process this file
-        """
-        return True
+# Match literal strings
+findings = self.match_literal(
+    content=content,
+    file_path=file_path,
+    literal="password123",
+    severity=Severity.CRITICAL,
+    case_sensitive=False
+)
 ```
 
-### Advanced Detector Example
+#### Creating Findings
 
 ```python
-# ~/.hamburglar/plugins/entropy_secrets.py
+finding = self.create_finding(
+    file_path=file_path,
+    matches=["API_KEY=secret123"],
+    severity=Severity.HIGH,
+    metadata={
+        "line": 42,
+        "context": "Found in configuration section"
+    }
+)
+```
+
+#### Configuration Access
+
+```python
+def __init__(self, **config):
+    super().__init__(**config)
+    # Access configuration with defaults
+    self.min_length = self.get_config("min_length", 16)
+    self.check_entropy = self.get_config("check_entropy", True)
+```
+
+#### File Filtering
+
+```python
+@property
+def supported_extensions(self) -> list[str]:
+    return [".py", ".js", ".env", ".yml"]
+
+def detect(self, content: str, file_path: str = "") -> list[Finding]:
+    # This check happens automatically when you use supported_extensions
+    if not self.should_scan_file(file_path):
+        return []
+    # ... detection logic
+```
+
+### Complete Detector Example
+
+Here's a comprehensive example of a custom API key detector:
+
+```python
+"""Custom API Key Detector Plugin for Hamburglar."""
+
+from __future__ import annotations
 
 import math
-from collections import Counter
+import re
+from typing import Any
 
-from hamburglar.plugins.detector_plugin import DetectorPlugin
 from hamburglar.core.models import Finding, Severity
+from hamburglar.plugins.detector_plugin import DetectorPlugin
 
 
-class EntropySecretsDetector(DetectorPlugin):
-    """Detect high-entropy strings that may be secrets."""
+class CustomAPIKeyDetector(DetectorPlugin):
+    """Detects custom organization-specific API keys and tokens.
 
-    name = "entropy_secrets"
-    description = "Detects high-entropy strings"
-    version = "1.0.0"
+    Configuration Options:
+        min_key_length: Minimum length for detected keys (default: 16)
+        check_entropy: Whether to validate key entropy (default: True)
+        min_entropy: Minimum entropy threshold (default: 3.0)
+        key_prefixes: List of prefixes to search for
+    """
 
-    def __init__(self):
-        super().__init__()
-        self.min_length = 20
-        self.min_entropy = 4.5
-        self.excluded_extensions = {'.md', '.txt', '.rst'}
+    __version__ = "1.0.0"
+    __author__ = "Your Organization"
 
-    def configure(self, config: dict) -> None:
-        self.min_length = config.get('min_length', 20)
-        self.min_entropy = config.get('min_entropy', 4.5)
+    DEFAULT_PATTERNS = [
+        r'(?:api[_-]?key|apikey)\s*[=:]\s*["\']([A-Za-z0-9_\-]{16,})["\']',
+        r'["\']?Bearer\s+([A-Za-z0-9_\-\.]{20,})["\']?',
+        r'(?:secret|token)\s*[=:]\s*["\']([A-Za-z0-9_\-]{12,})["\']',
+    ]
 
-    def supports_file(self, file_path: str) -> bool:
-        if not file_path:
-            return True
-        return not any(file_path.endswith(ext)
-                      for ext in self.excluded_extensions)
+    def __init__(self, **config: Any) -> None:
+        super().__init__(**config)
+        self._min_key_length = self.get_config("min_key_length", 16)
+        self._check_entropy = self.get_config("check_entropy", True)
+        self._min_entropy = self.get_config("min_entropy", 3.0)
+        self._key_prefixes = self.get_config(
+            "key_prefixes",
+            ["ACME_", "MYORG_", "PROD_", "STAGING_"]
+        )
 
-    def calculate_entropy(self, data: str) -> float:
-        """Calculate Shannon entropy of a string."""
-        if not data:
-            return 0.0
+    @property
+    def name(self) -> str:
+        return "custom_api_keys"
 
-        counter = Counter(data)
-        length = len(data)
-        entropy = 0.0
+    @property
+    def description(self) -> str:
+        return "Detects custom organization API keys and tokens"
 
-        for count in counter.values():
-            probability = count / length
-            entropy -= probability * math.log2(probability)
+    @property
+    def supported_extensions(self) -> list[str] | None:
+        return [".py", ".js", ".ts", ".json", ".yaml", ".yml", ".env"]
 
-        return entropy
+    def detect(self, content: str, file_path: str = "") -> list[Finding]:
+        if not self.should_scan_file(file_path):
+            return []
 
-    def detect(self, content: str, file_path: str = None) -> list[Finding]:
-        findings = []
+        findings: list[Finding] = []
 
-        # Find potential secrets (alphanumeric sequences)
-        import re
-        pattern = r'[A-Za-z0-9+/=]{' + str(self.min_length) + r',}'
+        # Detect keys with configured prefixes
+        for prefix in self._key_prefixes:
+            pattern = rf"({re.escape(prefix)}[A-Za-z0-9_\-]{{8,}})"
+            for match in re.finditer(pattern, content, re.IGNORECASE):
+                key = match.group(1)
 
-        for match in re.finditer(pattern, content):
-            candidate = match.group()
-            entropy = self.calculate_entropy(candidate)
+                if len(key) < self._min_key_length:
+                    continue
 
-            if entropy >= self.min_entropy:
-                line_num = content[:match.start()].count('\n') + 1
+                if self._check_entropy:
+                    entropy = self._calculate_entropy(key)
+                    if entropy < self._min_entropy:
+                        continue
 
-                finding = Finding(
-                    pattern_name="high_entropy_string",
-                    pattern_category="entropy",
-                    severity=Severity.MEDIUM,
-                    confidence=min(0.5 + (entropy - 4.0) / 4, 0.95),
+                findings.append(self.create_finding(
                     file_path=file_path,
-                    line_number=line_num,
-                    column_start=match.start(),
-                    column_end=match.end(),
-                    matched_content=candidate[:50] + "..." if len(candidate) > 50 else candidate,
-                    description=f"High entropy string (entropy: {entropy:.2f})",
-                    metadata={"entropy": entropy},
-                )
-                findings.append(finding)
+                    matches=[key],
+                    severity=self._assess_severity(prefix),
+                    metadata={
+                        "prefix": prefix,
+                        "key_length": len(key),
+                        "detection_method": "prefix_match"
+                    }
+                ))
+
+        # Detect keys matching common patterns
+        for pattern in self.DEFAULT_PATTERNS:
+            pattern_findings = self.match_pattern(
+                content=content,
+                file_path=file_path,
+                pattern=pattern,
+                severity=Severity.HIGH,
+                flags=re.IGNORECASE
+            )
+
+            for finding in pattern_findings:
+                if finding.matches:
+                    key = finding.matches[0]
+                    if len(key) >= self._min_key_length:
+                        if not self._check_entropy or self._has_sufficient_entropy(key):
+                            findings.append(finding)
 
         return findings
 
+    def _calculate_entropy(self, text: str) -> float:
+        """Calculate Shannon entropy of a string."""
+        if not text:
+            return 0.0
+        freq: dict[str, int] = {}
+        for char in text:
+            freq[char] = freq.get(char, 0) + 1
+        length = len(text)
+        return -sum(
+            (count / length) * math.log2(count / length)
+            for count in freq.values()
+        )
 
-def register():
-    return EntropySecretsDetector()
+    def _has_sufficient_entropy(self, text: str) -> bool:
+        return self._calculate_entropy(text) >= self._min_entropy
+
+    def _assess_severity(self, prefix: str) -> Severity:
+        if any(p in prefix.upper() for p in ["PROD", "LIVE", "MASTER"]):
+            return Severity.CRITICAL
+        if any(p in prefix.upper() for p in ["STAGING", "DEV", "TEST"]):
+            return Severity.MEDIUM
+        return Severity.HIGH
 ```
 
 ## Creating an Output Plugin
 
+Output plugins extend the `OutputPlugin` base class to format scan results.
+
 ### Basic Structure
 
 ```python
-# ~/.hamburglar/plugins/my_output.py
-
 from hamburglar.plugins.output_plugin import OutputPlugin
 from hamburglar.core.models import ScanResult
 
+class MyCustomOutput(OutputPlugin):
+    """Formats results in a custom format."""
+
+    __version__ = "1.0.0"
+    __author__ = "Your Name"
+
+    @property
+    def name(self) -> str:
+        """Unique identifier for this formatter."""
+        return "my_format"
+
+    @property
+    def description(self) -> str:
+        """Human-readable description."""
+        return "Custom output format"
+
+    @property
+    def file_extension(self) -> str:
+        """Default file extension for output."""
+        return ".txt"
+
+    def format(self, result: ScanResult) -> str:
+        """Main formatting logic."""
+        # Your formatting logic here
+        return ""
+```
+
+### Required Properties and Methods
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `name` | property | Unique identifier for the formatter |
+| `format(result)` | method | Returns formatted string |
+
+### Optional Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `description` | str | docstring | Human-readable description |
+| `version` | str | `"1.0.0"` | Plugin version |
+| `author` | str | `""` | Author name |
+| `file_extension` | str | `".txt"` | Default output file extension |
+
+### Utility Methods
+
+#### Formatting Helpers
+
+```python
+# Format a single finding as a dictionary
+finding_dict = self.format_finding(finding, include_metadata=True)
+
+# Format entire result as a dictionary
+result_dict = self.format_result(
+    result,
+    include_metadata=True,
+    include_summary=True
+)
+
+# Get summary statistics
+summary = self.get_summary(result)
+# Returns: {
+#     "total_findings": 42,
+#     "files_scanned": 100,
+#     "target_path": "/path/to/scan",
+#     "scan_duration": 1.5,
+#     "by_severity": {"high": 10, "medium": 20, "low": 12},
+#     "by_detector": {"api_keys": 15, "passwords": 27}
+# }
+```
+
+#### Built-in Formats
+
+```python
+# Format as JSON
+json_output = self.format_as_json(result, include_metadata=True, indent=2)
+
+# Format as simple text lines
+text_output = self.format_as_lines(result, separator="\n", include_severity=True)
+```
+
+#### Grouping Methods
+
+```python
+# Group findings by file path
+by_file = self.group_by_file(result)
+# Returns: {"/path/file.py": [finding1, finding2], ...}
+
+# Group findings by severity
+by_severity = self.group_by_severity(result)
+# Returns: {Severity.HIGH: [finding1], Severity.MEDIUM: [finding2], ...}
+
+# Group findings by detector
+by_detector = self.group_by_detector(result)
+# Returns: {"api_keys": [finding1, finding2], ...}
+```
+
+### Complete Output Example
+
+Here's a comprehensive example of a custom XML output formatter:
+
+```python
+"""Custom XML Output Plugin for Hamburglar."""
+
+from __future__ import annotations
+
+from typing import Any
+from xml.etree import ElementTree as ET
+
+from hamburglar.core.models import ScanResult
+from hamburglar.plugins.output_plugin import OutputPlugin
+
 
 class XMLOutput(OutputPlugin):
-    """Output scan results as XML."""
+    """Formats scan results as XML.
 
-    name = "xml"
-    description = "XML output format"
-    version = "1.0.0"
-    file_extension = ".xml"
+    Configuration Options:
+        pretty_print: Whether to format with indentation (default: True)
+        include_metadata: Whether to include finding metadata (default: False)
+    """
+
+    __version__ = "1.0.0"
+    __author__ = "Your Organization"
+
+    def __init__(self, **config: Any) -> None:
+        super().__init__(**config)
+        self._pretty_print = self.get_config("pretty_print", True)
+        self._include_metadata = self.get_config("include_metadata", False)
+
+    @property
+    def name(self) -> str:
+        return "xml"
+
+    @property
+    def description(self) -> str:
+        return "XML output format"
+
+    @property
+    def file_extension(self) -> str:
+        return ".xml"
 
     def format(self, result: ScanResult) -> str:
-        """Format scan results as XML string."""
-        lines = ['<?xml version="1.0" encoding="UTF-8"?>']
-        lines.append('<scan_result>')
-        lines.append(f'  <scan_id>{result.scan_id}</scan_id>')
-        lines.append(f'  <files_scanned>{result.files_scanned}</files_scanned>')
-        lines.append('  <findings>')
+        root = ET.Element("scan_result")
 
+        # Add summary
+        summary = self.get_summary(result)
+        summary_elem = ET.SubElement(root, "summary")
+        for key, value in summary.items():
+            if isinstance(value, dict):
+                sub_elem = ET.SubElement(summary_elem, key)
+                for k, v in value.items():
+                    item = ET.SubElement(sub_elem, "item")
+                    item.set("name", k)
+                    item.text = str(v)
+            else:
+                elem = ET.SubElement(summary_elem, key)
+                elem.text = str(value)
+
+        # Add findings
+        findings_elem = ET.SubElement(root, "findings")
         for finding in result.findings:
-            lines.append('    <finding>')
-            lines.append(f'      <pattern>{finding.pattern_name}</pattern>')
-            lines.append(f'      <severity>{finding.severity.value}</severity>')
-            lines.append(f'      <file>{finding.file_path}</file>')
-            lines.append(f'      <line>{finding.line_number}</line>')
-            lines.append('    </finding>')
+            finding_elem = ET.SubElement(findings_elem, "finding")
+            finding_elem.set("severity", finding.severity.value)
+            finding_elem.set("detector", finding.detector_name)
 
-        lines.append('  </findings>')
-        lines.append('</scan_result>')
+            path_elem = ET.SubElement(finding_elem, "file_path")
+            path_elem.text = finding.file_path
 
-        return '\n'.join(lines)
+            matches_elem = ET.SubElement(finding_elem, "matches")
+            for match in finding.matches:
+                match_elem = ET.SubElement(matches_elem, "match")
+                match_elem.text = match
 
-    def write(self, result: ScanResult, output_path: str) -> None:
-        """Write results to file."""
-        content = self.format(result)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+            if self._include_metadata and finding.metadata:
+                meta_elem = ET.SubElement(finding_elem, "metadata")
+                for key, value in finding.metadata.items():
+                    item = ET.SubElement(meta_elem, key)
+                    item.text = str(value)
 
+        if self._pretty_print:
+            ET.indent(root)
 
-def register():
-    return XMLOutput()
-```
-
-### Output Plugin Interface
-
-```python
-class OutputPlugin:
-    """Base class for output plugins."""
-
-    # Required attributes
-    name: str            # Format name (used in --output-format)
-    description: str     # Human-readable description
-    version: str         # Semantic version
-    file_extension: str  # Default file extension
-
-    def format(self, result: ScanResult) -> str:
-        """
-        Format scan results as string.
-
-        Args:
-            result: ScanResult object
-
-        Returns:
-            Formatted string output
-        """
-        raise NotImplementedError
-
-    def write(self, result: ScanResult, output_path: str) -> None:
-        """
-        Write results to file.
-
-        Args:
-            result: ScanResult object
-            output_path: Path to output file
-        """
-        content = self.format(result)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-
-    def configure(self, config: dict) -> None:
-        """Configure the plugin."""
-        pass
-```
-
-### Streaming Output Example
-
-```python
-# ~/.hamburglar/plugins/streaming_json.py
-
-import json
-
-from hamburglar.plugins.output_plugin import OutputPlugin
-from hamburglar.core.models import ScanResult, Finding
-
-
-class StreamingJSONOutput(OutputPlugin):
-    """Stream findings as JSON lines for large scans."""
-
-    name = "jsonl"
-    description = "JSON Lines streaming format"
-    version = "1.0.0"
-    file_extension = ".jsonl"
-
-    def format_finding(self, finding: Finding) -> str:
-        """Format a single finding as JSON."""
-        return json.dumps({
-            "pattern": finding.pattern_name,
-            "severity": finding.severity.value,
-            "file": finding.file_path,
-            "line": finding.line_number,
-            "content": finding.matched_content,
-        })
-
-    def format(self, result: ScanResult) -> str:
-        """Format all findings as JSON lines."""
-        lines = [self.format_finding(f) for f in result.findings]
-        return '\n'.join(lines)
-
-    def stream(self, finding: Finding, output_file) -> None:
-        """Stream a single finding to output."""
-        line = self.format_finding(finding)
-        output_file.write(line + '\n')
-        output_file.flush()
-
-
-def register():
-    return StreamingJSONOutput()
+        return ET.tostring(root, encoding="unicode", xml_declaration=True)
 ```
 
 ## Plugin Configuration
 
-Configure plugins in your configuration file:
+### Configuration File
+
+Configure plugins in your `.hamburglar.yml` or `hamburglar.yml`:
 
 ```yaml
-# hamburglar.yml
 plugins:
-  enabled: true
+  # Directories to search for plugins
   directories:
+    - /path/to/plugins
     - ~/.hamburglar/plugins
 
   # Plugin-specific configuration
   config:
-    my_custom_detector:
-      enabled: true
-      custom_option: value
-
-    entropy_secrets:
-      min_length: 25
-      min_entropy: 5.0
+    custom_api_keys:
+      min_key_length: 20
+      check_entropy: true
+      min_entropy: 3.5
+      key_prefixes:
+        - "MYORG_"
+        - "INTERNAL_"
 
     xml:
       pretty_print: true
-      include_context: false
+      include_metadata: true
+```
+
+### Environment Variables
+
+```bash
+# Add plugin directories (colon-separated)
+export HAMBURGLAR_PLUGIN_DIRS="/path/to/plugins:/another/path"
+```
+
+### Configuration Precedence
+
+Configuration values are merged in this order (later values override earlier):
+
+1. Plugin class defaults
+2. Configuration file (`plugins.config.<plugin_name>`)
+3. Runtime configuration (passed to `get_detector()` or `get_output()`)
+
+## Installing Plugins
+
+### Method 1: File-Based Plugins (Simplest)
+
+1. Create your plugin file (e.g., `my_detector.py`)
+2. Place it in a plugin directory
+3. Configure the directory:
+
+```yaml
+plugins:
+  directories:
+    - /path/to/your/plugins
+```
+
+### Method 2: Entry Points (For Distribution)
+
+For pip-installable plugins, add entry points to your `pyproject.toml`:
+
+```toml
+[project]
+name = "my-hamburglar-plugins"
+version = "1.0.0"
+
+[project.entry-points."hamburglar.plugins.detectors"]
+my_detector = "my_package.detectors:MyDetectorClass"
+custom_api_keys = "my_package.detectors:CustomAPIKeyDetector"
+
+[project.entry-points."hamburglar.plugins.outputs"]
+xml = "my_package.outputs:XMLOutput"
+custom_html = "my_package.outputs:CustomHTMLOutput"
+```
+
+Then install your package:
+
+```bash
+pip install my-hamburglar-plugins
+```
+
+### Method 3: Decorator Registration
+
+For quick prototyping, use decorators:
+
+```python
+from hamburglar.plugins import detector_plugin, output_plugin
+from hamburglar.plugins.detector_plugin import DetectorPlugin
+from hamburglar.plugins.output_plugin import OutputPlugin
+
+@detector_plugin(
+    "my_detector",
+    description="Detects custom patterns",
+    version="1.0.0",
+    author="Your Name"
+)
+class MyDetector(DetectorPlugin):
+    @property
+    def name(self) -> str:
+        return "my_detector"
+
+    def detect(self, content, file_path=""):
+        return []
+
+@output_plugin(
+    "my_output",
+    description="Custom output format",
+    version="1.0.0"
+)
+class MyOutput(OutputPlugin):
+    @property
+    def name(self) -> str:
+        return "my_output"
+
+    def format(self, result):
+        return ""
+```
+
+### Method 4: Manual Registration
+
+For runtime plugin loading:
+
+```python
+from hamburglar.plugins import PluginManager
+
+manager = PluginManager()
+
+# Register an instance
+detector = MyDetector(min_length=20)
+manager.register_detector(
+    detector,
+    description="My custom detector",
+    version="1.0.0"
+)
+
+# Use the plugin
+det = manager.get_detector("my_detector", config={"min_length": 16})
+```
+
+## Verifying Plugin Installation
+
+### Using the CLI
+
+```bash
+# List all plugins
+hamburglar plugins list
+
+# Get detailed info about a specific plugin
+hamburglar plugins info custom_api_keys
+```
+
+Example output:
+
+```
+Detector Plugins:
+  custom_api_keys  v1.0.0  Detects custom organization API keys
+
+Output Plugins:
+  xml              v1.0.0  XML output format
+```
+
+### Programmatically
+
+```python
+from hamburglar.plugins import get_plugin_manager
+
+manager = get_plugin_manager()
+
+# List all plugins
+for plugin in manager.list_all_plugins():
+    print(f"{plugin.plugin_type}: {plugin.name} v{plugin.version}")
+    print(f"  Description: {plugin.description}")
+    print(f"  Author: {plugin.author}")
+    print(f"  Source: {plugin.source}")
+
+# Check if a plugin exists
+if "custom_api_keys" in manager:
+    info = manager.get_plugin_info("custom_api_keys")
+    print(f"Found: {info.name}")
 ```
 
 ## Publishing Plugins
@@ -396,19 +678,25 @@ plugins:
 ### Package Structure
 
 ```
-my-hamburglar-plugin/
+my-hamburglar-plugins/
 ├── pyproject.toml
 ├── README.md
 ├── LICENSE
 ├── src/
-│   └── my_plugin/
+│   └── my_plugins/
 │       ├── __init__.py
-│       └── detector.py
+│       ├── detectors/
+│       │   ├── __init__.py
+│       │   └── custom_detector.py
+│       └── outputs/
+│           ├── __init__.py
+│           └── xml_output.py
 └── tests/
-    └── test_detector.py
+    ├── test_detectors.py
+    └── test_outputs.py
 ```
 
-### pyproject.toml
+### pyproject.toml Example
 
 ```toml
 [build-system]
@@ -416,40 +704,104 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "hamburglar-my-plugin"
+name = "my-hamburglar-plugins"
 version = "1.0.0"
-description = "Custom detector for Hamburglar"
-requires-python = ">=3.9"
-dependencies = ["hamburglar>=2.0.0"]
+description = "Custom plugins for Hamburglar"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Your Name", email = "your@email.com" }
+]
+dependencies = [
+    "hamburglar>=2.0.0",
+]
 
-[project.entry-points."hamburglar.plugins"]
-my_detector = "my_plugin.detector:register"
+[project.entry-points."hamburglar.plugins.detectors"]
+custom_api_keys = "my_plugins.detectors:CustomAPIKeyDetector"
+
+[project.entry-points."hamburglar.plugins.outputs"]
+xml = "my_plugins.outputs:XMLOutput"
+```
+
+### Testing Your Plugin
+
+```python
+import pytest
+from hamburglar.core.models import Severity
+
+from my_plugins.detectors import CustomAPIKeyDetector
+
+
+class TestCustomAPIKeyDetector:
+    def test_detects_prefixed_keys(self):
+        detector = CustomAPIKeyDetector(
+            key_prefixes=["TEST_"],
+            check_entropy=False
+        )
+
+        content = 'API_KEY = "TEST_abc123xyz789secret"'
+        findings = detector.detect(content, "config.py")
+
+        assert len(findings) == 1
+        assert "TEST_" in findings[0].matches[0]
+
+    def test_filters_low_entropy(self):
+        detector = CustomAPIKeyDetector(
+            check_entropy=True,
+            min_entropy=3.0
+        )
+
+        # Low entropy - repeated characters
+        content = 'KEY = "TEST_AAAAAAAAAAAAAAAA"'
+        findings = detector.detect(content, "test.py")
+
+        assert len(findings) == 0
+
+    def test_respects_file_extensions(self):
+        detector = CustomAPIKeyDetector()
+
+        # Should scan .py files
+        findings = detector.detect('TEST_key123456789', "config.py")
+        assert len(findings) >= 0  # May or may not find, but should try
+
+        # Should skip .exe files
+        assert not detector.should_scan_file("program.exe")
 ```
 
 ### Publishing to PyPI
 
 ```bash
-# Build
+# Build the package
 python -m build
 
 # Upload to PyPI
 python -m twine upload dist/*
 ```
 
-Users can then install with:
-
-```bash
-pip install hamburglar-my-plugin
-```
-
 ## Best Practices
 
-1. **Keep plugins focused**: One detector/output per plugin
-2. **Handle errors gracefully**: Don't crash the scan
-3. **Test thoroughly**: Include unit tests
-4. **Document patterns**: Explain what each pattern detects
-5. **Version your plugins**: Use semantic versioning
-6. **Minimize dependencies**: Keep external requirements minimal
+### Detector Plugins
+
+1. **Use entropy checks** to filter false positives
+2. **Limit file extensions** when your patterns are file-type specific
+3. **Provide meaningful metadata** in findings for debugging
+4. **Cache compiled patterns** using `compile_pattern()`
+5. **Assess severity appropriately** based on context
+
+### Output Plugins
+
+1. **Use utility methods** like `format_result()` and `group_by_*()`
+2. **Include summaries** for quick result overview
+3. **Specify the correct file extension** for your format
+4. **Handle empty results** gracefully
+
+### General
+
+1. **Set metadata** (`__version__`, `__author__`) for plugin identification
+2. **Write docstrings** - they become the plugin description
+3. **Accept configuration** via constructor kwargs
+4. **Write tests** for your plugins
+5. **Document configuration options** in the class docstring
 
 ## See Also
 

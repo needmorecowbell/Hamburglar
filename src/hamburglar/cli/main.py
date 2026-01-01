@@ -6,8 +6,10 @@ with various options for output format, YARA rules, and verbosity.
 
 import asyncio
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Optional
+from urllib.parse import urlparse
 
 import typer
 from rich.console import Console
@@ -68,6 +70,16 @@ FORMAT_FORMATTERS: dict[OutputFormat, type[BaseOutput]] = {
     OutputFormat.MARKDOWN: MarkdownOutput,
 }
 
+# Mapping of output formats to file extensions
+FORMAT_EXTENSIONS: dict[OutputFormat, str] = {
+    OutputFormat.JSON: ".json",
+    OutputFormat.TABLE: ".txt",
+    OutputFormat.SARIF: ".sarif.json",
+    OutputFormat.CSV: ".csv",
+    OutputFormat.HTML: ".html",
+    OutputFormat.MARKDOWN: ".md",
+}
+
 
 def get_formatter(output_format: OutputFormat) -> BaseOutput:
     """Get the appropriate output formatter for the given format.
@@ -82,6 +94,68 @@ def get_formatter(output_format: OutputFormat) -> BaseOutput:
     if formatter_class is None:
         raise ValueError(f"Unsupported output format: {output_format}")
     return formatter_class()
+
+
+def generate_output_filename(
+    target: str,
+    output_format: OutputFormat,
+    scan_type: str = "scan",
+) -> str:
+    """Generate an auto-named output filename based on target and timestamp.
+
+    The filename format is: hamburglar_{scan_type}_{target_name}_{timestamp}{extension}
+
+    Args:
+        target: The scan target (file path, URL, or git repository).
+        output_format: The output format enum value.
+        scan_type: Type of scan ('scan', 'git', or 'web').
+
+    Returns:
+        A filename string with appropriate extension.
+    """
+    # Get timestamp in a filesystem-safe format
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Extract a clean target name
+    if scan_type == "web":
+        # For URLs, use the domain name
+        parsed = urlparse(target)
+        target_name = parsed.netloc or "url"
+        # Remove port if present
+        if ":" in target_name:
+            target_name = target_name.split(":")[0]
+    elif scan_type == "git":
+        # For git repos, extract repo name from URL or path
+        if target.startswith(("http://", "https://", "git@")):
+            # Remote URL
+            target_name = target.rstrip("/").split("/")[-1]
+            # Remove .git suffix if present
+            if target_name.endswith(".git"):
+                target_name = target_name[:-4]
+        else:
+            # Local path
+            target_name = Path(target).resolve().name
+    else:
+        # For file/directory paths, use the basename
+        target_name = Path(target).resolve().name
+
+    # Sanitize the target name for filesystem use
+    # Replace any non-alphanumeric characters with underscore
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in target_name)
+    # Remove consecutive underscores and strip trailing underscores
+    while "__" in safe_name:
+        safe_name = safe_name.replace("__", "_")
+    safe_name = safe_name.strip("_")
+
+    # Ensure the name isn't empty
+    if not safe_name:
+        safe_name = "target"
+
+    # Get file extension
+    extension = FORMAT_EXTENSIONS.get(output_format, ".txt")
+
+    return f"hamburglar_{scan_type}_{safe_name}_{timestamp}{extension}"
+
 
 # Default concurrency limit for async scanning
 DEFAULT_CONCURRENCY = 50
@@ -225,6 +299,34 @@ def _display_error(error: Exception, title: str = "Error") -> None:
         )
 
 
+def ensure_output_dir(output_dir: Path, quiet: bool = False) -> None:
+    """Ensure the output directory exists, creating it if necessary.
+
+    Args:
+        output_dir: The directory path to ensure exists.
+        quiet: If True, suppress the creation message.
+
+    Raises:
+        typer.Exit: If the directory cannot be created.
+    """
+    if not output_dir.exists():
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            if not quiet:
+                console.print(f"[dim]Created output directory:[/dim] {output_dir}")
+        except PermissionError as e:
+            _display_error(e)
+            raise typer.Exit(code=EXIT_ERROR) from None
+        except OSError as e:
+            _display_error(
+                OutputError(
+                    f"Failed to create output directory: {e}",
+                    output_path=str(output_dir),
+                )
+            )
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+
 def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
@@ -256,6 +358,15 @@ def scan(
             "--output",
             "-o",
             help="Write output to file instead of stdout",
+        ),
+    ] = None,
+    output_dir: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output-dir",
+            help="Save output to directory with auto-generated filename based on target and timestamp. "
+            "Creates directory if it doesn't exist. Cannot be used with --output.",
+            resolve_path=True,
         ),
     ] = None,
     format: Annotated[
@@ -384,6 +495,24 @@ def scan(
         raise typer.Exit(code=EXIT_ERROR)
 
     output_format = VALID_FORMATS[format_lower]
+
+    # Validate that --output and --output-dir are not used together
+    if output and output_dir:
+        _display_error(
+            ConfigError(
+                "Cannot use both --output and --output-dir. Use one or the other.",
+                config_key="output",
+            )
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Handle --output-dir: create directory and generate filename
+    if output_dir:
+        ensure_output_dir(output_dir, quiet=quiet)
+        filename = generate_output_filename(str(path), output_format, scan_type="scan")
+        output = output_dir / filename
+        if verbose and not quiet:
+            console.print(f"[dim]Output file:[/dim] {output}")
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
@@ -880,6 +1009,15 @@ def scan_git(
             help="Write output to file instead of stdout",
         ),
     ] = None,
+    output_dir: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output-dir",
+            help="Save output to directory with auto-generated filename based on target and timestamp. "
+            "Creates directory if it doesn't exist. Cannot be used with --output.",
+            resolve_path=True,
+        ),
+    ] = None,
     format: Annotated[
         str,
         typer.Option(
@@ -969,6 +1107,24 @@ def scan_git(
         raise typer.Exit(code=EXIT_ERROR)
 
     output_format = VALID_FORMATS[format_lower]
+
+    # Validate that --output and --output-dir are not used together
+    if output and output_dir:
+        _display_error(
+            ConfigError(
+                "Cannot use both --output and --output-dir. Use one or the other.",
+                config_key="output",
+            )
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Handle --output-dir: create directory and generate filename
+    if output_dir:
+        ensure_output_dir(output_dir, quiet=quiet)
+        filename = generate_output_filename(target, output_format, scan_type="git")
+        output = output_dir / filename
+        if verbose and not quiet:
+            console.print(f"[dim]Output file:[/dim] {output}")
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None
@@ -1360,6 +1516,15 @@ def scan_web(
             help="Write output to file instead of stdout",
         ),
     ] = None,
+    output_dir: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output-dir",
+            help="Save output to directory with auto-generated filename based on target and timestamp. "
+            "Creates directory if it doesn't exist. Cannot be used with --output.",
+            resolve_path=True,
+        ),
+    ] = None,
     format: Annotated[
         str,
         typer.Option(
@@ -1449,6 +1614,24 @@ def scan_web(
         raise typer.Exit(code=EXIT_ERROR)
 
     output_format = VALID_FORMATS[format_lower]
+
+    # Validate that --output and --output-dir are not used together
+    if output and output_dir:
+        _display_error(
+            ConfigError(
+                "Cannot use both --output and --output-dir. Use one or the other.",
+                config_key="output",
+            )
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Handle --output-dir: create directory and generate filename
+    if output_dir:
+        ensure_output_dir(output_dir, quiet=quiet)
+        filename = generate_output_filename(url, output_format, scan_type="web")
+        output = output_dir / filename
+        if verbose and not quiet:
+            console.print(f"[dim]Output file:[/dim] {output}")
 
     # Parse category filters
     enabled_categories: list[PatternCategory] | None = None

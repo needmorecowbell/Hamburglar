@@ -119,7 +119,23 @@ This phase replaces the legacy threading model with modern async/await patterns 
       - Real-world pattern scenarios (node_modules, .git, __pycache__, .env)
     - All 2025 tests pass with 93% coverage (file_filter.py at 93%)
 
-- [ ] Update `src/hamburglar/detectors/regex_detector.py` to: support async detect method, implement pattern caching (compile once), add timeout per-pattern to prevent catastrophic backtracking, batch pattern matching for efficiency
+- [x] Update `src/hamburglar/detectors/regex_detector.py` to: support async detect method, implement pattern caching (compile once), add timeout per-pattern to prevent catastrophic backtracking, batch pattern matching for efficiency
+  - **Completed:** Updated `RegexDetector` with comprehensive async and batch detection capabilities:
+    - Added `detect_async()` method using `asyncio.to_thread()` for non-blocking async detection
+    - Pattern caching already implemented: patterns are compiled once at `__init__` and cached in `_compiled_patterns`
+    - Timeout per-pattern already implemented via `_find_matches_with_timeout()` with chunk-based processing for large content
+    - Added `detect_batch()` method for efficient batch detection of multiple files
+    - Added `_detect_with_early_exit()` with `stop_on_first_match` option for quick scans
+    - Added `detect_batch_async()` with configurable `concurrency_limit` and semaphore-based concurrency control
+    - Added `get_pattern_stats()` method for pattern analytics by category, severity, and confidence
+    - Created 37 comprehensive tests in `tests/test_regex_detector_async.py` covering:
+      - Async detection (basic, concurrent, binary handling, file paths)
+      - Batch detection (sync and async, concurrency control, early exit)
+      - Pattern caching verification (thread safety, persistence across calls)
+      - Timeout behavior in async context
+      - Edge cases (unicode, null bytes, large batches, max file size)
+      - Integration with AsyncScanner patterns
+    - All 2062 tests pass with 4 warnings
 
 - [ ] Update `src/hamburglar/detectors/yara_detector.py` to: support async detect method via thread pool, implement rule caching, add scan timeout configuration, support streaming match results
 

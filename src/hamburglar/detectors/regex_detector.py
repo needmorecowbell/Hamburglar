@@ -6,10 +6,12 @@ sensitive data patterns such as API keys, credentials, and other secrets.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
 import warnings
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -769,3 +771,216 @@ class RegexDetector(BaseDetector):
             for name, config in self._patterns.items()
             if config.get("confidence", "medium") == confidence
         }
+
+    async def detect_async(self, content: str, file_path: str = "") -> list[Finding]:
+        """Asynchronously detect sensitive patterns in the given content.
+
+        This method runs the synchronous detect() method in a thread pool
+        using asyncio.to_thread(), allowing it to be called from async code
+        without blocking the event loop.
+
+        Args:
+            content: The file content to analyze.
+            file_path: The path to the file being analyzed.
+
+        Returns:
+            A list of Finding objects for each detected pattern.
+        """
+        return await asyncio.to_thread(self.detect, content, file_path)
+
+    def detect_batch(
+        self,
+        contents: list[tuple[str, str]],
+        stop_on_first_match: bool = False,
+    ) -> dict[str, list[Finding]]:
+        """Detect sensitive patterns in multiple contents efficiently.
+
+        This method processes multiple pieces of content in a batch,
+        reusing compiled patterns and optimizing for throughput.
+
+        Args:
+            contents: List of (content, file_path) tuples to analyze.
+            stop_on_first_match: If True, stop processing a file after first match.
+
+        Returns:
+            Dictionary mapping file paths to their findings.
+        """
+        results: dict[str, list[Finding]] = {}
+
+        for content, file_path in contents:
+            findings = self._detect_with_early_exit(content, file_path, stop_on_first_match)
+            results[file_path] = findings
+
+        return results
+
+    def _detect_with_early_exit(
+        self,
+        content: str,
+        file_path: str,
+        stop_on_first_match: bool,
+    ) -> list[Finding]:
+        """Detect patterns with optional early exit on first match.
+
+        Args:
+            content: The file content to analyze.
+            file_path: The path to the file being analyzed.
+            stop_on_first_match: If True, return after first finding.
+
+        Returns:
+            A list of Finding objects for each detected pattern.
+        """
+        start_time = time.perf_counter()
+
+        # Check file size before processing
+        content_size = len(content.encode("utf-8", errors="replace"))
+        if content_size > self._max_file_size:
+            self._logger.warning(
+                "Skipping file %s: size %d bytes exceeds max %d bytes",
+                file_path,
+                content_size,
+                self._max_file_size,
+            )
+            return []
+
+        # Check for binary content
+        if self._is_binary_content(content):
+            self._logger.debug("Skipping binary file: %s", file_path)
+            return []
+
+        findings: list[Finding] = []
+        patterns_matched = 0
+        patterns_timed_out = 0
+
+        for pattern_name, pattern_data in self._compiled_patterns.items():
+            compiled, severity, description, category, confidence = pattern_data
+            pattern_start = time.perf_counter()
+            try:
+                matches = self._find_matches_with_timeout(compiled, content, pattern_name)
+                if matches:
+                    patterns_matched += 1
+                    # Deduplicate matches while preserving order
+                    unique_matches = list(dict.fromkeys(matches))
+                    findings.append(
+                        Finding(
+                            file_path=file_path,
+                            detector_name=f"regex:{pattern_name}",
+                            matches=unique_matches,
+                            severity=severity,
+                            metadata={
+                                "pattern_name": pattern_name,
+                                "description": description,
+                                "match_count": len(unique_matches),
+                                "category": category,
+                                "confidence": confidence,
+                            },
+                        )
+                    )
+                    if stop_on_first_match:
+                        break
+            except TimeoutError:
+                patterns_timed_out += 1
+                self._logger.warning(
+                    "Pattern '%s' timed out on file %s (limit: %.1fs)",
+                    pattern_name,
+                    file_path,
+                    self._regex_timeout,
+                )
+                continue
+            except Exception as e:
+                self._logger.debug(
+                    "Pattern '%s' failed on file %s: %s",
+                    pattern_name,
+                    file_path,
+                    str(e),
+                )
+                continue
+            finally:
+                pattern_elapsed = time.perf_counter() - pattern_start
+                if pattern_elapsed > 0.1:
+                    self._logger.debug(
+                        "Pattern '%s' took %.3fs on file %s",
+                        pattern_name,
+                        pattern_elapsed,
+                        file_path,
+                    )
+
+        elapsed = time.perf_counter() - start_time
+        self._logger.debug(
+            "RegexDetector processed %s in %.3fs: %d patterns matched, %d timed out, %d findings",
+            file_path,
+            elapsed,
+            patterns_matched,
+            patterns_timed_out,
+            len(findings),
+        )
+
+        return findings
+
+    async def detect_batch_async(
+        self,
+        contents: list[tuple[str, str]],
+        stop_on_first_match: bool = False,
+        concurrency_limit: int = 10,
+    ) -> dict[str, list[Finding]]:
+        """Asynchronously detect patterns in multiple contents with concurrency control.
+
+        This method processes multiple pieces of content concurrently using a
+        semaphore to limit the number of parallel operations.
+
+        Args:
+            contents: List of (content, file_path) tuples to analyze.
+            stop_on_first_match: If True, stop processing a file after first match.
+            concurrency_limit: Maximum number of concurrent detection operations.
+
+        Returns:
+            Dictionary mapping file paths to their findings.
+        """
+        semaphore = asyncio.Semaphore(concurrency_limit)
+        results: dict[str, list[Finding]] = {}
+        lock = asyncio.Lock()
+
+        async def process_content(content: str, file_path: str) -> None:
+            async with semaphore:
+                findings = await asyncio.to_thread(
+                    self._detect_with_early_exit, content, file_path, stop_on_first_match
+                )
+                async with lock:
+                    results[file_path] = findings
+
+        tasks = [process_content(content, file_path) for content, file_path in contents]
+        await asyncio.gather(*tasks)
+
+        return results
+
+    def get_pattern_stats(self) -> dict[str, Any]:
+        """Get statistics about the loaded patterns.
+
+        Returns:
+            Dictionary with pattern statistics including counts by category,
+            severity, and confidence levels.
+        """
+        stats: dict[str, Any] = {
+            "total_patterns": len(self._patterns),
+            "by_category": {},
+            "by_severity": {},
+            "by_confidence": {},
+        }
+
+        for config in self._patterns.values():
+            # Count by category
+            category = config.get("category", "unknown")
+            stats["by_category"][category] = stats["by_category"].get(category, 0) + 1
+
+            # Count by severity
+            severity = config.get("severity", Severity.MEDIUM)
+            if isinstance(severity, Severity):
+                severity_key = severity.value
+            else:
+                severity_key = str(severity)
+            stats["by_severity"][severity_key] = stats["by_severity"].get(severity_key, 0) + 1
+
+            # Count by confidence
+            confidence = config.get("confidence", "medium")
+            stats["by_confidence"][confidence] = stats["by_confidence"].get(confidence, 0) + 1
+
+        return stats

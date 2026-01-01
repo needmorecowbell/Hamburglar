@@ -87,7 +87,18 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Script syntax validated and help command tested
   - All 3500 existing tests pass
 
-- [ ] Create `scripts/publish.sh` that: runs tests, builds wheel and sdist, checks with twine, uploads to PyPI (or TestPyPI with --test flag)
+- [x] Create `scripts/publish.sh` that: runs tests, builds wheel and sdist, checks with twine, uploads to PyPI (or TestPyPI with --test flag)
+  - Created comprehensive shell script at scripts/publish.sh following docker-build.sh conventions
+  - Supports --upload/-u flag to upload to PyPI after building
+  - Supports --test/-t flag to upload to TestPyPI instead of PyPI
+  - Supports --skip-tests flag to skip running tests before build
+  - Supports --verbose/-v for detailed output during build and upload
+  - Environment variables: PYPI_TOKEN for PyPI, TEST_PYPI_TOKEN for TestPyPI authentication
+  - Prerequisite checks: Python 3, build package, twine package, pyproject.toml presence
+  - Workflow: run tests -> clean artifacts -> build wheel/sdist -> check with twine -> upload
+  - Colored output with log levels matching docker-build.sh style
+  - Displays package summary with installation instructions after upload
+  - Script syntax validated and help command tested
 
 - [ ] Create GitHub Actions workflow `.github/workflows/test.yml` that: runs on push and PR, tests on Python 3.9, 3.10, 3.11, 3.12, runs pytest with coverage, uploads coverage report, runs ruff linting, runs mypy type checking
 

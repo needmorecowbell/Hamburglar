@@ -159,7 +159,19 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Additional coverage: TestCreateDetectors (6), TestAliases (4), TestPackageExports (4)
   - All 39 tests pass
 
-- [ ] Create `README.md` updates with: installation instructions (pip, docker, from source), quick start examples, CLI usage documentation, library usage examples, Docker usage examples, Docker Compose integration example, link to full documentation
+- [x] Create `README.md` updates with: installation instructions (pip, docker, from source), quick start examples, CLI usage documentation, library usage examples, Docker usage examples, Docker Compose integration example, link to full documentation
+  - Completely rewrote README.md with modern, comprehensive documentation
+  - Installation: pip install, from source, Docker (GHCR), and development installation
+  - Quick Start: CLI examples and Python library usage with asyncio
+  - CLI Usage: Detailed documentation for scan, scan-git, scan-web, history, and report commands
+  - Library Usage: High-level API examples, pattern configuration, custom detectors, low-level API
+  - Docker Usage: docker run examples, Docker Compose configuration, volume mount documentation
+  - Output Formats: Table showing all 6 formats (table, json, sarif, csv, html, markdown)
+  - CI/CD Integration: GitHub Actions workflow example and pre-commit hook configuration
+  - Configuration: Environment variables and pattern categories reference
+  - Development: Testing and code quality commands
+  - Preserved original contributors list and project links
+  - All 3500 tests pass
 
 - [ ] Run pytest including new integration tests and ensure all pass
 

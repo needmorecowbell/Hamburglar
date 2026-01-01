@@ -87,7 +87,15 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Comprehensive test suite with 27 tests in `tests/test_cli_web.py`
   - All 2665 tests pass (coverage at 91% for CLI additions)
 
-- [ ] Create `src/hamburglar/core/models.py` updates: add `GitFinding` subclass with commit_hash, author, date, file_path_at_commit, add `WebFinding` subclass with url, element_type (script/text/attribute), add `SecretTimeline` model for tracking secret history
+- [x] Create `src/hamburglar/core/models.py` updates: add `GitFinding` subclass with commit_hash, author, date, file_path_at_commit, add `WebFinding` subclass with url, element_type (script/text/attribute), add `SecretTimeline` model for tracking secret history
+  - Added `ElementType` enum with SCRIPT, INLINE_SCRIPT, TEXT, and ATTRIBUTE values
+  - Added `GitFinding` subclass of Finding with commit_hash, author, date, file_path_at_commit fields
+  - Added `WebFinding` subclass of Finding with url and element_type fields
+  - Added `SecretOccurrence` Pydantic model to track individual occurrences with commit_hash, author, date, file_path, line_type (+/-), and optional line_number
+  - Added `SecretTimeline` Pydantic model for tracking secret lifecycle with secret_hash, secret_preview, detector_name, severity, first_seen, last_seen, is_removed, occurrences, exposure_duration, and affected_files
+  - SecretTimeline includes `add_occurrence()` method that automatically tracks first/last seen and calculates exposure duration when secret is removed
+  - Added comprehensive test suite with 27 new tests in `tests/test_models.py` (total 53 tests in file)
+  - All 2692 tests pass (no regressions)
 
 - [ ] Create `tests/fixtures/git/` directory with a test git repository (initialized via fixture) containing: current files with secrets, historical commits with removed secrets, commit messages with secrets
 

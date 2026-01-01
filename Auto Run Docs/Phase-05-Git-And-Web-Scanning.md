@@ -19,7 +19,16 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Comprehensive test suite with 52 tests covering all functionality
   - Test coverage at 92% for the new module, overall project at 94%+
 
-- [ ] Create `src/hamburglar/scanners/git.py` with a `GitScanner` class that: clones repositories to temp directory (supports HTTP/SSH URLs), extracts all commits using `git log --all -p`, scans current HEAD files, scans commit diffs for removed secrets, scans commit messages for sensitive info, cleans up temp directory after scan, supports local git directories (not just URLs)
+- [x] Create `src/hamburglar/scanners/git.py` with a `GitScanner` class that: clones repositories to temp directory (supports HTTP/SSH URLs), extracts all commits using `git log --all -p`, scans current HEAD files, scans commit diffs for removed secrets, scans commit messages for sensitive info, cleans up temp directory after scan, supports local git directories (not just URLs)
+  - Created GitScanner class implementing BaseScanner interface
+  - Features: clones remote repos (HTTP/HTTPS/SSH/git protocols) to temp directories, scans local git directories
+  - Scans current HEAD files for secrets, commit diffs for removed secrets, commit messages for sensitive info
+  - Options: include_history, depth, branch, clone_dir
+  - Async implementation with progress tracking and cancellation support
+  - Automatic cleanup of temp directories after scan
+  - Comprehensive test suite with 55 tests covering all functionality
+  - Exported from `hamburglar.scanners` module
+  - Test coverage at 95% for git.py, overall project at 94%+
 
 - [ ] Create `src/hamburglar/scanners/git_history.py` with a `GitHistoryScanner` class that: parses git log output efficiently, identifies files changed per commit, detects secrets that were added then removed, tracks secret lifetime (first seen, last seen commits), generates timeline of secret exposure
 

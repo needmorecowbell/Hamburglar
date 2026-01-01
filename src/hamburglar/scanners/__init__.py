@@ -125,5 +125,6 @@ class BaseScanner(ABC):
 
 
 from hamburglar.scanners.directory import DirectoryScanner
+from hamburglar.scanners.git import GitScanner
 
-__all__ = ["BaseScanner", "DirectoryScanner", "ProgressCallback"]
+__all__ = ["BaseScanner", "DirectoryScanner", "GitScanner", "ProgressCallback"]

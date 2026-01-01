@@ -120,7 +120,17 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Created comprehensive test suite `tests/test_regex_detector_expanded.py` with 38 tests covering all new features
   - All 1629 tests pass
 
-- [ ] Create `src/hamburglar/detectors/entropy_detector.py` with an `EntropyDetector` class that: calculates Shannon entropy of strings, identifies high-entropy strings that may be secrets, supports configurable entropy thresholds, excludes known false positives (UUIDs, hashes in comments)
+- [x] Create `src/hamburglar/detectors/entropy_detector.py` with an `EntropyDetector` class that: calculates Shannon entropy of strings, identifies high-entropy strings that may be secrets, supports configurable entropy thresholds, excludes known false positives (UUIDs, hashes in comments)
+  - Implemented `EntropyDetector` class with Shannon entropy calculation
+  - Configurable entropy thresholds (default 4.5, high 5.0)
+  - Base64 and hex encoding detection with optional exclusion filters
+  - False positive exclusion for: UUIDs, MD5 hashes, version strings, file paths, import statements, hash algorithm names, lorem ipsum, test values, repeated characters, sequential patterns
+  - Context-aware detection with `require_context` option to require secret-related keywords
+  - Severity determination based on entropy level, encoding type, and context
+  - Rich metadata including entropy value, encoding type, context snippet
+  - `analyze_string()` utility method for debugging and testing
+  - Configurable min/max string length bounds (default 16-256 chars)
+  - Max file size limit with warning for large files
 
 - [ ] Create `tests/fixtures/patterns/` directory with test files containing real-world-like examples for each pattern category
 
@@ -151,7 +161,21 @@ This phase dramatically expands Hamburglar's detection capabilities by porting a
   - Collection tests verify pattern count, categories, descriptions, regex validity, and unique names
   - Severity validation tests ensure private keys and seed phrases are CRITICAL
 
-- [ ] Create `tests/test_entropy_detector.py` with tests for: high entropy strings are detected, low entropy strings are ignored, base64 detection works, hex string detection works, configurable thresholds work
+- [x] Create `tests/test_entropy_detector.py` with tests for: high entropy strings are detected, low entropy strings are ignored, base64 detection works, hex string detection works, configurable thresholds work
+  - Created comprehensive test suite with 78 tests covering all entropy detector functionality
+  - `TestShannonEntropy`: 9 tests for entropy calculation (empty, single char, two char, low/medium/high entropy, max entropy, hex, base64)
+  - `TestBase64Detection`: 6 tests for base64 encoding detection (valid, padding, invalid chars, length validation)
+  - `TestHexDetection`: 6 tests for hex encoding detection (lowercase, uppercase, mixed case, invalid)
+  - `TestFalsePositiveDetection`: 12 tests for false positive exclusion (UUIDs, MD5, versions, paths, imports, hash names, etc.)
+  - `TestSecretContext`: 7 tests for secret context detection (password, secret, token, api_key, credential, encryption)
+  - `TestEntropyDetectorInit`: 5 tests for initialization options
+  - `TestEntropyDetectorDetection`: 13 tests for detection functionality (base64, hex, context, exclusions, limits)
+  - `TestEntropyDetectorSeverity`: 4 tests for severity level assignment
+  - `TestEntropyDetectorMetadata`: 5 tests for finding metadata
+  - `TestEntropyDetectorAnalyzeString`: 5 tests for analyze_string utility
+  - `TestConfigurableThresholds`: 2 tests for threshold configuration
+  - `TestEntropyDetectorIntegration`: 4 tests for realistic scenarios
+  - All 1707 tests pass (78 new + 1629 existing)
 
 - [ ] Update CLI to add `--categories/-c` option to enable/disable detector categories (e.g., `--categories api_keys,cloud` or `--no-categories generic`)
 

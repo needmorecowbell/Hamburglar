@@ -324,6 +324,72 @@ hamburglar report --since 7d
 hamburglar report --top 20
 ```
 
+### doctor
+
+Check Hamburglar's environment and configuration for issues.
+
+```bash
+hamburglar doctor [OPTIONS]
+```
+
+This command performs diagnostic checks to help troubleshoot issues or verify your installation is working correctly.
+
+**Checks Performed:**
+
+- **Python Version** - Verifies Python 3.9+ is installed
+- **Dependencies** - Checks all required packages are installed and meet minimum versions
+- **YARA** - Verifies yara-python is installed and functional
+- **Configuration** - Validates any config file found
+- **Plugin System** - Verifies plugin discovery is working
+- **Data Directory** - Checks `~/.hamburglar` directory status
+- **YARA Rules** - Verifies built-in YARA rules are accessible
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--verbose`, `-v` | `False` | Show detailed diagnostic information |
+| `--fix` | `False` | Attempt to fix any issues found (e.g., create missing directories) |
+| `--quiet`, `-q` | `False` | Only show errors and warnings, suppress success messages |
+
+**Examples:**
+
+```bash
+# Run health check
+hamburglar doctor
+
+# Verbose output with details
+hamburglar doctor -v
+
+# Attempt to fix issues
+hamburglar doctor --fix
+
+# Only show problems
+hamburglar doctor -q
+```
+
+**Output:**
+
+The command displays a table with status icons:
+
+| Icon | Meaning |
+|------|---------|
+| ✓ | Check passed |
+| ! | Warning (non-blocking issue) |
+| ✗ | Error (problem detected) |
+| ↻ | Issue was fixed |
+
+For any warnings or errors, the command shows:
+- Detailed description of the issue
+- Suggested fix or next steps
+
+**Exit Codes:**
+
+| Code | Description |
+|------|-------------|
+| `0` | All checks passed (may have warnings) |
+| `1` | One or more checks failed with errors |
+
 ## Command Groups
 
 ### plugins

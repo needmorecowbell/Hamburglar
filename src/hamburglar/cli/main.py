@@ -3524,6 +3524,467 @@ def report(
 
 
 # ============================================================================
+# Doctor command - System health checks
+# ============================================================================
+
+
+@app.command("doctor")
+def doctor(
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show detailed diagnostic information",
+        ),
+    ] = False,
+    fix: Annotated[
+        bool,
+        typer.Option(
+            "--fix",
+            help="Attempt to fix any issues found (e.g., create missing directories)",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Only show errors and warnings, suppress success messages",
+        ),
+    ] = False,
+) -> None:
+    """Check Hamburglar's environment and configuration for issues.
+
+    Performs diagnostic checks on:
+    - Python version compatibility
+    - Required dependencies installation
+    - YARA library installation and functionality
+    - Default configuration validity
+    - Plugin system status
+    - Default directories and paths
+
+    Use this command to troubleshoot issues or verify your installation
+    is working correctly.
+    """
+    from dataclasses import dataclass
+    from enum import Enum
+    from rich.table import Table
+    import importlib.metadata
+    import platform
+
+    class CheckStatus(str, Enum):
+        """Status for each diagnostic check."""
+        OK = "ok"
+        WARNING = "warning"
+        ERROR = "error"
+        FIXED = "fixed"
+
+    @dataclass
+    class CheckResult:
+        """Result of a diagnostic check."""
+        name: str
+        status: CheckStatus
+        message: str
+        details: str | None = None
+        suggestion: str | None = None
+
+    results: list[CheckResult] = []
+    has_errors = False
+    has_warnings = False
+
+    # -------------------------------------------------------------------------
+    # Check 1: Python version
+    # -------------------------------------------------------------------------
+    python_version = platform.python_version()
+    version_parts = tuple(map(int, python_version.split(".")[:2]))
+
+    if version_parts < (3, 9):
+        results.append(
+            CheckResult(
+                name="Python Version",
+                status=CheckStatus.ERROR,
+                message=f"Python {python_version} is not supported",
+                details=f"Hamburglar requires Python 3.9 or higher. You have Python {python_version}.",
+                suggestion="Upgrade to Python 3.9 or higher: https://www.python.org/downloads/",
+            )
+        )
+        has_errors = True
+    else:
+        results.append(
+            CheckResult(
+                name="Python Version",
+                status=CheckStatus.OK,
+                message=f"Python {python_version}",
+                details=f"Python {python_version} meets the minimum requirement (3.9+)." if verbose else None,
+            )
+        )
+
+    # -------------------------------------------------------------------------
+    # Check 2: Required dependencies
+    # -------------------------------------------------------------------------
+    required_packages = [
+        ("typer", "0.9.0"),
+        ("rich", "13.0.0"),
+        ("pydantic", "2.0.0"),
+        ("pydantic-settings", "2.0.0"),
+        ("charset-normalizer", "3.0.0"),
+        ("pyyaml", "6.0.0"),
+    ]
+
+    missing_packages = []
+    outdated_packages = []
+
+    for package_name, min_version in required_packages:
+        try:
+            installed_version = importlib.metadata.version(package_name)
+            # Simple version comparison (handles most semver cases)
+            installed_parts = installed_version.split(".")[:3]
+            min_parts = min_version.split(".")[:3]
+
+            def parse_version_part(part: str) -> int:
+                """Parse version part, handling suffixes like '0rc1'."""
+                import re
+                match = re.match(r"(\d+)", part)
+                return int(match.group(1)) if match else 0
+
+            installed_tuple = tuple(parse_version_part(p) for p in installed_parts)
+            min_tuple = tuple(parse_version_part(p) for p in min_parts)
+
+            if installed_tuple < min_tuple:
+                outdated_packages.append((package_name, installed_version, min_version))
+        except importlib.metadata.PackageNotFoundError:
+            missing_packages.append(package_name)
+
+    if missing_packages:
+        results.append(
+            CheckResult(
+                name="Dependencies",
+                status=CheckStatus.ERROR,
+                message=f"Missing packages: {', '.join(missing_packages)}",
+                details=f"The following required packages are not installed: {', '.join(missing_packages)}",
+                suggestion=f"Install with: pip install {' '.join(missing_packages)}",
+            )
+        )
+        has_errors = True
+    elif outdated_packages:
+        pkg_info = ", ".join(f"{p[0]} ({p[1]} < {p[2]})" for p in outdated_packages)
+        results.append(
+            CheckResult(
+                name="Dependencies",
+                status=CheckStatus.WARNING,
+                message=f"Outdated packages: {pkg_info}",
+                details=f"Some packages are below the minimum required version.",
+                suggestion=f"Upgrade with: pip install --upgrade {' '.join(p[0] for p in outdated_packages)}",
+            )
+        )
+        has_warnings = True
+    else:
+        results.append(
+            CheckResult(
+                name="Dependencies",
+                status=CheckStatus.OK,
+                message="All required packages installed",
+                details=f"Checked {len(required_packages)} packages." if verbose else None,
+            )
+        )
+
+    # -------------------------------------------------------------------------
+    # Check 3: YARA installation
+    # -------------------------------------------------------------------------
+    try:
+        import yara  # type: ignore
+        yara_version = yara.YARA_VERSION if hasattr(yara, "YARA_VERSION") else "unknown"
+
+        # Test basic YARA functionality
+        try:
+            test_rule = yara.compile(source='rule test { condition: true }')
+            results.append(
+                CheckResult(
+                    name="YARA",
+                    status=CheckStatus.OK,
+                    message=f"yara-python installed (YARA {yara_version})",
+                    details="YARA can compile and match rules successfully." if verbose else None,
+                )
+            )
+        except Exception as e:
+            results.append(
+                CheckResult(
+                    name="YARA",
+                    status=CheckStatus.WARNING,
+                    message=f"YARA installed but compilation failed",
+                    details=str(e),
+                    suggestion="Try reinstalling yara-python: pip install --force-reinstall yara-python",
+                )
+            )
+            has_warnings = True
+    except ImportError:
+        results.append(
+            CheckResult(
+                name="YARA",
+                status=CheckStatus.WARNING,
+                message="yara-python not installed",
+                details="YARA rule matching will not be available.",
+                suggestion="Install with: pip install yara-python",
+            )
+        )
+        has_warnings = True
+
+    # -------------------------------------------------------------------------
+    # Check 4: Configuration validation
+    # -------------------------------------------------------------------------
+    try:
+        from hamburglar.config import load_config, reset_config
+        from hamburglar.config.loader import ConfigLoader
+
+        reset_config()
+        loader = ConfigLoader()
+        config_file = loader.find_config_file()
+
+        if config_file:
+            errors = loader.validate_config_file(config_file)
+            if errors:
+                results.append(
+                    CheckResult(
+                        name="Configuration",
+                        status=CheckStatus.ERROR,
+                        message=f"Invalid config file: {config_file}",
+                        details="\n".join(f"  • {e}" for e in errors),
+                        suggestion="Run 'hamburglar config validate' for details, or fix the errors in your config file.",
+                    )
+                )
+                has_errors = True
+            else:
+                results.append(
+                    CheckResult(
+                        name="Configuration",
+                        status=CheckStatus.OK,
+                        message=f"Config file valid: {config_file.name}",
+                        details=f"Located at: {config_file}" if verbose else None,
+                    )
+                )
+        else:
+            # No config file - try loading defaults
+            config = load_config(use_file=False)
+            results.append(
+                CheckResult(
+                    name="Configuration",
+                    status=CheckStatus.OK,
+                    message="Using default configuration",
+                    details="No config file found; defaults are valid." if verbose else None,
+                )
+            )
+    except Exception as e:
+        results.append(
+            CheckResult(
+                name="Configuration",
+                status=CheckStatus.ERROR,
+                message="Failed to load configuration",
+                details=str(e),
+                suggestion="Check your config file syntax or run 'hamburglar config init' to create a new one.",
+            )
+        )
+        has_errors = True
+
+    # -------------------------------------------------------------------------
+    # Check 5: Plugin system
+    # -------------------------------------------------------------------------
+    try:
+        from hamburglar.plugins import get_plugin_manager, reset_plugin_manager
+        from hamburglar.plugins.discovery import list_plugins
+
+        reset_plugin_manager()
+        manager = get_plugin_manager()
+        manager.discover()
+
+        plugins = list(list_plugins(manager=manager))
+        detector_count = len([p for p in plugins if p.plugin_type == "detector"])
+        output_count = len([p for p in plugins if p.plugin_type == "output"])
+
+        results.append(
+            CheckResult(
+                name="Plugin System",
+                status=CheckStatus.OK,
+                message=f"Loaded {detector_count} detector(s), {output_count} output(s)",
+                details="Plugin discovery working correctly." if verbose else None,
+            )
+        )
+    except Exception as e:
+        results.append(
+            CheckResult(
+                name="Plugin System",
+                status=CheckStatus.WARNING,
+                message="Plugin discovery failed",
+                details=str(e),
+                suggestion="Check that plugin directories exist and are accessible.",
+            )
+        )
+        has_warnings = True
+
+    # -------------------------------------------------------------------------
+    # Check 6: Default database directory
+    # -------------------------------------------------------------------------
+    db_dir = Path.home() / ".hamburglar"
+
+    if db_dir.exists():
+        if db_dir.is_dir():
+            results.append(
+                CheckResult(
+                    name="Data Directory",
+                    status=CheckStatus.OK,
+                    message=f"Directory exists: ~/.hamburglar",
+                    details=f"Full path: {db_dir}" if verbose else None,
+                )
+            )
+        else:
+            results.append(
+                CheckResult(
+                    name="Data Directory",
+                    status=CheckStatus.ERROR,
+                    message="~/.hamburglar exists but is not a directory",
+                    details=f"{db_dir} should be a directory, not a file.",
+                    suggestion=f"Remove the file and let Hamburglar create the directory: rm {db_dir}",
+                )
+            )
+            has_errors = True
+    else:
+        if fix:
+            try:
+                db_dir.mkdir(parents=True, exist_ok=True)
+                results.append(
+                    CheckResult(
+                        name="Data Directory",
+                        status=CheckStatus.FIXED,
+                        message="Created directory: ~/.hamburglar",
+                        details=f"Created: {db_dir}" if verbose else None,
+                    )
+                )
+            except PermissionError:
+                results.append(
+                    CheckResult(
+                        name="Data Directory",
+                        status=CheckStatus.ERROR,
+                        message="Cannot create ~/.hamburglar directory",
+                        details="Permission denied when trying to create the directory.",
+                        suggestion="Create the directory manually or check permissions.",
+                    )
+                )
+                has_errors = True
+        else:
+            results.append(
+                CheckResult(
+                    name="Data Directory",
+                    status=CheckStatus.OK,
+                    message="Directory will be created when needed",
+                    details=f"~/.hamburglar does not exist yet (this is normal for new installations)." if verbose else None,
+                )
+            )
+
+    # -------------------------------------------------------------------------
+    # Check 7: Built-in YARA rules
+    # -------------------------------------------------------------------------
+    try:
+        from hamburglar.detectors.yara_detector import YaraDetector
+
+        # Get the default rules path
+        rules_path = Path(__file__).parent.parent / "rules"
+
+        if rules_path.exists():
+            yara_files = list(rules_path.glob("*.yar"))
+            if yara_files:
+                results.append(
+                    CheckResult(
+                        name="YARA Rules",
+                        status=CheckStatus.OK,
+                        message=f"Found {len(yara_files)} built-in rule file(s)",
+                        details=f"Rules directory: {rules_path}" if verbose else None,
+                    )
+                )
+            else:
+                results.append(
+                    CheckResult(
+                        name="YARA Rules",
+                        status=CheckStatus.WARNING,
+                        message="No .yar files in rules directory",
+                        details=f"Rules directory exists but is empty: {rules_path}",
+                        suggestion="Check that YARA rules were properly installed.",
+                    )
+                )
+                has_warnings = True
+        else:
+            results.append(
+                CheckResult(
+                    name="YARA Rules",
+                    status=CheckStatus.WARNING,
+                    message="Built-in rules directory not found",
+                    details=f"Expected at: {rules_path}",
+                    suggestion="This may indicate an incomplete installation. Try reinstalling Hamburglar.",
+                )
+            )
+            has_warnings = True
+    except ImportError:
+        # YARA not installed, already handled above
+        pass
+
+    # -------------------------------------------------------------------------
+    # Display results
+    # -------------------------------------------------------------------------
+    if not quiet:
+        console.print()
+        console.print(Panel("[bold]Hamburglar Doctor[/bold] - System Health Check", expand=False))
+        console.print()
+
+    # Create results table
+    table = Table(show_header=True, header_style="bold cyan", box=None)
+    table.add_column("Check", style="bold")
+    table.add_column("Status", width=8)
+    table.add_column("Result")
+
+    status_icons = {
+        CheckStatus.OK: "[green]✓[/green]",
+        CheckStatus.WARNING: "[yellow]![/yellow]",
+        CheckStatus.ERROR: "[red]✗[/red]",
+        CheckStatus.FIXED: "[cyan]↻[/cyan]",
+    }
+
+    for result in results:
+        if quiet and result.status == CheckStatus.OK:
+            continue
+
+        icon = status_icons[result.status]
+        table.add_row(result.name, icon, result.message)
+
+    if not quiet or has_errors or has_warnings:
+        console.print(table)
+        console.print()
+
+    # Show details and suggestions for problems
+    for result in results:
+        if result.status in (CheckStatus.WARNING, CheckStatus.ERROR):
+            color = "yellow" if result.status == CheckStatus.WARNING else "red"
+            console.print(f"[{color}]{result.name}:[/{color}]")
+            if result.details:
+                console.print(f"  [dim]{result.details}[/dim]")
+            if result.suggestion:
+                console.print(f"  [cyan]Suggestion:[/cyan] {result.suggestion}")
+            console.print()
+
+    # Summary
+    if not quiet:
+        if has_errors:
+            console.print("[red]✗ Some checks failed.[/red] Please address the errors above.")
+        elif has_warnings:
+            console.print("[yellow]! All checks passed with warnings.[/yellow]")
+        else:
+            console.print("[green]✓ All checks passed![/green] Hamburglar is ready to use.")
+
+    # Exit code based on results
+    if has_errors:
+        raise typer.Exit(code=EXIT_ERROR)
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
+# ============================================================================
 # Plugins command group
 # ============================================================================
 
@@ -4151,6 +4612,7 @@ def main(
     Use 'hamburglar scan-web <url>' to scan web URLs.
     Use 'hamburglar history' to view stored findings from previous scans.
     Use 'hamburglar report' to generate summary reports from stored data.
+    Use 'hamburglar doctor' to check your installation for issues.
     Use 'hamburglar plugins' to list and inspect installed plugins.
     Use 'hamburglar config' to manage configuration settings.
     """

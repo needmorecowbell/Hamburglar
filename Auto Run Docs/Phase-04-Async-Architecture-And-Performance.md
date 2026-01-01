@@ -181,7 +181,31 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Created 46 comprehensive tests in `tests/test_stats.py` covering all functionality
     - All 2157 tests pass with 99% coverage on stats.py
 
-- [ ] Add memory profiling utilities in `src/hamburglar/core/profiling.py` with: optional memory tracking, peak memory usage reporting, per-detector timing stats, exportable performance report
+- [x] Add memory profiling utilities in `src/hamburglar/core/profiling.py` with: optional memory tracking, peak memory usage reporting, per-detector timing stats, exportable performance report
+  - **Completed:** Created comprehensive profiling module with:
+    - `MemorySnapshot` dataclass for point-in-time memory usage (RSS, VMS, percent)
+    - `MemoryProfiler` class for optional memory tracking with:
+      - `start()` / `stop()` methods for profiling sessions
+      - `snapshot(label)` for intermediate memory measurements
+      - Peak memory tracking (RSS and VMS)
+      - Memory delta calculation between start and end
+      - Graceful degradation when psutil is unavailable
+    - `TimingStats` dataclass for operation timing (total, count, min, max, avg)
+    - `DetectorTimingStats` for per-detector timing with files processed and findings count
+    - `PerformanceReport` dataclass aggregating all performance metrics:
+      - Duration, files/second, bytes/second throughput
+      - Memory profiling results
+      - Per-detector timing breakdown
+      - Custom timing categories
+      - `to_dict()` and `to_json()` for exportable reports
+    - `PerformanceProfiler` class with context managers:
+      - `profile()` for overall scan profiling
+      - `time_detector(name)` for detector timing with findings callback
+      - `time_operation(name)` for custom operation timing
+    - Utility functions: `format_bytes()`, `force_gc()`, `get_current_memory_rss()`, `is_memory_tracking_available()`, `@timed` decorator
+    - Exported all classes from `hamburglar.core` package
+    - Created 72 comprehensive tests in `tests/test_profiling.py`
+    - All 2229 tests pass with 4 warnings
 
 - [ ] Create `tests/test_async_scanner.py` with tests for: async scanning produces same results as sync, concurrency limit is respected, cancellation works correctly, progress callbacks are called, streaming output works
 

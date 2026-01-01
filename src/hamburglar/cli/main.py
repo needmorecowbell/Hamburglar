@@ -2665,6 +2665,616 @@ def _display_statistics(
             print(formatted_output)
 
 
+def _generate_report_html(
+    statistics: "ScanStatistics",
+    top_detectors: list[tuple[str, int]],
+    top_files: list[tuple[str, int]],
+    title: str = "Hamburglar Security Report",
+) -> str:
+    """Generate an HTML report from statistics and aggregated data.
+
+    Args:
+        statistics: The ScanStatistics object with aggregate data.
+        top_detectors: List of (detector_name, count) tuples for most common finding types.
+        top_files: List of (file_path, count) tuples for files with most findings.
+        title: The report title.
+
+    Returns:
+        A self-contained HTML report string.
+    """
+    import html
+    from datetime import datetime
+
+    # Escape helper
+    def esc(s: str) -> str:
+        return html.escape(str(s))
+
+    # Format date/time for display
+    def fmt_datetime(dt: datetime | None) -> str:
+        if dt is None:
+            return "N/A"
+        return dt.strftime("%Y-%m-%d %H:%M")
+
+    # Build severity breakdown rows
+    severity_order = ["critical", "high", "medium", "low", "info"]
+    severity_colors = {
+        "critical": "#e74c3c",
+        "high": "#e67e22",
+        "medium": "#f1c40f",
+        "low": "#3498db",
+        "info": "#95a5a6",
+    }
+    severity_rows = []
+    for sev in severity_order:
+        count = statistics.findings_by_severity.get(sev, 0)
+        if count > 0:
+            color = severity_colors.get(sev, "#95a5a6")
+            severity_rows.append(
+                f'<tr><td><span style="color:{color};font-weight:bold;">'
+                f'{esc(sev.upper())}</span></td><td>{count}</td></tr>'
+            )
+
+    # Build detector breakdown rows
+    detector_rows = []
+    for det_name, count in top_detectors[:15]:
+        detector_rows.append(f'<tr><td>{esc(det_name)}</td><td>{count}</td></tr>')
+
+    # Build top files rows
+    file_rows = []
+    for file_path, count in top_files[:15]:
+        # Truncate long paths for display
+        display_path = file_path if len(file_path) <= 80 else "..." + file_path[-77:]
+        file_rows.append(
+            f'<tr><td title="{esc(file_path)}"><code>{esc(display_path)}</code></td>'
+            f'<td>{count}</td></tr>'
+        )
+
+    # Build trend data (scans by date, sorted chronologically)
+    sorted_dates = sorted(statistics.scans_by_date.items())
+    trend_rows = []
+    for date, count in sorted_dates[-30:]:  # Last 30 days
+        trend_rows.append(f'<tr><td>{esc(date)}</td><td>{count}</td></tr>')
+
+    # Generate report timestamp
+    report_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    html_content = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{esc(title)}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            padding: 2rem;
+        }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+        h1 {{
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid #3498db;
+        }}
+        .report-meta {{
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }}
+        .summary-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }}
+        .stat-card {{
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        .stat-card .value {{
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }}
+        .stat-card .label {{
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .section {{
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .section h2 {{
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+            font-size: 1.25rem;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+        }}
+        th, td {{
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }}
+        th {{
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }}
+        td:last-child {{
+            text-align: right;
+            font-weight: 500;
+        }}
+        tr:hover {{ background: #f8f9fa; }}
+        code {{
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            color: #e74c3c;
+        }}
+        .two-columns {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }}
+        @media (max-width: 768px) {{
+            .two-columns {{ grid-template-columns: 1fr; }}
+            body {{ padding: 1rem; }}
+        }}
+        .footer {{
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }}
+        .footer a {{ color: #3498db; text-decoration: none; }}
+        .empty-state {{
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            font-style: italic;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{esc(title)}</h1>
+        <p class="report-meta">
+            Generated: {esc(report_time)} |
+            Period: {fmt_datetime(statistics.first_scan_date)} to {fmt_datetime(statistics.last_scan_date)}
+        </p>
+
+        <div class="summary-grid">
+            <div class="stat-card">
+                <div class="value">{statistics.total_scans}</div>
+                <div class="label">Total Scans</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{statistics.total_findings}</div>
+                <div class="label">Total Findings</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{statistics.total_files_scanned}</div>
+                <div class="label">Files Scanned</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{statistics.average_findings_per_scan:.1f}</div>
+                <div class="label">Avg Findings/Scan</div>
+            </div>
+        </div>
+
+        <div class="two-columns">
+            <div class="section">
+                <h2>Findings by Severity</h2>
+                {'<table><thead><tr><th>Severity</th><th>Count</th></tr></thead><tbody>' + ''.join(severity_rows) + '</tbody></table>' if severity_rows else '<p class="empty-state">No findings recorded</p>'}
+            </div>
+            <div class="section">
+                <h2>Most Common Finding Types</h2>
+                {'<table><thead><tr><th>Detector</th><th>Count</th></tr></thead><tbody>' + ''.join(detector_rows) + '</tbody></table>' if detector_rows else '<p class="empty-state">No findings recorded</p>'}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Files with Most Findings</h2>
+            {'<table><thead><tr><th>File Path</th><th>Findings</th></tr></thead><tbody>' + ''.join(file_rows) + '</tbody></table>' if file_rows else '<p class="empty-state">No findings recorded</p>'}
+        </div>
+
+        <div class="section">
+            <h2>Scan Activity Over Time</h2>
+            {'<table><thead><tr><th>Date</th><th>Scans</th></tr></thead><tbody>' + ''.join(trend_rows) + '</tbody></table>' if trend_rows else '<p class="empty-state">No scan activity recorded</p>'}
+        </div>
+
+        <div class="footer">
+            Generated by <a href="https://github.com/needmorecowbell/Hamburglar">Hamburglar</a>
+        </div>
+    </div>
+</body>
+</html>'''
+    return html_content
+
+
+def _generate_report_markdown(
+    statistics: "ScanStatistics",
+    top_detectors: list[tuple[str, int]],
+    top_files: list[tuple[str, int]],
+    title: str = "Hamburglar Security Report",
+) -> str:
+    """Generate a Markdown report from statistics and aggregated data.
+
+    Args:
+        statistics: The ScanStatistics object with aggregate data.
+        top_detectors: List of (detector_name, count) tuples for most common finding types.
+        top_files: List of (file_path, count) tuples for files with most findings.
+        title: The report title.
+
+    Returns:
+        A GitHub-flavored Markdown report string.
+    """
+    from datetime import datetime
+
+    # Format date/time for display
+    def fmt_datetime(dt: datetime | None) -> str:
+        if dt is None:
+            return "N/A"
+        return dt.strftime("%Y-%m-%d %H:%M")
+
+    # Escape markdown special characters in table cells
+    def esc_md(s: str) -> str:
+        return str(s).replace("|", "\\|").replace("\n", " ")
+
+    report_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    lines = [
+        f"# {title}",
+        "",
+        f"**Generated:** {report_time}",
+        f"**Period:** {fmt_datetime(statistics.first_scan_date)} to {fmt_datetime(statistics.last_scan_date)}",
+        "",
+        "---",
+        "",
+        "## Summary",
+        "",
+        "| Metric | Value |",
+        "|--------|------:|",
+        f"| Total Scans | {statistics.total_scans} |",
+        f"| Total Findings | {statistics.total_findings} |",
+        f"| Files Scanned | {statistics.total_files_scanned} |",
+        f"| Avg Findings/Scan | {statistics.average_findings_per_scan:.1f} |",
+        f"| Avg Scan Duration | {statistics.average_scan_duration:.2f}s |",
+        "",
+    ]
+
+    # Severity breakdown
+    severity_order = ["critical", "high", "medium", "low", "info"]
+    severity_emojis = {
+        "critical": "\U0001F6A8",  # 🚨
+        "high": "\U0001F534",  # 🔴
+        "medium": "\U0001F7E0",  # 🟠
+        "low": "\U0001F535",  # 🔵
+        "info": "\U00002139\uFE0F",  # ℹ️
+    }
+
+    lines.append("## Findings by Severity")
+    lines.append("")
+    lines.append("| Severity | Count |")
+    lines.append("|----------|------:|")
+    for sev in severity_order:
+        count = statistics.findings_by_severity.get(sev, 0)
+        if count > 0:
+            emoji = severity_emojis.get(sev, "")
+            lines.append(f"| {emoji} {sev.upper()} | {count} |")
+    lines.append("")
+
+    # Most common finding types
+    lines.append("## Most Common Finding Types")
+    lines.append("")
+    if top_detectors:
+        lines.append("| Detector | Count |")
+        lines.append("|----------|------:|")
+        for det_name, count in top_detectors[:15]:
+            lines.append(f"| `{esc_md(det_name)}` | {count} |")
+    else:
+        lines.append("*No findings recorded*")
+    lines.append("")
+
+    # Files with most findings
+    lines.append("## Files with Most Findings")
+    lines.append("")
+    if top_files:
+        lines.append("| File Path | Findings |")
+        lines.append("|-----------|--------:|")
+        for file_path, count in top_files[:15]:
+            # Truncate long paths
+            display_path = file_path if len(file_path) <= 60 else "..." + file_path[-57:]
+            lines.append(f"| `{esc_md(display_path)}` | {count} |")
+    else:
+        lines.append("*No findings recorded*")
+    lines.append("")
+
+    # Trend over time
+    lines.append("## Scan Activity Over Time")
+    lines.append("")
+    sorted_dates = sorted(statistics.scans_by_date.items())
+    if sorted_dates:
+        lines.append("| Date | Scans |")
+        lines.append("|------|------:|")
+        for date, count in sorted_dates[-30:]:  # Last 30 days
+            lines.append(f"| {esc_md(date)} | {count} |")
+    else:
+        lines.append("*No scan activity recorded*")
+    lines.append("")
+
+    # Footer
+    lines.append("---")
+    lines.append("")
+    lines.append("*Generated by [Hamburglar](https://github.com/needmorecowbell/Hamburglar)*")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+@app.command("report")
+def report(
+    output: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--output",
+            "-o",
+            help="Write report to file instead of stdout",
+        ),
+    ] = None,
+    format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (html, markdown)",
+            case_sensitive=False,
+        ),
+    ] = "html",
+    since: Annotated[
+        Optional[str],
+        typer.Option(
+            "--since",
+            "-s",
+            help="Include findings since date/time. Accepts ISO format (YYYY-MM-DD) "
+            "or relative format (1d=1 day, 7d=7 days, 24h=24 hours, 2w=2 weeks, 1m=1 month)",
+        ),
+    ] = None,
+    until: Annotated[
+        Optional[str],
+        typer.Option(
+            "--until",
+            help="Include findings until date/time. Same format as --since",
+        ),
+    ] = None,
+    title: Annotated[
+        str,
+        typer.Option(
+            "--title",
+            "-t",
+            help="Custom report title",
+        ),
+    ] = "Hamburglar Security Report",
+    top_n: Annotated[
+        int,
+        typer.Option(
+            "--top",
+            "-n",
+            help="Number of items to show in 'top' lists (detectors, files)",
+            min=1,
+            max=100,
+        ),
+    ] = 15,
+    db_path: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--db-path",
+            help="Path to SQLite database file. Default: ~/.hamburglar/findings.db",
+            resolve_path=True,
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Enable verbose output",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option(
+            "--quiet",
+            "-q",
+            help="Suppress non-error output (only show errors)",
+        ),
+    ] = False,
+) -> None:
+    """Generate a summary report from the database.
+
+    Creates comprehensive HTML or Markdown reports showing:
+    - Summary statistics (total scans, findings, files scanned)
+    - Findings breakdown by severity
+    - Most common finding types (detectors with most findings)
+    - Files with the most findings
+    - Scan activity trends over time
+
+    Examples:
+        hamburglar report                      # HTML report to stdout
+        hamburglar report -o report.html       # Save HTML report to file
+        hamburglar report -f markdown -o r.md  # Save Markdown report
+        hamburglar report --since 7d           # Report for last 7 days
+        hamburglar report --top 20             # Show top 20 items in lists
+
+    Exit codes:
+        0: Success
+        1: Error occurred
+        2: No data in database
+    """
+    from hamburglar.storage import FindingFilter, ScanFilter
+
+    # Set up logging based on verbosity
+    if not quiet:
+        setup_logging(verbose=verbose)
+
+    # Validate format option
+    format_lower = format.lower()
+    valid_report_formats = {"html", "markdown", "md"}
+    if format_lower not in valid_report_formats:
+        _display_error(
+            ConfigError(
+                f"Invalid format '{format}'. Valid formats for report: html, markdown",
+                config_key="format",
+            )
+        )
+        raise typer.Exit(code=EXIT_ERROR)
+
+    # Normalize markdown format name
+    if format_lower == "md":
+        format_lower = "markdown"
+
+    # Parse date filters
+    since_dt: datetime | None = None
+    until_dt: datetime | None = None
+
+    if since:
+        try:
+            since_dt = parse_date(since)
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="since"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    if until:
+        try:
+            until_dt = parse_date(until)
+        except typer.BadParameter as e:
+            _display_error(ConfigError(str(e), config_key="until"))
+            raise typer.Exit(code=EXIT_ERROR) from None
+
+    # Get database path
+    resolved_db_path = get_db_path(db_path)
+
+    # Check if database exists
+    if not resolved_db_path.exists():
+        if not quiet:
+            console.print(
+                f"[yellow]No database found at:[/yellow] {resolved_db_path}\n"
+                "[dim]Run a scan with --save-to-db to create the database.[/dim]"
+            )
+        raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+    if verbose and not quiet:
+        console.print(f"[dim]Database:[/dim] {resolved_db_path}")
+        console.print(f"[dim]Format:[/dim] {format_lower}")
+        if since_dt:
+            console.print(f"[dim]Since:[/dim] {since_dt.isoformat()}")
+        if until_dt:
+            console.print(f"[dim]Until:[/dim] {until_dt.isoformat()}")
+        console.print(f"[dim]Top N:[/dim] {top_n}")
+
+    try:
+        with SqliteStorage(resolved_db_path) as storage:
+            # Get statistics
+            statistics = storage.get_statistics()
+
+            # Check if there's any data
+            if statistics.total_scans == 0:
+                if not quiet:
+                    console.print("[yellow]No scan data in database.[/yellow]")
+                raise typer.Exit(code=EXIT_NO_FINDINGS)
+
+            # Get findings for aggregation (with date filter if specified)
+            finding_filter = FindingFilter(
+                since=since_dt,
+                until=until_dt,
+            )
+            findings = storage.get_findings(finding_filter)
+
+            # Aggregate: files with most findings
+            files_count: dict[str, int] = {}
+            for finding in findings:
+                files_count[finding.file_path] = files_count.get(finding.file_path, 0) + 1
+            top_files = sorted(files_count.items(), key=lambda x: x[1], reverse=True)[:top_n]
+
+            # Get top detectors (already in statistics, but recompute for filtered data if needed)
+            if since_dt or until_dt:
+                # Recompute detector counts from filtered findings
+                detector_count: dict[str, int] = {}
+                for finding in findings:
+                    detector_count[finding.detector_name] = detector_count.get(finding.detector_name, 0) + 1
+                top_detectors = sorted(detector_count.items(), key=lambda x: x[1], reverse=True)[:top_n]
+            else:
+                # Use statistics data
+                top_detectors = sorted(
+                    statistics.findings_by_detector.items(),
+                    key=lambda x: x[1],
+                    reverse=True,
+                )[:top_n]
+
+            # Generate report
+            if format_lower == "html":
+                report_content = _generate_report_html(
+                    statistics=statistics,
+                    top_detectors=top_detectors,
+                    top_files=top_files,
+                    title=title,
+                )
+            else:  # markdown
+                report_content = _generate_report_markdown(
+                    statistics=statistics,
+                    top_detectors=top_detectors,
+                    top_files=top_files,
+                    title=title,
+                )
+
+            # Write to file or stdout
+            if output:
+                try:
+                    output.write_text(report_content)
+                    if not quiet:
+                        console.print(f"[green]Report written to:[/green] {output}")
+                except PermissionError as e:
+                    _display_error(e)
+                    raise typer.Exit(code=EXIT_ERROR) from None
+                except OSError as e:
+                    _display_error(OutputError(f"Failed to write report file: {e}", output_path=str(output)))
+                    raise typer.Exit(code=EXIT_ERROR) from None
+            elif not quiet:
+                print(report_content)
+
+    except typer.Exit:
+        raise
+    except StorageError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except PermissionError as e:
+        _display_error(e)
+        raise typer.Exit(code=EXIT_ERROR) from None
+    except Exception as e:
+        _display_error(e, title="Error generating report")
+        raise typer.Exit(code=EXIT_ERROR) from None
+
+    raise typer.Exit(code=EXIT_SUCCESS)
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -2684,6 +3294,7 @@ def main(
     Use 'hamburglar scan-git <url/path>' to scan git repositories.
     Use 'hamburglar scan-web <url>' to scan web URLs.
     Use 'hamburglar history' to view stored findings from previous scans.
+    Use 'hamburglar report' to generate summary reports from stored data.
     """
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())

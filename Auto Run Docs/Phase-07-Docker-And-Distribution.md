@@ -52,7 +52,15 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Excludes __pycache__, *.py[cod], *.so, .DS_Store, and *.egg-info artifacts
   - All 3445 existing tests pass
 
-- [ ] Update `src/hamburglar/__init__.py` to expose main API classes: Scanner, ScanConfig, ScanResult, Finding for library usage
+- [x] Update `src/hamburglar/__init__.py` to expose main API classes: Scanner, ScanConfig, ScanResult, Finding for library usage
+  - Exposed core API classes: Scanner, ScanConfig, ScanResult, Finding
+  - Added additional useful exports: Severity, OutputFormat, GitFinding, WebFinding
+  - Exposed detector base classes: BaseDetector, DetectorRegistry, default_registry
+  - Exposed exception hierarchy: HamburglarError, ScanError
+  - Added docstring example showing typical library usage pattern
+  - Defined comprehensive __all__ for explicit public API
+  - Created tests/test_package_exports.py with 16 tests validating all exports
+  - All 3461 existing tests pass
 
 - [ ] Create `src/hamburglar/api.py` with high-level API functions: `scan_directory(path, **options) -> ScanResult`, `scan_git(url, **options) -> ScanResult`, `scan_url(url, **options) -> ScanResult` for simple library usage
 

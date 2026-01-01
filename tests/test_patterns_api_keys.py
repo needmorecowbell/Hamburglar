@@ -1262,7 +1262,9 @@ class TestAPIKeyPatternsCollection:
 
     def test_all_patterns_in_collection(self) -> None:
         """Test that all defined patterns are in the collection."""
-        assert len(API_KEY_PATTERNS) == 38
+        # 38 original + 5 legacy patterns (Facebook OAuth, Twitter OAuth,
+        # GitHub legacy, Heroku legacy, Generic Secret legacy)
+        assert len(API_KEY_PATTERNS) == 43
 
     def test_all_patterns_are_api_keys_category(self) -> None:
         """Test that all patterns have API_KEYS category."""

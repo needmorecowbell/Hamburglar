@@ -994,7 +994,9 @@ class TestCryptoPatternsCollection:
 
     def test_all_patterns_in_collection(self) -> None:
         """Test that expected number of patterns are in the collection."""
-        assert len(CRYPTO_PATTERNS) == 33
+        # 33 original + 5 legacy patterns (BITCOIN_XPUB_KEY, BITCOIN_URI,
+        # BITCOIN_CASH_ADDRESS, DASH_ADDRESS, NEO_ADDRESS)
+        assert len(CRYPTO_PATTERNS) == 38
 
     def test_all_patterns_are_crypto_category(self) -> None:
         """Test that all patterns have CRYPTO category."""

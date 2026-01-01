@@ -19,7 +19,13 @@ This phase completes the modernization by ensuring all functionality from the or
   - Updated `src/hamburglar/compat/__init__.py` to export all legacy pattern utilities
   - Created comprehensive test suite in `tests/test_legacy_compat.py` with 73 tests covering all patterns
 
-- [ ] Audit original hamburglar.py `regexList` dictionary against new patterns, create list of any missing patterns, and add them to appropriate pattern modules
+- [x] Audit original hamburglar.py `regexList` dictionary against new patterns, create list of any missing patterns, and add them to appropriate pattern modules
+  - Audited all 27 patterns from original `regexList` dictionary against new pattern library
+  - **Crypto patterns added to `crypto.py`:** BITCOIN_XPUB_KEY, BITCOIN_URI, BITCOIN_CASH_ADDRESS, DASH_ADDRESS, NEO_ADDRESS
+  - **Generic patterns added to `generic.py`:** EMAIL_ADDRESS, PHONE_NUMBER_US, PHONE_NUMBER_INTL, URL_HTTP
+  - **API patterns added to `api_keys.py`:** FACEBOOK_OAUTH_TOKEN, TWITTER_OAUTH_TOKEN, GITHUB_TOKEN_LEGACY, HEROKU_API_KEY_LEGACY, GENERIC_SECRET_LEGACY
+  - Updated pattern collection counts in tests (crypto: 33→38, generic: 29→33, api_keys: 38→43)
+  - All 4216 tests pass with no regressions
 
 - [ ] Create `src/hamburglar/utils/hexdump.py` with modernized hexdump functionality from original: `hexdump(file_path) -> str` function, same output format as original for compatibility, add optional color output using rich
 

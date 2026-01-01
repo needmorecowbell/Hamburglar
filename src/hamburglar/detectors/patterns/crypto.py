@@ -147,6 +147,56 @@ LITECOIN_ADDRESS_BECH32 = Pattern(
     confidence=Confidence.HIGH,
 )
 
+# Bitcoin Extended Public Key (HD wallet)
+BITCOIN_XPUB_KEY = Pattern(
+    name="bitcoin_xpub_key",
+    regex=r"\b(xpub[a-km-zA-HJ-NP-Z1-9]{100,108})(\?c=\d*&h=bip\d{2,3})?\b",
+    severity=Severity.HIGH,
+    category=PatternCategory.CRYPTO,
+    description="Bitcoin xpub Key - Extended public key for HD wallets",
+    confidence=Confidence.HIGH,
+)
+
+# Bitcoin URI Pattern
+BITCOIN_URI = Pattern(
+    name="bitcoin_uri",
+    regex=r"bitcoin:([13][a-km-zA-HJ-NP-Z1-9]{25,34})",
+    severity=Severity.MEDIUM,
+    category=PatternCategory.CRYPTO,
+    description="Bitcoin URI - bitcoin: protocol URI with address",
+    confidence=Confidence.HIGH,
+)
+
+# Bitcoin Cash Address (legacy format)
+BITCOIN_CASH_ADDRESS = Pattern(
+    name="bitcoin_cash_address",
+    regex=r"\b[13][a-km-zA-HJ-NP-Z1-9]{33}\b",
+    severity=Severity.MEDIUM,
+    category=PatternCategory.CRYPTO,
+    description="Bitcoin Cash Address - BCH legacy address format (33 chars)",
+    confidence=Confidence.MEDIUM,
+)
+
+# Dash Cryptocurrency Address
+DASH_ADDRESS = Pattern(
+    name="dash_address",
+    regex=r"\bX[1-9A-HJ-NP-Za-km-z]{33}\b",
+    severity=Severity.MEDIUM,
+    category=PatternCategory.CRYPTO,
+    description="Dash Address - Dash cryptocurrency address starting with X",
+    confidence=Confidence.HIGH,
+)
+
+# NEO Cryptocurrency Address
+NEO_ADDRESS = Pattern(
+    name="neo_address",
+    regex=r"\bA[0-9a-zA-Z]{33}\b",
+    severity=Severity.MEDIUM,
+    category=PatternCategory.CRYPTO,
+    description="NEO Address - NEO blockchain address starting with A",
+    confidence=Confidence.MEDIUM,
+)
+
 # Dogecoin Patterns
 DOGECOIN_ADDRESS = Pattern(
     name="dogecoin_address",
@@ -328,6 +378,10 @@ CRYPTO_PATTERNS: list[Pattern] = [
     # Bitcoin private keys
     BITCOIN_PRIVATE_KEY_WIF_UNCOMPRESSED,
     BITCOIN_PRIVATE_KEY_WIF_COMPRESSED,
+    # Bitcoin extended and URI
+    BITCOIN_XPUB_KEY,
+    BITCOIN_URI,
+    BITCOIN_CASH_ADDRESS,
     # Ethereum
     ETHEREUM_ADDRESS,
     ETHEREUM_PRIVATE_KEY,
@@ -340,6 +394,9 @@ CRYPTO_PATTERNS: list[Pattern] = [
     LITECOIN_ADDRESS_LEGACY,
     LITECOIN_ADDRESS_P2SH,
     LITECOIN_ADDRESS_BECH32,
+    # Other altcoins
+    DASH_ADDRESS,
+    NEO_ADDRESS,
     # Dogecoin
     DOGECOIN_ADDRESS,
     DOGECOIN_ADDRESS_P2SH,
@@ -378,6 +435,10 @@ __all__ = [
     # Bitcoin private keys
     "BITCOIN_PRIVATE_KEY_WIF_UNCOMPRESSED",
     "BITCOIN_PRIVATE_KEY_WIF_COMPRESSED",
+    # Bitcoin extended and URI
+    "BITCOIN_XPUB_KEY",
+    "BITCOIN_URI",
+    "BITCOIN_CASH_ADDRESS",
     # Ethereum
     "ETHEREUM_ADDRESS",
     "ETHEREUM_PRIVATE_KEY",
@@ -390,6 +451,9 @@ __all__ = [
     "LITECOIN_ADDRESS_LEGACY",
     "LITECOIN_ADDRESS_P2SH",
     "LITECOIN_ADDRESS_BECH32",
+    # Other altcoins
+    "DASH_ADDRESS",
+    "NEO_ADDRESS",
     # Dogecoin
     "DOGECOIN_ADDRESS",
     "DOGECOIN_ADDRESS_P2SH",

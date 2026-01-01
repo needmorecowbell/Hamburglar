@@ -877,7 +877,9 @@ class TestGenericPatternsCollection:
 
     def test_all_patterns_in_collection(self) -> None:
         """Test that all defined patterns are in the collection."""
-        assert len(GENERIC_PATTERNS) == 29
+        # 29 original + 4 legacy patterns (EMAIL_ADDRESS, PHONE_NUMBER_US,
+        # PHONE_NUMBER_INTL, URL_HTTP)
+        assert len(GENERIC_PATTERNS) == 33
 
     def test_all_patterns_are_generic_category(self) -> None:
         """Test that all patterns have GENERIC category."""

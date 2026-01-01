@@ -9,6 +9,51 @@ lower confidence than service-specific patterns.
 from hamburglar.core.models import Severity
 from hamburglar.detectors.patterns import Confidence, Pattern, PatternCategory
 
+
+# =============================================================================
+# Contact Information Patterns (from legacy hamburglar.py)
+# =============================================================================
+
+# Email Address Pattern
+EMAIL_ADDRESS = Pattern(
+    name="email_address",
+    regex=r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+    severity=Severity.LOW,
+    category=PatternCategory.GENERIC,
+    description="Email Address - matches email addresses in text",
+    confidence=Confidence.MEDIUM,
+)
+
+# US Phone Number Pattern
+PHONE_NUMBER_US = Pattern(
+    name="phone_number_us",
+    regex=r"\(?[2-9][0-9]{2}\)?[-. ]?[2-9][0-9]{2}[-. ]?[0-9]{4}",
+    severity=Severity.LOW,
+    category=PatternCategory.GENERIC,
+    description="Phone Number (US) - US format phone numbers",
+    confidence=Confidence.MEDIUM,
+)
+
+# International Phone Number Pattern
+PHONE_NUMBER_INTL = Pattern(
+    name="phone_number_intl",
+    regex=r"\+[1-9][0-9]{6,14}",
+    severity=Severity.LOW,
+    category=PatternCategory.GENERIC,
+    description="Phone Number (International) - E.164 format phone numbers",
+    confidence=Confidence.MEDIUM,
+)
+
+# URL/Site Pattern (from legacy)
+URL_HTTP = Pattern(
+    name="url_http",
+    regex=r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(?:[/?#][^\s]*)?",
+    severity=Severity.LOW,
+    category=PatternCategory.GENERIC,
+    description="URL - HTTP/HTTPS URLs",
+    confidence=Confidence.HIGH,
+)
+
 # Generic API Key Patterns
 GENERIC_API_KEY = Pattern(
     name="generic_api_key",
@@ -298,6 +343,11 @@ HIGH_ENTROPY_STRING = Pattern(
 
 # Collect all patterns for easy import
 GENERIC_PATTERNS: list[Pattern] = [
+    # Contact information patterns
+    EMAIL_ADDRESS,
+    PHONE_NUMBER_US,
+    PHONE_NUMBER_INTL,
+    URL_HTTP,
     # API Key patterns
     GENERIC_API_KEY,
     GENERIC_API_KEY_INLINE,
@@ -341,6 +391,11 @@ GENERIC_PATTERNS: list[Pattern] = [
 
 __all__ = [
     "GENERIC_PATTERNS",
+    # Contact information patterns
+    "EMAIL_ADDRESS",
+    "PHONE_NUMBER_US",
+    "PHONE_NUMBER_INTL",
+    "URL_HTTP",
     # API Key patterns
     "GENERIC_API_KEY",
     "GENERIC_API_KEY_INLINE",

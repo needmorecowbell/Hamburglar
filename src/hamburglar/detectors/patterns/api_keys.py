@@ -348,6 +348,61 @@ NEW_RELIC_LICENSE_KEY = Pattern(
     confidence=Confidence.HIGH,
 )
 
+
+# =============================================================================
+# Legacy OAuth Patterns (from original hamburglar.py)
+# =============================================================================
+
+# Facebook OAuth Token (legacy pattern from hamburglar.py)
+FACEBOOK_OAUTH_TOKEN = Pattern(
+    name="facebook_oauth_token",
+    regex=r"[fF][aA][cC][eE][bB][oO][oO][kK].*['\"][0-9a-f]{32}['\"]",
+    severity=Severity.CRITICAL,
+    category=PatternCategory.API_KEYS,
+    description="Facebook OAuth Token - Facebook OAuth token or secret",
+    confidence=Confidence.HIGH,
+)
+
+# Twitter OAuth Token (legacy pattern from hamburglar.py)
+TWITTER_OAUTH_TOKEN = Pattern(
+    name="twitter_oauth_token",
+    regex=r"[tT][wW][iI][tT][tT][eE][rR].*['\"][0-9a-zA-Z]{35,44}['\"]",
+    severity=Severity.CRITICAL,
+    category=PatternCategory.API_KEYS,
+    description="Twitter OAuth Token - Twitter OAuth token or secret",
+    confidence=Confidence.HIGH,
+)
+
+# GitHub Legacy Token (legacy pattern from hamburglar.py, different from modern ghp_ style)
+GITHUB_TOKEN_LEGACY = Pattern(
+    name="github_token_legacy",
+    regex=r"[gG][iI][tT][hH][uU][bB].*['\"][0-9a-zA-Z]{35,40}['\"]",
+    severity=Severity.CRITICAL,
+    category=PatternCategory.API_KEYS,
+    description="GitHub Token (Legacy) - GitHub token in original format",
+    confidence=Confidence.MEDIUM,
+)
+
+# Heroku API Key Legacy (legacy pattern from hamburglar.py with case-insensitive context)
+HEROKU_API_KEY_LEGACY = Pattern(
+    name="heroku_api_key_legacy",
+    regex=r"[hH][eE][rR][oO][kK][uU].*[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}",
+    severity=Severity.CRITICAL,
+    category=PatternCategory.API_KEYS,
+    description="Heroku API Key (Legacy) - Heroku API key in original format",
+    confidence=Confidence.HIGH,
+)
+
+# Generic Secret (legacy pattern from hamburglar.py)
+GENERIC_SECRET_LEGACY = Pattern(
+    name="generic_secret_legacy",
+    regex=r"[sS][eE][cC][rR][eE][tT].*['\"][0-9a-zA-Z]{32,45}['\"]",
+    severity=Severity.HIGH,
+    category=PatternCategory.API_KEYS,
+    description="Generic Secret (Legacy) - Secret values in original format",
+    confidence=Confidence.MEDIUM,
+)
+
 NEW_RELIC_API_KEY = Pattern(
     name="new_relic_api_key",
     regex=r"NRAK-[0-9A-Z]{27}",
@@ -407,6 +462,12 @@ API_KEY_PATTERNS: list[Pattern] = [
     NEW_RELIC_LICENSE_KEY,
     NEW_RELIC_API_KEY,
     NEW_RELIC_INSIGHTS_KEY,
+    # Legacy OAuth patterns (from original hamburglar.py)
+    FACEBOOK_OAUTH_TOKEN,
+    TWITTER_OAUTH_TOKEN,
+    GITHUB_TOKEN_LEGACY,
+    HEROKU_API_KEY_LEGACY,
+    GENERIC_SECRET_LEGACY,
 ]
 
 __all__ = [
@@ -449,4 +510,10 @@ __all__ = [
     "NEW_RELIC_LICENSE_KEY",
     "NEW_RELIC_API_KEY",
     "NEW_RELIC_INSIGHTS_KEY",
+    # Legacy OAuth patterns
+    "FACEBOOK_OAUTH_TOKEN",
+    "TWITTER_OAUTH_TOKEN",
+    "GITHUB_TOKEN_LEGACY",
+    "HEROKU_API_KEY_LEGACY",
+    "GENERIC_SECRET_LEGACY",
 ]

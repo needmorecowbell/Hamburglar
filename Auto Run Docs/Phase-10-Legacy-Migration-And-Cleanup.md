@@ -156,7 +156,20 @@ This phase completes the modernization by ensuring all functionality from the or
   - Dry-run and benchmark modes
   - Real-time streaming output
 
-- [ ] Create `MIGRATION.md` documenting: CLI flag changes (old flag -> new flag), output format changes, configuration changes, removed features and alternatives, new features available
+- [x] Create `MIGRATION.md` documenting: CLI flag changes (old flag -> new flag), output format changes, configuration changes, removed features and alternatives, new features available
+  - Created comprehensive `MIGRATION.md` with:
+    - Complete CLI flag mapping table (v1 → v2 flags)
+    - Subcommand structure changes (`-g` → `scan-git`, `-w` → `scan-web`, `-x` → `hexdump`)
+    - Detailed examples for each scan type with before/after comparisons
+    - JSON output format changes (simple dict → rich metadata structure)
+    - New output formats table (table, json, csv, html, markdown, sarif)
+    - Configuration migration from `ham.conf` INI to TOML format
+    - Configuration file locations and environment variable support
+    - Blacklist/whitelist migration from hardcoded to configurable
+    - Removed features with rationale and alternatives (MySQL signatures, newspaper3k, threading)
+    - New features overview (categories, confidence filtering, SQLite storage, git history, streaming, doctor, plugins)
+    - Installation changes (requirements.txt → pyproject.toml)
+    - Common migration scenarios for CI/CD, regular scans, git audits, web scans
 
 - [ ] Create `scripts/migrate-config.py` that: converts old ham.conf to new YAML format, handles MySQL credential migration, provides interactive prompts for new options
 

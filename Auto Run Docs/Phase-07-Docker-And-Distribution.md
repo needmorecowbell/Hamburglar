@@ -62,7 +62,17 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Created tests/test_package_exports.py with 16 tests validating all exports
   - All 3461 existing tests pass
 
-- [ ] Create `src/hamburglar/api.py` with high-level API functions: `scan_directory(path, **options) -> ScanResult`, `scan_git(url, **options) -> ScanResult`, `scan_url(url, **options) -> ScanResult` for simple library usage
+- [x] Create `src/hamburglar/api.py` with high-level API functions: `scan_directory(path, **options) -> ScanResult`, `scan_git(url, **options) -> ScanResult`, `scan_url(url, **options) -> ScanResult` for simple library usage
+  - Created high-level API module at src/hamburglar/api.py with three main functions
+  - scan_directory: Scans local directories/files with pattern filtering, category filtering, and custom detector support
+  - scan_git: Scans git repositories (remote URL or local path) with history scanning and depth control
+  - scan_url: Scans web URLs with configurable depth, script scanning, and robots.txt respect
+  - Added _create_detectors helper for configuring RegexDetector with expanded patterns and filtering
+  - Exposed all functions from hamburglar package: scan_directory, scan_git, scan_url plus aliases (scan, scan_dir, scan_repo, scan_web)
+  - Updated package __init__.py with new API in docstring example
+  - Created comprehensive tests/test_api.py with 39 tests covering all functions, options, aliases, and exports
+  - Updated tests/test_package_exports.py to include new API functions in __all__ validation
+  - All 3500 tests pass
 
 - [ ] Create `scripts/docker-build.sh` that: builds Docker image with proper tags, runs basic smoke test, optionally pushes to registry
 

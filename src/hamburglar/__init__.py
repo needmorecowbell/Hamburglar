@@ -7,19 +7,28 @@ including regex pattern matching and YARA rules.
 
 Example usage::
 
+    # High-level API (recommended)
+    import asyncio
+    from hamburglar import scan_directory, scan_git, scan_url
+
+    # Scan a directory for secrets
+    result = asyncio.run(scan_directory("/path/to/code"))
+    for finding in result.findings:
+        print(f"{finding.file_path}: {finding.detector_name}")
+
+    # Scan a git repository
+    result = asyncio.run(scan_git("https://github.com/user/repo"))
+
+    # Scan a URL
+    result = asyncio.run(scan_url("https://example.com"))
+
+    # Low-level API (for more control)
     from hamburglar import Scanner, ScanConfig, Finding
     from pathlib import Path
 
-    # Create a scan configuration
     config = ScanConfig(target_path=Path("/path/to/scan"))
-
-    # Create and run the scanner
     scanner = Scanner(config)
     result = await scanner.scan()
-
-    # Process findings
-    for finding in result.findings:
-        print(f"{finding.file_path}: {finding.detector_name} - {finding.severity}")
 """
 
 __version__ = "2.0.0"
@@ -44,9 +53,28 @@ from hamburglar.detectors import BaseDetector, DetectorRegistry, default_registr
 # Exceptions
 from hamburglar.core.exceptions import HamburglarError, ScanError
 
+# High-level API functions
+from hamburglar.api import (
+    scan_directory,
+    scan_git,
+    scan_url,
+    scan,
+    scan_dir,
+    scan_repo,
+    scan_web,
+)
+
 __all__ = [
     # Version
     "__version__",
+    # High-level API functions
+    "scan_directory",
+    "scan_git",
+    "scan_url",
+    "scan",
+    "scan_dir",
+    "scan_repo",
+    "scan_web",
     # Core scanner
     "Scanner",
     # Data models

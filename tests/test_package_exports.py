@@ -120,6 +120,15 @@ def test_all_exports_in_dunder_all():
 
     expected_exports = [
         "__version__",
+        # High-level API functions
+        "scan_directory",
+        "scan_git",
+        "scan_url",
+        "scan",
+        "scan_dir",
+        "scan_repo",
+        "scan_web",
+        # Core scanner
         "Scanner",
         "Finding",
         "GitFinding",

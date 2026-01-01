@@ -119,3 +119,21 @@ class OutputRegistry:
 
 # Global registry instance for convenience
 default_registry = OutputRegistry()
+
+# Lazy imports to avoid circular import issues
+# These imports are placed after BaseOutput and OutputRegistry are defined
+# so that submodules can import from this package
+from hamburglar.outputs.streaming import (
+    NDJSONStreamWriter,
+    StreamingOutput,
+    stream_to_ndjson,
+)
+
+__all__ = [
+    "BaseOutput",
+    "NDJSONStreamWriter",
+    "OutputRegistry",
+    "StreamingOutput",
+    "default_registry",
+    "stream_to_ndjson",
+]

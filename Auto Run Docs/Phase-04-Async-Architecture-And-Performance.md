@@ -51,7 +51,27 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Created 42 comprehensive tests in `tests/test_progress.py` covering all functionality
     - All 1912 tests pass with 93% overall coverage (progress.py at 96%)
 
-- [ ] Create `src/hamburglar/outputs/streaming.py` with a `StreamingOutput` class that: yields findings as they're discovered, supports NDJSON (newline-delimited JSON) format, provides async iterator interface, allows real-time piping to other tools
+- [x] Create `src/hamburglar/outputs/streaming.py` with a `StreamingOutput` class that: yields findings as they're discovered, supports NDJSON (newline-delimited JSON) format, provides async iterator interface, allows real-time piping to other tools
+  - **Completed:** Created comprehensive streaming output module with:
+    - `StreamingOutput` class extending `BaseOutput` with NDJSON (newline-delimited JSON) format
+    - `format_finding()` method for single finding JSON serialization
+    - `stream_findings()` async generator for real-time streaming of findings
+    - `write_stream()` method for direct output to file-like objects with optional flushing
+    - `collect_findings()` method for collecting findings with optional max limit
+    - `NDJSONStreamWriter` class for buffered output with backpressure handling:
+      - Configurable buffer size (default 100)
+      - Async context manager interface
+      - `asyncio.Lock` for thread-safe buffering
+      - `asyncio.to_thread()` for non-blocking writes
+    - `stream_to_ndjson()` convenience function for easy NDJSON streaming
+    - Exported all classes from `hamburglar.outputs` package
+    - Created 37 comprehensive tests in `tests/test_streaming.py` covering:
+      - NDJSON format correctness (valid JSON, single-line, no trailing commas)
+      - Real-time streaming behavior
+      - Stream interruption support
+      - Backpressure handling
+      - Integration with AsyncScanner
+    - All 1949 tests pass with 94% overall coverage (streaming.py at 99%)
 
 - [ ] Update `src/hamburglar/cli/main.py` to: use `asyncio.run()` for the scan command, add `--concurrency/-j` option for parallel file limit (default 50), add `--stream` flag for streaming output mode, add rich progress bar using `rich.progress.Progress`, display real-time stats (files/sec, findings count)
 

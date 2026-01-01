@@ -74,7 +74,18 @@ This phase packages Hamburglar for distribution via PyPI and Docker, making it e
   - Updated tests/test_package_exports.py to include new API functions in __all__ validation
   - All 3500 tests pass
 
-- [ ] Create `scripts/docker-build.sh` that: builds Docker image with proper tags, runs basic smoke test, optionally pushes to registry
+- [x] Create `scripts/docker-build.sh` that: builds Docker image with proper tags, runs basic smoke test, optionally pushes to registry
+  - Created comprehensive shell script at scripts/docker-build.sh with proper CLI argument parsing
+  - Supports --tag/-t for version tagging (builds both version and latest tags)
+  - Supports --push/-p to push to registry after build
+  - Supports --no-cache/-n for fresh builds without Docker cache
+  - Supports --test-only to run smoke tests on existing image without rebuilding
+  - Environment variables: DOCKER_REGISTRY, DOCKER_IMAGE, DOCKER_TAG for customization
+  - Smoke tests include: version check, help command, non-root user verification, scan subcommand, YARA rules inclusion, volume mount points
+  - Colored output with log levels (INFO, SUCCESS, WARNING, ERROR)
+  - Prerequisite checks for Docker installation and daemon availability
+  - Script syntax validated and help command tested
+  - All 3500 existing tests pass
 
 - [ ] Create `scripts/publish.sh` that: runs tests, builds wheel and sdist, checks with twine, uploads to PyPI (or TestPyPI with --test flag)
 

@@ -207,7 +207,15 @@ This phase replaces the legacy threading model with modern async/await patterns 
     - Created 72 comprehensive tests in `tests/test_profiling.py`
     - All 2229 tests pass with 4 warnings
 
-- [ ] Create `tests/test_async_scanner.py` with tests for: async scanning produces same results as sync, concurrency limit is respected, cancellation works correctly, progress callbacks are called, streaming output works
+- [x] Create `tests/test_async_scanner.py` with tests for: async scanning produces same results as sync, concurrency limit is respected, cancellation works correctly, progress callbacks are called, streaming output works
+  - **Completed:** Test file already exists with 36 comprehensive tests covering:
+    - `TestAsyncScannerMatchesSyncResults`: async vs sync result comparison
+    - `TestConcurrencyLimit`: semaphore-based concurrency control verification
+    - `TestCancellation`: cancellation event and scan interruption
+    - `TestProgressCallback`: progress tracking and callback invocation
+    - `TestStreamingOutput`: async generator streaming functionality
+    - Additional test classes for error handling, reset, blacklist/whitelist, non-recursive mode
+    - All 36 tests pass with 0.31s execution time
 
 - [ ] Create `tests/test_file_reader.py` with tests for: async file reading works correctly, encoding detection works, large files are handled efficiently, binary file detection works, corrupt files don't crash reader
 

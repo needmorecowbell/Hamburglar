@@ -9,7 +9,6 @@ This module contains tests verifying that:
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import pytest
@@ -22,7 +21,8 @@ from hamburglar.detectors.regex_detector import RegexDetector
 class TestUTF8FileHandling:
     """Tests that the scanner correctly handles UTF-8 encoded files."""
 
-    def test_standard_utf8_ascii_content(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_standard_utf8_ascii_content(self, tmp_path: Path) -> None:
         """Test that standard ASCII content (valid UTF-8) is processed correctly."""
         test_file = tmp_path / "ascii.txt"
         content = "Contact us at admin@example.com for more info."
@@ -32,13 +32,14 @@ class TestUTF8FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
         assert "admin@example.com" in email_findings[0].matches
 
-    def test_utf8_with_accented_characters(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_with_accented_characters(self, tmp_path: Path) -> None:
         """Test that UTF-8 files with accented characters are processed."""
         test_file = tmp_path / "accents.txt"
         # Use ASCII-only email address since the email regex uses [A-Za-z0-9]
@@ -53,13 +54,14 @@ class TestUTF8FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
         assert "cafe.owner@example.com" in email_findings[0].matches
 
-    def test_utf8_with_unicode_symbols(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_with_unicode_symbols(self, tmp_path: Path) -> None:
         """Test that UTF-8 files with Unicode symbols are processed."""
         test_file = tmp_path / "symbols.txt"
         content = """
@@ -74,12 +76,13 @@ class TestUTF8FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
 
-    def test_utf8_with_cjk_characters(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_with_cjk_characters(self, tmp_path: Path) -> None:
         """Test that UTF-8 files with CJK characters are processed."""
         test_file = tmp_path / "cjk.txt"
         content = """
@@ -95,14 +98,15 @@ class TestUTF8FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(aws_findings) == 1
         assert len(email_findings) == 1
 
-    def test_utf8_with_emoji(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_with_emoji(self, tmp_path: Path) -> None:
         """Test that UTF-8 files with emoji are processed without errors."""
         test_file = tmp_path / "emoji.txt"
         content = """
@@ -118,14 +122,15 @@ class TestUTF8FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
         assert len(email_findings) == 1
         assert len(aws_findings) == 1
 
-    def test_utf8_bom_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_bom_file(self, tmp_path: Path) -> None:
         """Test that UTF-8 files with BOM are processed correctly."""
         test_file = tmp_path / "bom.txt"
         # Write UTF-8 with BOM
@@ -138,7 +143,7 @@ class TestUTF8FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
@@ -147,7 +152,8 @@ class TestUTF8FileHandling:
 class TestLatin1FileHandling:
     """Tests that the scanner correctly handles Latin-1/ISO-8859-1 encoded files."""
 
-    def test_latin1_basic_content(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_latin1_basic_content(self, tmp_path: Path) -> None:
         """Test that Latin-1 encoded files are processed correctly."""
         test_file = tmp_path / "latin1.txt"
         content = "Contact: admin@example.com\nCopyright © 2024"
@@ -158,12 +164,13 @@ class TestLatin1FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
 
-    def test_latin1_with_extended_chars(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_latin1_with_extended_chars(self, tmp_path: Path) -> None:
         """Test Latin-1 files with characters outside ASCII range."""
         test_file = tmp_path / "latin1_extended.txt"
         # Latin-1 specific characters (not valid UTF-8)
@@ -175,13 +182,14 @@ class TestLatin1FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
         assert "temp@example.com" in email_findings[0].matches
 
-    def test_latin1_windows_1252_compatible(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_latin1_windows_1252_compatible(self, tmp_path: Path) -> None:
         """Test handling of Windows-1252 compatible content (similar to Latin-1)."""
         test_file = tmp_path / "windows.txt"
         # Windows-1252 "smart quotes" and em-dash
@@ -193,13 +201,14 @@ class TestLatin1FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should still find the email
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
 
-    def test_latin1_with_fractions(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_latin1_with_fractions(self, tmp_path: Path) -> None:
         """Test Latin-1 files with fraction characters."""
         test_file = tmp_path / "fractions.txt"
         # Latin-1 fractions: ½ (0xbd), ¼ (0xbc), ¾ (0xbe)
@@ -210,7 +219,7 @@ class TestLatin1FileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
@@ -219,7 +228,8 @@ class TestLatin1FileHandling:
 class TestMixedBrokenEncodingHandling:
     """Tests that the scanner handles mixed or broken encoding gracefully."""
 
-    def test_mixed_utf8_and_latin1(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_mixed_utf8_and_latin1(self, tmp_path: Path) -> None:
         """Test handling of files with mixed UTF-8 and Latin-1 content."""
         test_file = tmp_path / "mixed.txt"
         # Start with valid UTF-8, then add invalid bytes
@@ -234,7 +244,7 @@ class TestMixedBrokenEncodingHandling:
         scanner = Scanner(config, detectors=[detector])
 
         # Should not crash, should fall back to Latin-1
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should still find the secrets
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
@@ -242,7 +252,8 @@ class TestMixedBrokenEncodingHandling:
         assert len(email_findings) == 1
         assert len(aws_findings) == 1
 
-    def test_invalid_utf8_sequences(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_invalid_utf8_sequences(self, tmp_path: Path) -> None:
         """Test handling of files with invalid UTF-8 sequences."""
         test_file = tmp_path / "invalid_utf8.txt"
         # Create content with invalid UTF-8 continuation bytes
@@ -257,13 +268,14 @@ class TestMixedBrokenEncodingHandling:
         scanner = Scanner(config, detectors=[detector])
 
         # Should not crash
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should fall back to Latin-1 and find the email
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
 
-    def test_truncated_utf8_multibyte(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_truncated_utf8_multibyte(self, tmp_path: Path) -> None:
         """Test handling of truncated UTF-8 multibyte sequences."""
         test_file = tmp_path / "truncated.txt"
         # Valid UTF-8 followed by truncated multibyte sequence
@@ -277,13 +289,14 @@ class TestMixedBrokenEncodingHandling:
         scanner = Scanner(config, detectors=[detector])
 
         # Should not crash
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should still find the email
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
 
-    def test_null_bytes_in_text(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_null_bytes_in_text(self, tmp_path: Path) -> None:
         """Test handling of null bytes embedded in text files."""
         test_file = tmp_path / "nulls.txt"
         # Text with occasional null bytes (might indicate broken encoding)
@@ -296,13 +309,14 @@ class TestMixedBrokenEncodingHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should either process or skip (depending on binary detection)
         # Main goal is no crash
         assert result.stats["files_scanned"] + result.stats["files_skipped"] == 1
 
-    def test_all_byte_values(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_all_byte_values(self, tmp_path: Path) -> None:
         """Test handling of file containing all possible byte values."""
         test_file = tmp_path / "all_bytes.txt"
         # Create content with all byte values 0-255
@@ -318,10 +332,11 @@ class TestMixedBrokenEncodingHandling:
         scanner = Scanner(config, detectors=[detector])
 
         # Should not crash regardless of outcome
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
         assert isinstance(result.findings, list)
 
-    def test_random_binary_with_text_sections(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_random_binary_with_text_sections(self, tmp_path: Path) -> None:
         """Test handling of file with random binary data and text sections."""
         test_file = tmp_path / "hybrid.dat"
         # Mix of binary garbage and readable text
@@ -337,14 +352,15 @@ class TestMixedBrokenEncodingHandling:
         scanner = Scanner(config, detectors=[detector])
 
         # Should not crash - may be detected as binary and skipped
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
         assert isinstance(result.findings, list)
 
 
 class TestEmptyFileHandling:
     """Tests that the scanner handles empty files gracefully."""
 
-    def test_completely_empty_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_completely_empty_file(self, tmp_path: Path) -> None:
         """Test scanning a completely empty file (0 bytes)."""
         test_file = tmp_path / "empty.txt"
         test_file.write_bytes(b"")
@@ -353,12 +369,13 @@ class TestEmptyFileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         assert result.stats["files_scanned"] == 1
         assert len(result.findings) == 0
 
-    def test_whitespace_only_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_whitespace_only_file(self, tmp_path: Path) -> None:
         """Test scanning a file with only whitespace."""
         test_file = tmp_path / "whitespace.txt"
         test_file.write_text("   \n\t\n   \n", encoding="utf-8")
@@ -367,12 +384,13 @@ class TestEmptyFileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         assert result.stats["files_scanned"] == 1
         assert len(result.findings) == 0
 
-    def test_newlines_only_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_newlines_only_file(self, tmp_path: Path) -> None:
         """Test scanning a file with only newlines."""
         test_file = tmp_path / "newlines.txt"
         test_file.write_text("\n\n\n\n\n", encoding="utf-8")
@@ -381,12 +399,13 @@ class TestEmptyFileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         assert result.stats["files_scanned"] == 1
         assert len(result.findings) == 0
 
-    def test_single_character_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_single_character_file(self, tmp_path: Path) -> None:
         """Test scanning a file with a single character."""
         test_file = tmp_path / "single.txt"
         test_file.write_text("x", encoding="utf-8")
@@ -395,12 +414,13 @@ class TestEmptyFileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         assert result.stats["files_scanned"] == 1
         assert len(result.findings) == 0
 
-    def test_single_newline_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_single_newline_file(self, tmp_path: Path) -> None:
         """Test scanning a file with a single newline."""
         test_file = tmp_path / "single_newline.txt"
         test_file.write_text("\n", encoding="utf-8")
@@ -409,7 +429,7 @@ class TestEmptyFileHandling:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         assert result.stats["files_scanned"] == 1
         assert len(result.findings) == 0
@@ -418,7 +438,8 @@ class TestEmptyFileHandling:
 class TestEncodingFallbackBehavior:
     """Tests that encoding fallback works correctly."""
 
-    def test_utf8_fallback_still_finds_secrets(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_fallback_still_finds_secrets(self, tmp_path: Path) -> None:
         """Test that files failing UTF-8 decode still get scanned via Latin-1 fallback."""
         test_file = tmp_path / "fallback.txt"
         # Content that will fail UTF-8 decoding but still contains secrets
@@ -430,7 +451,7 @@ class TestEncodingFallbackBehavior:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find the email after fallback
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
@@ -440,7 +461,8 @@ class TestEncodingFallbackBehavior:
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
 
-    def test_utf8_fallback_processes_entire_file(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_utf8_fallback_processes_entire_file(self, tmp_path: Path) -> None:
         """Test that Latin-1 fallback processes the entire file, not just valid parts."""
         test_file = tmp_path / "mixed_bytes.txt"
         # Invalid UTF-8 bytes scattered throughout
@@ -455,7 +477,7 @@ class TestEncodingFallbackBehavior:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find all three emails (may be in one finding or multiple)
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
@@ -467,7 +489,8 @@ class TestEncodingFallbackBehavior:
         assert "second@example.com" in all_matches
         assert "third@example.com" in all_matches
 
-    def test_pure_utf8_no_fallback_needed(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_pure_utf8_no_fallback_needed(self, tmp_path: Path) -> None:
         """Test that pure UTF-8 files are processed directly without fallback."""
         test_file = tmp_path / "valid_utf8.txt"
         content = "Valid UTF-8 content: admin@example.com"
@@ -477,13 +500,14 @@ class TestEncodingFallbackBehavior:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find the email
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 1
 
-    def test_latin1_encoded_secrets_found(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_latin1_encoded_secrets_found(self, tmp_path: Path) -> None:
         """Test that secrets in Latin-1 encoded files are found after fallback."""
         test_file = tmp_path / "latin1_secrets.txt"
         # Latin-1 encoded content with secrets
@@ -496,7 +520,7 @@ class TestEncodingFallbackBehavior:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find both secrets
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
@@ -508,7 +532,8 @@ class TestEncodingFallbackBehavior:
 class TestEncodingWithFixtures:
     """Tests using the test fixture files."""
 
-    def test_mixed_encoding_fixture(self) -> None:
+    @pytest.mark.asyncio
+    async def test_mixed_encoding_fixture(self) -> None:
         """Test that the mixed_encoding.txt fixture is processed correctly."""
         fixtures_path = Path(__file__).parent / "fixtures" / "mixed_encoding.txt"
         if not fixtures_path.exists():
@@ -518,7 +543,7 @@ class TestEncodingWithFixtures:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # The fixture should be processed without errors
         assert result.stats["files_scanned"] == 1
@@ -526,7 +551,8 @@ class TestEncodingWithFixtures:
         # No secrets in this fixture
         assert len(result.findings) == 0
 
-    def test_secret_file_fixture(self) -> None:
+    @pytest.mark.asyncio
+    async def test_secret_file_fixture(self) -> None:
         """Test that the secret_file.txt fixture is processed correctly."""
         fixtures_path = Path(__file__).parent / "fixtures" / "secret_file.txt"
         if not fixtures_path.exists():
@@ -536,7 +562,7 @@ class TestEncodingWithFixtures:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find secrets
         assert result.stats["files_scanned"] == 1
@@ -550,7 +576,8 @@ class TestEncodingWithFixtures:
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) >= 1
 
-    def test_clean_file_fixture(self) -> None:
+    @pytest.mark.asyncio
+    async def test_clean_file_fixture(self) -> None:
         """Test that the clean_file.txt fixture produces no findings."""
         fixtures_path = Path(__file__).parent / "fixtures" / "clean_file.txt"
         if not fixtures_path.exists():
@@ -560,7 +587,7 @@ class TestEncodingWithFixtures:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should process the file
         assert result.stats["files_scanned"] == 1
@@ -572,7 +599,8 @@ class TestEncodingWithFixtures:
 class TestEncodingWithMultipleFiles:
     """Tests encoding handling across multiple files in a directory."""
 
-    def test_directory_with_mixed_encodings(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_directory_with_mixed_encodings(self, tmp_path: Path) -> None:
         """Test scanning a directory with files in different encodings."""
         # UTF-8 file
         utf8_file = tmp_path / "utf8.txt"
@@ -590,7 +618,7 @@ class TestEncodingWithMultipleFiles:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # All 3 files should be processed
         assert result.stats["files_scanned"] == 3
@@ -599,7 +627,8 @@ class TestEncodingWithMultipleFiles:
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 3
 
-    def test_directory_with_some_encoding_errors(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_directory_with_some_encoding_errors(self, tmp_path: Path) -> None:
         """Test scanning continues even when some files have encoding issues."""
         # Good file
         good_file = tmp_path / "good.txt"
@@ -617,7 +646,7 @@ class TestEncodingWithMultipleFiles:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # All files should be processed (with fallback for bad one)
         assert result.stats["files_scanned"] == 3

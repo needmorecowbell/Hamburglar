@@ -8,9 +8,9 @@ This module contains tests verifying that:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from pathlib import Path
+
 import pytest
 
 from hamburglar.core.logging import get_logger, setup_logging
@@ -237,7 +237,8 @@ class TestMockedLargeFiles:
         # Should be skipped
         assert len(findings) == 0
 
-    def test_scanner_with_large_file_mock(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_scanner_with_large_file_mock(self, tmp_path: Path) -> None:
         """Test scanner behavior with mocked large file content."""
         # Create a small test file
         test_file = tmp_path / "test.txt"
@@ -248,12 +249,13 @@ class TestMockedLargeFiles:
         detector = RegexDetector(max_file_size=10)  # 10 bytes max
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # File content is 17 bytes, so should be skipped
         assert len(result.findings) == 0
 
-    def test_multiple_detectors_independent_size_limits(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_multiple_detectors_independent_size_limits(self, tmp_path: Path) -> None:
         """Test that multiple detectors can have independent size limits."""
         test_file = tmp_path / "test.txt"
         # Create content that's 100 bytes
@@ -267,7 +269,7 @@ class TestMockedLargeFiles:
         config = ScanConfig(target_path=tmp_path, recursive=False)
         scanner = Scanner(config, detectors=[detector_small, detector_large])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Only detector_large should find the email
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
@@ -358,7 +360,8 @@ rule test_rule {
 class TestScannerWithLargeFileSizeLimit:
     """Integration tests for scanner with large file size limits."""
 
-    def test_scanner_processes_small_files_with_default_limit(
+    @pytest.mark.asyncio
+    async def test_scanner_processes_small_files_with_default_limit(
         self, tmp_path: Path
     ) -> None:
         """Test that scanner processes small files with default 10MB limit."""
@@ -369,12 +372,13 @@ class TestScannerWithLargeFileSizeLimit:
         detector = RegexDetector()  # Default 10MB limit
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
         assert len(aws_findings) == 1
 
-    def test_scanner_skips_files_over_custom_limit(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_scanner_skips_files_over_custom_limit(self, tmp_path: Path) -> None:
         """Test that scanner skips files over a custom size limit."""
         test_file = tmp_path / "config.txt"
         # Create content that's exactly 100 bytes with a secret
@@ -384,12 +388,13 @@ class TestScannerWithLargeFileSizeLimit:
         detector = RegexDetector(max_file_size=50)  # Only 50 bytes
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # File is 100 bytes, detector limit is 50, so should be skipped
         assert len(result.findings) == 0
 
-    def test_scanner_mixed_sizes_partial_processing(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_scanner_mixed_sizes_partial_processing(self, tmp_path: Path) -> None:
         """Test scanner with mixed file sizes - some processed, some skipped."""
         # Small file (should be processed)
         small_file = tmp_path / "small.txt"
@@ -403,7 +408,7 @@ class TestScannerWithLargeFileSizeLimit:
         detector = RegexDetector(max_file_size=100)  # 100 byte limit
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should only find email from small file
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]

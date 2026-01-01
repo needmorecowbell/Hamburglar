@@ -9,8 +9,6 @@ This module contains tests verifying that:
 
 from __future__ import annotations
 
-import asyncio
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -276,7 +274,8 @@ echo "Configured"
 class TestScannerMixedDirectories:
     """Tests that the scanner properly processes mixed directories."""
 
-    def test_scanner_with_mixed_binary_and_text_files(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_scanner_with_mixed_binary_and_text_files(self, tmp_path: Path) -> None:
         """Test scanner processes text files and skips binary files in same directory."""
         # Create text file with secrets
         text_file = tmp_path / "config.txt"
@@ -298,7 +297,7 @@ class TestScannerMixedDirectories:
         scanner = Scanner(config, detectors=[detector])
 
         # Run scan
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find secrets from text files only
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
@@ -311,7 +310,8 @@ class TestScannerMixedDirectories:
         # Should find both emails
         assert len(email_findings) == 2
 
-    def test_scanner_recursive_with_mixed_content(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_scanner_recursive_with_mixed_content(self, tmp_path: Path) -> None:
         """Test scanner recursively processes directories with mixed content."""
         # Create directory structure
         src_dir = tmp_path / "src"
@@ -335,7 +335,7 @@ class TestScannerMixedDirectories:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should find secrets in text files
         aws_findings = [f for f in result.findings if "AWS API Key" in f.detector_name]
@@ -345,7 +345,8 @@ class TestScannerMixedDirectories:
         email_findings = [f for f in result.findings if "Email Address" in f.detector_name]
         assert len(email_findings) == 2  # dev@example.com and root@example.com
 
-    def test_scanner_image_directory(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_scanner_image_directory(self, tmp_path: Path) -> None:
         """Test scanner correctly skips image files in an assets directory."""
         assets_dir = tmp_path / "assets"
         assets_dir.mkdir()
@@ -367,7 +368,7 @@ class TestScannerMixedDirectories:
         detector = RegexDetector()
         scanner = Scanner(config, detectors=[detector])
 
-        result = asyncio.run(scanner.scan())
+        result = await scanner.scan()
 
         # Should only find the email in metadata.txt
         assert len(result.findings) >= 1

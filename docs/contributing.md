@@ -622,7 +622,7 @@ Examples, mockups, or references to similar features.
 
 **DO NOT** open a public issue for security vulnerabilities.
 
-See [SECURITY.md](../SECURITY.md) for our security policy and how to report vulnerabilities responsibly.
+See [SECURITY.md](https://github.com/needmorecowbell/Hamburglar/blob/master/SECURITY.md) for our security policy and how to report vulnerabilities responsibly.
 
 ---
 
@@ -902,4 +902,4 @@ We follow the [Contributor Covenant](https://www.contributor-covenant.org/versio
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](../LICENSE).
+By contributing, you agree that your contributions will be licensed under the [MIT License](https://github.com/needmorecowbell/Hamburglar/blob/master/LICENSE).

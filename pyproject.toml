@@ -5,11 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "hamburglar"
 version = "2.0.0"
-description = "A static analysis tool for extracting sensitive information from files"
+description = "A static analysis tool for extracting sensitive information from files, git repositories, and URLs using regex patterns and YARA rules"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [
+    { name = "needmorecowbell", email = "adam@needmorecowbell.dev" }
+]
+maintainers = [
     { name = "needmorecowbell", email = "adam@needmorecowbell.dev" }
 ]
 keywords = [
@@ -19,6 +22,16 @@ keywords = [
     "static-analysis",
     "sensitive-data",
     "yara",
+    "secret-detection",
+    "credential-scanner",
+    "security-scanner",
+    "code-analysis",
+    "git-scanner",
+    "regex-scanner",
+    "vulnerability-scanner",
+    "data-leak",
+    "api-keys",
+    "private-keys",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -34,7 +47,11 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Security",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
     "Topic :: Utilities",
+    "Typing :: Typed",
 ]
 dependencies = [
     "typer>=0.9.0",
@@ -59,8 +76,10 @@ hamburglar = "hamburglar.cli.main:app"
 
 [project.urls]
 Homepage = "https://github.com/needmorecowbell/Hamburglar"
+Documentation = "https://github.com/needmorecowbell/Hamburglar#readme"
 Repository = "https://github.com/needmorecowbell/Hamburglar"
 Issues = "https://github.com/needmorecowbell/Hamburglar/issues"
+Changelog = "https://github.com/needmorecowbell/Hamburglar/releases"
 
 [tool.hatch.build]
 # Include YARA rules as package data

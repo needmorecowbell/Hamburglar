@@ -420,3 +420,28 @@ class TestHelpShowsExitCodes:
         assert result.exit_code == 0
         # Exit codes should be documented in the help
         assert "Exit codes" in result.output or "exit code" in result.output.lower()
+
+
+class TestShellCompletion:
+    """Test shell completion support."""
+
+    def test_help_shows_install_completion(self) -> None:
+        """Test that --help shows --install-completion option."""
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        assert "--install-completion" in result.output
+
+    def test_help_shows_show_completion(self) -> None:
+        """Test that --help shows --show-completion option."""
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        assert "--show-completion" in result.output
+
+    def test_show_completion_outputs_script(self) -> None:
+        """Test that --show-completion outputs a completion script."""
+        result = runner.invoke(app, ["--show-completion"])
+        # The command should succeed and output a completion script
+        # The output contains shell-specific completion code
+        assert result.exit_code == 0
+        # Check for completion function markers (works for bash/zsh/fish)
+        assert "hamburglar" in result.output.lower() or "completion" in result.output.lower()

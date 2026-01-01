@@ -9,7 +9,58 @@ These options are available for all commands:
 | Option | Description |
 |--------|-------------|
 | `--version` | Show version number and exit |
+| `--install-completion` | Install shell completion for the current shell (bash, zsh, fish) |
+| `--show-completion` | Show completion script for the current shell (for manual installation) |
 | `--help` | Show help message and exit |
+
+## Shell Completion
+
+Hamburglar provides shell completion for bash, zsh, and fish shells. Completion helps you:
+
+- Auto-complete command names and subcommands
+- Auto-complete option flags
+- Complete file and directory paths
+
+### Installing Completion
+
+The easiest way to set up completion is using the `--install-completion` flag:
+
+```bash
+# Automatically install completion for your current shell
+hamburglar --install-completion
+```
+
+This detects your shell automatically and installs the completion script to the appropriate location.
+
+### Manual Installation
+
+If you prefer to install completion manually, or need to customize it:
+
+```bash
+# Show the completion script for your current shell
+hamburglar --show-completion
+
+# For bash, save to a file and source it
+hamburglar --show-completion > ~/.hamburglar-complete.bash
+echo 'source ~/.hamburglar-complete.bash' >> ~/.bashrc
+
+# For zsh, save to your fpath
+hamburglar --show-completion > ~/.zsh/completions/_hamburglar
+
+# For fish, save to completions directory
+hamburglar --show-completion > ~/.config/fish/completions/hamburglar.fish
+```
+
+### Supported Shells
+
+| Shell | Support | Notes |
+|-------|---------|-------|
+| bash | ✅ Full | Requires bash-completion |
+| zsh | ✅ Full | Built-in completion system |
+| fish | ✅ Full | Built-in completion system |
+| PowerShell | ⚠️ Partial | May require additional configuration |
+
+After installation, restart your shell or source the completion script to activate.
 
 ## Commands
 

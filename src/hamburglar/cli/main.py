@@ -342,7 +342,7 @@ EXIT_NO_FINDINGS = 2
 app = typer.Typer(
     name="hamburglar",
     help="Hamburglar - A static analysis tool for extracting sensitive information.",
-    add_completion=False,
+    add_completion=True,
 )
 console = Console()
 error_console = Console(stderr=True)

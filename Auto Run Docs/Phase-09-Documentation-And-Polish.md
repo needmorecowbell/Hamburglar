@@ -48,7 +48,10 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
 - [x] Update `README.md` with: compelling project description, animated GIF/asciicast of usage (placeholder link), feature list, installation options, quick example, documentation links, contributing section, license info
   - Completely rewrote README.md with: compelling tagline ("Stop secrets from escaping"), "Why Hamburglar?" value proposition section, demo placeholder image with TODO comment for asciicast, comprehensive feature table (9 features including 160+ patterns, YARA, entropy detection, 7 output formats, plugin system), 4-cell table of "What Hamburglar Finds" (API keys, credentials, private keys, other data), installation options (PyPI, Docker, source, dev), quick start examples, Python library usage, Docker usage, CI/CD integration (GitHub Actions, pre-commit), output formats table with use cases, documentation links table (9 docs), enhanced contributing section with clear steps, security section linking to SECURITY.md, license section, and links section with all relevant URLs
 
-- [ ] Add shell completion support: `hamburglar --install-completion` for bash/zsh/fish, document in CLI reference
+- [x] Add shell completion support: `hamburglar --install-completion` for bash/zsh/fish, document in CLI reference
+  - Changed Typer app initialization from `add_completion=False` to `add_completion=True` in src/hamburglar/cli/main.py
+  - Added TestShellCompletion class with 3 tests in tests/test_cli.py verifying --install-completion and --show-completion options
+  - Updated docs/cli-reference.md with comprehensive Shell Completion section including: Global Options table update, Installation instructions, Manual installation steps, and Supported shells table (bash/zsh/fish)
 
 - [ ] Add `hamburglar doctor` command that: checks Python version, checks dependencies installed correctly, checks YARA installation, validates default config, reports any issues with suggestions
 

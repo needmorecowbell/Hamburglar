@@ -1,0 +1,20 @@
+# MANIFEST.in - Additional files to include in source distribution
+# This file specifies extra files to include in sdist beyond what's in pyproject.toml
+
+# Documentation
+include LICENSE
+include README.md
+
+# YARA rules - both root level (legacy) and package rules
+recursive-include rules *.yar
+recursive-include src/hamburglar/rules *.yar
+
+# Package data files
+recursive-include src/hamburglar *.yar
+
+# Exclude unnecessary files from sdist
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude .DS_Store
+global-exclude *.egg-info

@@ -69,7 +69,14 @@ This phase implements the git repository and web URL scanning modes from the ori
   - Comprehensive test suite with 71 tests in tests/test_http_client.py
   - Test coverage at 98% for http_client.py, overall project at 94.13%
 
-- [ ] Update CLI with `scan-git` command: positional URL/path argument, `--depth` for commit history depth (default all), `--branch` to scan specific branch, `--include-history` flag to scan historical commits, `--clone-dir` to specify clone location
+- [x] Update CLI with `scan-git` command: positional URL/path argument, `--depth` for commit history depth (default all), `--branch` to scan specific branch, `--include-history` flag to scan historical commits, `--clone-dir` to specify clone location
+  - Added `scan-git` command to CLI in `src/hamburglar/cli/main.py`
+  - Options: `--depth/-d` for commit history depth, `--branch/-b` for specific branch, `--include-history/--no-history` for history scanning (default: enabled), `--clone-dir` for custom clone directory
+  - Supports all standard options: `--format`, `--output`, `--verbose`, `--quiet`, `--stream`, `--categories`, `--no-categories`, `--min-confidence`
+  - Rich progress bar showing current file/commit being scanned and findings count
+  - Streaming mode outputs NDJSON for real-time finding processing
+  - Comprehensive test suite with 24 tests in `tests/test_cli_git.py`
+  - All 2636 tests pass (94%+ coverage maintained)
 
 - [ ] Update CLI with `scan-web` command: positional URL argument, `--depth` for link follow depth (default 1), `--include-scripts` to scan JS files, `--user-agent` for custom user agent, `--timeout` for request timeout, `--auth` for basic auth credentials
 

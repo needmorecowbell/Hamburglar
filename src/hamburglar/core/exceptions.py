@@ -6,6 +6,8 @@ base HamburglarError class, allowing callers to catch all Hamburglar
 errors with a single except clause.
 """
 
+from __future__ import annotations
+
 
 class HamburglarError(Exception):
     """Base exception for all Hamburglar errors.

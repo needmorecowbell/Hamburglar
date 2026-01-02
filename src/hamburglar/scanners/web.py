@@ -15,6 +15,8 @@ The scanner supports:
 - Common encoding handling
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import time
@@ -459,7 +461,7 @@ class WebScanner(BaseScanner):
 
         for script in soup.find_all("script", src=True):
             src = script.get("src")
-            if src:
+            if src and isinstance(src, str):
                 # Resolve relative URLs
                 absolute_url = urljoin(base_url, src)
                 script_urls.append(absolute_url)
@@ -481,7 +483,7 @@ class WebScanner(BaseScanner):
 
         for a in soup.find_all("a", href=True):
             href = a.get("href")
-            if href and not href.startswith(("javascript:", "mailto:", "tel:", "#")):
+            if href and isinstance(href, str) and not href.startswith(("javascript:", "mailto:", "tel:", "#")):
                 # Resolve relative URLs
                 absolute_url = urljoin(base_url, href)
                 links.append(absolute_url)

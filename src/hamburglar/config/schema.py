@@ -137,7 +137,8 @@ class DetectorSettings(BaseModel):
         valid = {"low", "medium", "high"}
         if v not in valid:
             raise ValueError(f"min_confidence must be one of: {', '.join(valid)}")
-        return v
+        result: str = v
+        return result
 
     @field_validator("enabled_categories", mode="before")
     @classmethod

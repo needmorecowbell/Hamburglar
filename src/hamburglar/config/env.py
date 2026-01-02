@@ -110,9 +110,9 @@ def get_env_overrides() -> dict[str, Any]:
         overrides["scan"]["max_file_size"] = os.environ[ENV_MAX_FILE_SIZE]
 
     if ENV_TIMEOUT in os.environ:
-        value = _parse_float(os.environ[ENV_TIMEOUT])
-        if value is not None:
-            overrides["scan"]["timeout"] = value
+        timeout_value = _parse_float(os.environ[ENV_TIMEOUT])
+        if timeout_value is not None:
+            overrides["scan"]["timeout"] = timeout_value
 
     if ENV_RECURSIVE in os.environ:
         overrides["scan"]["recursive"] = _parse_bool(os.environ[ENV_RECURSIVE])

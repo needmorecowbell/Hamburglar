@@ -4,6 +4,8 @@ This module provides the base storage interface and registry for managing
 storage backends that persist scan results for historical analysis and reporting.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime

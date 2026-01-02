@@ -4,6 +4,8 @@ This module defines the Pydantic models used throughout Hamburglar for
 representing scan configuration, findings, and results.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
 from pathlib import Path

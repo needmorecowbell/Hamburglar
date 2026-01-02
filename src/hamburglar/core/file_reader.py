@@ -15,10 +15,10 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from typing import Self
+    from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +102,8 @@ class AsyncFileReader:
         self._forced_mmap = use_mmap
         self._forced_encoding = encoding
 
-        # State
-        self._file: any = None
+        # State - file handle (BufferedReader or TextIOWrapper)
+        self._file: Any = None
         self._mmap: mmap.mmap | None = None
         self._file_info: FileInfo | None = None
         self._is_open = False
@@ -432,7 +432,8 @@ class AsyncFileReader:
             return self._mmap.read()
         elif self._file is not None:
             self._file.seek(0)
-            return self._file.read()
+            data: bytes = self._file.read()
+            return data
         else:
             raise RuntimeError("No file handle available")
 
@@ -461,7 +462,8 @@ class AsyncFileReader:
         if self._mmap is not None:
             return self._mmap.read(size)
         elif self._file is not None:
-            return self._file.read(size)
+            data: bytes = self._file.read(size)
+            return data
         else:
             raise RuntimeError("No file handle available")
 
@@ -531,11 +533,13 @@ class AsyncFileReader:
     def _seek_sync(self, position: int, whence: int) -> int:
         """Synchronously seek in the file."""
         if self._mmap is not None:
-            self._mmap.seek(position, whence)
+            # mmap.seek expects whence as Literal[0,1,2], cast to satisfy mypy
+            self._mmap.seek(position, whence)  # type: ignore[arg-type]
             return self._mmap.tell()
         elif self._file is not None:
             self._file.seek(position, whence)
-            return self._file.tell()
+            pos: int = self._file.tell()
+            return pos
         else:
             raise RuntimeError("No file handle available")
 
@@ -621,7 +625,8 @@ class AsyncFileReader:
             File contents as string.
         """
         async with cls(path, chunk_size=chunk_size, encoding=encoding) as reader:
-            return await reader.read()
+            result: str = await reader.read()
+            return result
 
     @classmethod
     async def read_file_bytes(
@@ -639,4 +644,5 @@ class AsyncFileReader:
             File contents as bytes.
         """
         async with cls(path, chunk_size=chunk_size) as reader:
-            return await reader.read_bytes()
+            result: bytes = await reader.read_bytes()
+            return result

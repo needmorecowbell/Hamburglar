@@ -11,6 +11,8 @@ The scanner:
 - Generates timeline of secret exposure
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import re

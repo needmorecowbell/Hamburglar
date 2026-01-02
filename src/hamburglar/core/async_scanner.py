@@ -6,6 +6,8 @@ It replaces the legacy threading model with asyncio for improved performance
 and resource efficiency.
 """
 
+from __future__ import annotations
+
 import asyncio
 import fnmatch
 import logging

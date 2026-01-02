@@ -14,6 +14,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from sqlite3 import Connection
 from typing import Any
 
 from hamburglar.core.models import Finding, ScanResult, Severity
@@ -124,7 +125,8 @@ class SqliteStorage(BaseStorage):
                     operation="connect",
                 ) from e
 
-        return self._local.connection
+        conn: Connection = self._local.connection
+        return conn
 
     @contextmanager
     def _transaction(self) -> Iterator[sqlite3.Cursor]:

@@ -43,7 +43,7 @@ from hamburglar.core.models import Finding, Severity
 from hamburglar.detectors import BaseDetector, default_registry
 
 if TYPE_CHECKING:
-    from collections.abc import Pattern
+    from re import Pattern
 
 
 class DetectorPlugin(BaseDetector):

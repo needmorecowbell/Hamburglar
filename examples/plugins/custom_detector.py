@@ -389,7 +389,7 @@ if __name__ == "__main__":
         key_prefixes=["ACME_", "TEST_"],
     )
 
-    test_content = '''
+    test_content = """
     # Configuration file
     API_KEY = "ACME_abc123xyz789secret"
     ACME_TOKEN = "ACME_1234567890abcdef"
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     # Generic patterns
     Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
     api_key = "fake_test_key_1234567890abcdef123"
-    '''
+    """
 
     findings = detector.detect(test_content, "test_config.py")
 

@@ -4,6 +4,8 @@ This module provides the Scanner class which handles file discovery,
 content reading, and detector orchestration for scanning targets.
 """
 
+from __future__ import annotations
+
 import asyncio
 import fnmatch
 import logging

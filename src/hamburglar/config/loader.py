@@ -223,7 +223,8 @@ class ConfigLoader:
             )
 
         try:
-            return tomllib.loads(content)
+            result: dict[str, Any] = tomllib.loads(content)
+            return result
         except Exception as e:
             raise ConfigError(f"Invalid TOML in {path}: {e}") from e
 

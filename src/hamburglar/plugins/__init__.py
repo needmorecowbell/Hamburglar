@@ -671,12 +671,17 @@ class PluginManager:
         if isinstance(instance, type):
             merged_config = {**info.config, **(config or {})}
             try:
-                return instance(**merged_config) if merged_config else instance()
+                result = instance(**merged_config) if merged_config else instance()
             except TypeError:
                 # Class doesn't accept config, try without it
-                return instance()
+                result = instance()
+            if not isinstance(result, BaseDetector):
+                raise PluginError(f"Plugin '{name}' did not return a BaseDetector", plugin_name=name)
+            return result
 
-        # It's already an instance
+        # It's already an instance - verify type
+        if not isinstance(instance, BaseDetector):
+            raise PluginError(f"Plugin '{name}' instance is not a BaseDetector", plugin_name=name)
         return instance
 
     def get_output(self, name: str, config: dict | None = None) -> BaseOutput:
@@ -705,12 +710,17 @@ class PluginManager:
         if isinstance(instance, type):
             merged_config = {**info.config, **(config or {})}
             try:
-                return instance(**merged_config) if merged_config else instance()
+                result = instance(**merged_config) if merged_config else instance()
             except TypeError:
                 # Class doesn't accept config, try without it
-                return instance()
+                result = instance()
+            if not isinstance(result, BaseOutput):
+                raise PluginError(f"Plugin '{name}' did not return a BaseOutput", plugin_name=name)
+            return result
 
-        # It's already an instance
+        # It's already an instance - verify type
+        if not isinstance(instance, BaseOutput):
+            raise PluginError(f"Plugin '{name}' instance is not a BaseOutput", plugin_name=name)
         return instance
 
     def list_detector_plugins(self) -> list[PluginInfo]:

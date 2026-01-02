@@ -620,8 +620,8 @@ class PerformanceReport:
 
         if self.custom_timings:
             lines.extend(["", "Custom Timings:"])
-            for _name, stats in sorted(self.custom_timings.items()):
-                lines.append(f"  {stats}")
+            for _timing_name, timing_stats in sorted(self.custom_timings.items()):
+                lines.append(f"  {timing_stats}")
 
         return "\n".join(lines)
 
@@ -877,7 +877,8 @@ def get_current_memory_rss() -> int:
     """
     if not PSUTIL_AVAILABLE:
         return 0
-    return psutil.Process(os.getpid()).memory_info().rss
+    rss: int = psutil.Process(os.getpid()).memory_info().rss
+    return rss
 
 
 def is_memory_tracking_available() -> bool:

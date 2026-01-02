@@ -5,6 +5,8 @@ content reading, and detector orchestration using modern async/await patterns.
 It implements the BaseScanner interface for scanning local directories and files.
 """
 
+from __future__ import annotations
+
 import asyncio
 import fnmatch
 import logging

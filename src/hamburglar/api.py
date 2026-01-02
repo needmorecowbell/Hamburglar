@@ -22,6 +22,8 @@ Example usage::
     result = asyncio.run(scan_url("https://example.com"))
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

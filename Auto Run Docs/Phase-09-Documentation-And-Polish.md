@@ -124,4 +124,16 @@ This phase creates comprehensive documentation, adds quality-of-life improvement
   - Ran ruff format which reformatted 25 files
   - All 4143 tests pass after changes
 
-- [ ] Run `mypy src/hamburglar` and resolve any type errors
+- [x] Run `mypy src/hamburglar` and resolve any type errors
+  - Added `from __future__ import annotations` to 12 files to enable Python 3.10 union syntax on Python 3.9+
+  - Installed `types-PyYAML` for YAML type stubs
+  - Fixed type annotation issues including:
+    - Importing `Self` from typing_extensions for Python < 3.11
+    - Importing `Connection` from sqlite3
+    - Importing `Pattern` from `re` instead of `collections.abc`
+    - Fixed "Returning Any" errors with explicit type annotations
+    - Fixed variable reuse issues causing type conflicts
+    - Fixed BeautifulSoup attribute type narrowing with `isinstance` checks
+    - Added type: ignore comments for complex dict unpacking
+  - All 54 source files pass mypy with 0 errors
+  - All 4143 tests pass after the fixes

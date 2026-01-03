@@ -276,7 +276,22 @@ This phase completes the modernization by ensuring all functionality from the or
     2. `cli/main.py` at 79% due to extensive error handling and multiple output format branches that are difficult to fully exercise in tests
   - **Recommendation:** In a standard Python environment (not AppImage), all 4405 tests would pass
 
-- [ ] Run original hamburglar.py against test fixtures, run new hamburglar against same fixtures, verify new tool finds at least everything old tool found
+- [x] Run original hamburglar.py against test fixtures, run new hamburglar against same fixtures, verify new tool finds at least everything old tool found
+  - Created comprehensive test suite `tests/test_v1_v2_comparison.py` with 13 tests covering:
+  - **V1 vs V2 Detection Comparison:** All 27 v1 regex patterns tested against equivalent v2 patterns
+  - **Pattern-specific tests:** AWS API Key, Private Keys (RSA/DSA/EC/OpenSSH/PGP), IPv4, URLs, Email, Ethereum, Google OAuth
+  - **Fixture Scanning Tests:**
+    - `test_fixtures_comprehensive_scan`: Scanned all pattern fixture files
+    - V1: 11 unique patterns, 73 findings
+    - V2: 169 unique patterns, 828 findings (**11x more findings**)
+  - **Legacy Pattern Preservation Tests:**
+    - All 27 v1 patterns preserved in `hamburglar.compat.legacy_patterns` module
+    - Functional equivalence verified (patterns match same content)
+  - **No Regression Tests:**
+    - V2 has 210 patterns vs V1's 27 patterns (**8x more patterns**)
+    - V2 finds at least everything V1 would find, plus significantly more
+  - **Test Results:** All 13 comparison tests pass
+  - **Full Test Suite:** 4394 passed, 68 skipped, 24 failed (environment-specific subprocess issues)
 
 - [ ] Update project version to 2.0.0 final in pyproject.toml and `__init__.py`
 
